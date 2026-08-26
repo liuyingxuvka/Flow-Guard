@@ -9,7 +9,7 @@ import json
 import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Mapping
+from typing import Any, Callable, Mapping
 
 from .adoption import ADOPTION_STATUSES
 from .schema import SCHEMA_VERSION
@@ -1060,7 +1060,7 @@ def _add_model_system_parsers(
         parser.add_argument(
             "--output-root",
             default="",
-            help="Model-mesh output root; defaults to .flowguard/model-mesh.",
+        help="Model authority output root; defaults to .flowguard/models/authority.",
         )
         parser.add_argument(
             "--removal-dispositions",
@@ -1475,6 +1475,24 @@ FILE_TEMPLATE_COMMANDS: tuple[FileTemplateCommand, ...] = (
         "test_mesh_template_files",
     ),
     FileTemplateCommand(
+        "model-mesh-template",
+        "Print or write the ModelMesh parent/child topology closure template.",
+        "model_mesh",
+        "model_mesh_template_files",
+    ),
+    FileTemplateCommand(
+        "contract-exhaustion-template",
+        "Print or write the finite ContractExhaustion denominator/oracle template.",
+        "contract_exhaustion",
+        "contract_exhaustion_template_files",
+    ),
+    FileTemplateCommand(
+        "reverse-surface-closure-template",
+        "Print or write the reverse implementation-surface closure authoring template.",
+        "reverse_surface_closure",
+        "reverse_surface_closure_template_files",
+    ),
+    FileTemplateCommand(
         "structure-mesh-template",
         "Print or write the StructureMesh refactor hierarchy template.",
         "structure_mesh",
@@ -1565,10 +1583,91 @@ def _run_project_adoption_command(args: argparse.Namespace) -> int:
     return 0 if report.ok else 1
 
 
+def _run_project_layout_audit_command(args: argparse.Namespace) -> int:
+    """Run the mandatory read-only current .flowguard layout audit."""
+
+    from .project_layout import audit_project_layout
+    from .observation_metrics import InvocationMetrics
+
+    if args.profile == "affected" and not args.changed_path:
+        payload = {
+            "artifact_type": "flowguard_currentness_profile_report",
+            "profile": args.profile,
+            "status": "blocked",
+            "ok": False,
+            "checks_run": [],
+            "checks_not_run": ["layout_shape", "affected_owner_mapping"],
+            "claim_boundary": (
+                "affected profile requires an explicit changed-path set; it never "
+                "falls back to full validation"
+            ),
+            "findings": [
+                {
+                    "code": "affected_changed_paths_missing",
+                    "severity": "blocked",
+                    "message": "The affected profile requires one or more exact changed paths.",
+                }
+            ],
+        }
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) if args.json else "FlowGuard currentness: blocked\nreason: affected profile requires --changed-path")
+        return 1
+
+    metrics = InvocationMetrics()
+    report = audit_project_layout(args.root, metrics=metrics)
+    if args.profile == "light":
+        checks_run = ["layout_shape", "adoption_pointer_shape"]
+        checks_not_run = ["affected_owner_mapping", "semantic_model", "validation_receipts", "release_parity"]
+    elif args.profile == "affected":
+        checks_run = ["layout_shape", "changed_path_boundary"]
+        checks_not_run = ["unmapped_owner_execution", "semantic_model", "validation_receipts", "release_parity"]
+    else:
+        checks_run = ["layout_shape"]
+        checks_not_run = ["semantic_model", "validation_receipts", "release_parity"]
+    payload = report.to_dict()
+    # A routine layout check is a shape gate, not a request to stream the
+    # entire role inventory through the model context.  Keep the complete
+    # observation on the in-process report/API, but expose a bounded terminal
+    # projection unless the caller explicitly asks for the full payload.
+    if not getattr(args, "full_output", False):
+        entry_limit = 64
+        finding_limit = 32
+        all_entries = list(payload.get("observed_entries", ()))
+        all_findings = list(payload.get("findings", ()))
+        payload["observed_entry_count"] = len(all_entries)
+        payload["observed_entries"] = all_entries[:entry_limit]
+        payload["observed_entries_omitted_count"] = max(
+            0, len(all_entries) - len(payload["observed_entries"])
+        )
+        payload["findings_count"] = len(all_findings)
+        payload["findings"] = all_findings[:finding_limit]
+        payload["findings_omitted_count"] = max(
+            0, len(all_findings) - len(payload["findings"])
+        )
+    payload.update(
+        {
+            "profile": args.profile,
+            "changed_paths": list(args.changed_path or ()),
+            "checks_run": checks_run,
+            "checks_not_run": checks_not_run,
+            "claim_boundary": (
+                "This profile proves only the listed checks; not-run checks are not "
+                "implicitly passed and no profile falls back to full validation."
+            ),
+        }
+    )
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        print(report.format_text())
+        print(f"profile: {args.profile}")
+        print("checks not run: " + ", ".join(checks_not_run))
+    return 0 if report.ok else 1
+
+
 def _run_artifact_upgrade_command(args: argparse.Namespace) -> int:
     from .artifact_upgrade import review_artifact_upgrades
 
-    report = review_artifact_upgrades(args.root, apply=args.apply, paths=tuple(args.path or ()))
+    report = review_artifact_upgrades(args.root, paths=tuple(args.path or ()))
     print(report.to_json_text() if args.json else report.format_text())
     return 0 if report.ok else 1
 
@@ -1917,6 +2016,129 @@ def _run_implementation_inventory_audit_command(args: argparse.Namespace) -> int
         return 2
     _emit_payload(report.to_dict(), as_json=args.json)
     return 0 if report.ok else 1
+
+
+def _run_implementation_behavior_surface_audit_command(args: argparse.Namespace) -> int:
+    """Audit production surfaces back to independent intent/model/test rows."""
+
+    from .behavior_surface_audit import (
+        PublicBehaviorSurfaceAuditError,
+        audit_implementation_behavior_surface,
+        compact_implementation_behavior_surface_audit,
+        discover_implementation_behavior_surfaces,
+    )
+
+    try:
+        if args.surface_discovery:
+            discovery_path = Path(args.surface_discovery)
+            loaded = json.loads(discovery_path.read_text(encoding="utf-8"))
+            if not isinstance(loaded, dict):
+                raise ValueError("surface discovery artifact must be a JSON object")
+            # A merged shard artifact is an explicit source observation.  Do
+            # not silently replace it with a new bounded scan: doing so could
+            # truncate a large project and make a partial denominator look
+            # current.  The audit itself validates the shard identity and
+            # current source boundary.
+            discovery = loaded
+        else:
+            discovery = discover_implementation_behavior_surfaces(args.root)
+        report = audit_implementation_behavior_surface(
+            args.root,
+            args.surface_map,
+            discovery=discovery,
+            currentness_profile=getattr(args, "profile", "light"),
+        )
+    except (PublicBehaviorSurfaceAuditError, OSError, ValueError) as exc:
+        _emit_payload(
+            _blueprint_error_payload("implementation_behavior_surface_invalid", exc),
+            as_json=args.json,
+        )
+        return 2
+    if getattr(args, "full_output", False):
+        payload = {
+            "discovery": discovery,
+            "audit": report,
+        }
+    else:
+        payload = compact_implementation_behavior_surface_audit(
+            discovery,
+            report,
+            discovery_artifact=args.surface_discovery,
+            surface_map_artifact=args.surface_map,
+        )
+    _emit_payload(payload, as_json=args.json)
+    return 0 if report.get("status") == "passed" else 1
+
+
+def _run_reverse_surface_authoring_context_command(args: argparse.Namespace) -> int:
+    """Build or validate the current unresolved reverse-closure context."""
+
+    from .reverse_surface_authoring import (
+        ReverseSurfaceAuthoringError,
+        build_reverse_surface_authoring_context,
+        validate_reverse_surface_authoring_context,
+    )
+
+    try:
+        def _read(path: str) -> dict[str, Any]:
+            value = json.loads(Path(path).read_text(encoding="utf-8"))
+            if not isinstance(value, dict):
+                raise ValueError(f"JSON artifact {path} must contain an object")
+            return value
+
+        discovery = _read(args.discovery)
+        ledger = _read(args.ledger)
+        owner_bindings = _read(args.owner_bindings)
+        if args.validate:
+            result = validate_reverse_surface_authoring_context(
+                _read(args.validate),
+                discovery,
+                ledger=ledger,
+                owner_bindings=owner_bindings,
+            )
+        else:
+            result = build_reverse_surface_authoring_context(
+                discovery,
+                ledger=ledger,
+                owner_bindings=owner_bindings,
+            )
+    except (OSError, UnicodeError, json.JSONDecodeError, ReverseSurfaceAuthoringError, ValueError) as exc:
+        result = {
+            "schema_version": "flowguard.reverse_surface_authoring_context.v1",
+            "status": "blocked",
+            "findings": [{"code": "reverse_surface_authoring_input_invalid", "message": str(exc)}],
+        }
+    _emit_payload(result, as_json=True)
+    if args.validate:
+        return 0 if result.get("status") == "passed" else 1
+    return 0 if result.get("status") == "authoring_required" else 1
+
+
+def _run_fault_matrix_review_command(args: argparse.Namespace) -> int:
+    """Reconcile one native finite fault/recovery matrix without executing it."""
+
+    from .fault_matrix_evidence import load_fault_matrix, review_fault_matrix
+
+    try:
+        payload = load_fault_matrix(args.matrix)
+        report = review_fault_matrix(
+            payload,
+            expected_case_ids=args.expected_case_id or None,
+            expected_input_fingerprint=args.expected_input_fingerprint,
+            expected_owner_id=args.expected_owner_id,
+            expected_source_fingerprint=args.expected_source_fingerprint,
+            expected_model_fingerprint=args.expected_model_fingerprint,
+            expected_toolchain_fingerprint=args.expected_toolchain_fingerprint,
+            expected_environment_fingerprint=args.expected_environment_fingerprint,
+        )
+    except (OSError, UnicodeError, ValueError) as exc:
+        report = {
+            "schema_version": "flowguard.fault_matrix_evidence.v1",
+            "status": "blocked",
+            "findings": [{"code": "fault_matrix_input_invalid", "detail": str(exc)}],
+        }
+    _emit_payload(report, as_json=True)
+    return 0 if report.get("status") == "passed" else 1
 
 
 def _run_flowguard_self_blueprint_check_command(args: argparse.Namespace) -> int:
@@ -2391,11 +2613,27 @@ def _run_evidence_lifecycle_command(args: argparse.Namespace) -> int:
         if args.evidence_action == "audit":
             payload = audit_evidence(args.root)
         elif args.evidence_action == "plan":
+            storage_payload = None
+            if getattr(args, "storage_audit", False):
+                from .storage_audit import audit_storage
+
+                storage_root = (
+                    Path(args.storage_root).expanduser()
+                    if getattr(args, "storage_root", None)
+                    else Path(args.root).expanduser().resolve().parent
+                )
+                storage_report = audit_storage(storage_root)
+                if storage_report.status != "passed":
+                    raise EvidenceLifecycleError(
+                        "storage audit has blockers; repair them before GC planning"
+                    )
+                storage_payload = storage_report.to_dict()
             payload = plan_evidence_gc(
                 args.root,
                 keep=args.keep,
                 include_legacy=args.include_legacy,
                 preserve_paths=tuple(args.preserve),
+                storage_audit=storage_payload,
             )
             if args.output:
                 write_json_atomic(args.output, payload)
@@ -2444,6 +2682,33 @@ def _run_evidence_lifecycle_command(args: argparse.Namespace) -> int:
             "claim_boundary": "No lifecycle mutation is accepted after an identity, reachability, or containment failure.",
         }
         return _print_lifecycle(payload, as_json=args.json)
+
+
+def _run_storage_audit_command(args: argparse.Namespace) -> int:
+    from .storage_audit import audit_storage
+
+    report = audit_storage(args.root, max_largest_items=args.max_items)
+    payload = report.to_dict()
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(f"status: {payload['status']}")
+        print(f"root: {payload['root']}")
+        print(
+            "counts: "
+            + " ".join(
+                f"{key}={payload[key]}"
+                for key in (
+                    "directory_walk_count",
+                    "content_file_read_count",
+                    "content_hash_read_count",
+                    "content_bytes_read",
+                )
+            )
+        )
+        for finding in payload["findings"]:
+            print(f"finding: {finding.get('code')}: {finding.get('path', '')}")
+    return 0 if report.status == "passed" else 2
 
 
 COMMANDS: dict[str, Callable[[], int]] = {
@@ -2526,6 +2791,11 @@ def _add_project_adoption_parser(
     parser = subparsers.add_parser(command_name, help=help_text)
     parser.add_argument("--root", default=".", help="Target project root.")
     parser.add_argument("--json", action="store_true", help="Print the report as JSON.")
+    parser.add_argument(
+        "--full-output",
+        action="store_true",
+        help="Include the complete observed shape and finding arrays; default output is bounded.",
+    )
     if action == "upgrade":
         parser.add_argument(
             "--records-only",
@@ -2542,10 +2812,34 @@ def _add_project_adoption_parser(
     parser.set_defaults(handler=_run_project_adoption_command, project_action=action)
 
 
+def _add_project_layout_parser(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    parser = subparsers.add_parser(
+        "project-layout-audit",
+        help="Read-only audit of the mandatory current .flowguard role layout.",
+    )
+    parser.add_argument("--root", default=".", help="Target project root.")
+    parser.add_argument("--json", action="store_true", help="Print the report as JSON.")
+    parser.add_argument(
+        "--profile",
+        choices=("light", "affected", "full"),
+        default="light",
+        help="Currentness claim boundary; profiles never fall back to one another.",
+    )
+    parser.add_argument(
+        "--changed-path",
+        action="append",
+        default=[],
+        help="Exact changed path for the affected profile; repeat as needed.",
+    )
+    parser.set_defaults(handler=_run_project_layout_audit_command)
+
+
 def _add_artifact_upgrade_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     parser = subparsers.add_parser(
         "artifact-upgrade",
-        help="Scan or apply deterministic upgrades for older FlowGuard artifacts.",
+        help="Audit older FlowGuard artifacts; stale data is rejected and never auto-migrated.",
     )
     parser.add_argument("--root", default=".", help="Target project root.")
     parser.add_argument(
@@ -2554,7 +2848,6 @@ def _add_artifact_upgrade_parser(subparsers: argparse._SubParsersAction[argparse
         default=[],
         help="Specific file or directory to scan. May be passed more than once.",
     )
-    parser.add_argument("--apply", action="store_true", help="Write deterministic upgrades.")
     parser.add_argument("--json", action="store_true", help="Print the report as JSON.")
     parser.set_defaults(handler=_run_artifact_upgrade_command)
 
@@ -2572,7 +2865,7 @@ def _add_behavior_commitment_query_parser(
     parser.add_argument("--root", default=".", help="Target project root.")
     parser.add_argument(
         "--ledger",
-        default=".flowguard/behavior_commitment_ledger/ledger.json",
+        default=".flowguard/behavior/inventory/ledger.json",
         help="Canonical ledger path, relative to --root unless absolute.",
     )
     parser.add_argument("--plane", choices=BCL_BEHAVIOR_PLANES, default="")
@@ -2717,6 +3010,85 @@ def _add_implementation_blueprint_parsers(
     inventory.add_argument("--root", default=None, help="Optional current source root.")
     inventory.add_argument("--json", action="store_true")
     inventory.set_defaults(handler=_run_implementation_inventory_audit_command)
+
+    reverse_surface = subparsers.add_parser(
+        "implementation-behavior-surface-audit",
+        help=(
+            "Discover production implementation surfaces and audit their "
+            "explicit intent/model/owner/test reverse closure."
+        ),
+    )
+    reverse_surface.add_argument("--root", default=".", help="Bounded production project root.")
+    reverse_surface.add_argument(
+        "--surface-map",
+        required=True,
+        help="Independently authored implementation surface map JSON.",
+    )
+    reverse_surface.add_argument(
+        "--surface-discovery",
+        default="",
+        help=(
+            "Current merged source-only implementation-surface discovery JSON. "
+            "Use this for the shard protocol when the project exceeds the "
+            "single-scan row bound."
+        ),
+    )
+    reverse_surface.add_argument(
+        "--full-output",
+        action="store_true",
+        help=(
+            "Emit the complete discovery and audit payload. By default the "
+            "terminal receives a bounded summary and full evidence stays in "
+            "the explicitly supplied artifacts."
+        ),
+    )
+    reverse_surface.add_argument(
+        "--profile",
+        choices=("light", "full"),
+        default="light",
+        help=(
+            "Currentness check profile. light reuses unchanged source pointers; "
+            "full rereads every source file for exact release-grade validation."
+        ),
+    )
+    reverse_surface.add_argument("--json", action="store_true")
+    reverse_surface.set_defaults(handler=_run_implementation_behavior_surface_audit_command)
+
+    authoring_context = subparsers.add_parser(
+        "reverse-surface-authoring-context",
+        help=(
+            "Build or validate the current unresolved reverse implementation "
+            "surface authoring context; no semantic mapping is inferred."
+        ),
+    )
+    authoring_context.add_argument("--discovery", required=True)
+    authoring_context.add_argument("--ledger", required=True)
+    authoring_context.add_argument("--owner-bindings", required=True)
+    authoring_context.add_argument(
+        "--validate",
+        default="",
+        help="Validate an existing authoring context instead of building one.",
+    )
+    authoring_context.add_argument("--json", action="store_true")
+    authoring_context.set_defaults(handler=_run_reverse_surface_authoring_context_command)
+
+    fault_matrix = subparsers.add_parser(
+        "fault-matrix-review",
+        help=(
+            "Read-only reconciliation of one native finite fault/recovery "
+            "matrix; every leaf needs root cause, terminal, recovery, and proof."
+        ),
+    )
+    fault_matrix.add_argument("--matrix", required=True, help="Fault matrix evidence JSON path.")
+    fault_matrix.add_argument("--expected-case-id", action="append", default=[], help="Expected finite case id; repeat for every case.")
+    fault_matrix.add_argument("--expected-input-fingerprint", default="")
+    fault_matrix.add_argument("--expected-owner-id", default="")
+    fault_matrix.add_argument("--expected-source-fingerprint", default="")
+    fault_matrix.add_argument("--expected-model-fingerprint", default="")
+    fault_matrix.add_argument("--expected-toolchain-fingerprint", default="")
+    fault_matrix.add_argument("--expected-environment-fingerprint", default="")
+    fault_matrix.add_argument("--json", action="store_true", help="Emit canonical JSON (always enabled).")
+    fault_matrix.set_defaults(handler=_run_fault_matrix_review_command)
 
     self_check = subparsers.add_parser(
         "flowguard-self-blueprint-check",
@@ -2916,6 +3288,15 @@ def _add_simulator_parser(
 def _add_evidence_lifecycle_parsers(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
+    storage = subparsers.add_parser(
+        "storage-audit",
+        help="Run one read-light storage walk without content reads or hashes.",
+    )
+    storage.add_argument("--root", default=".flowguard", help="Bounded FlowGuard storage root.")
+    storage.add_argument("--max-items", type=int, default=20, help="Largest-item sample size.")
+    storage.add_argument("--json", action="store_true")
+    storage.set_defaults(handler=_run_storage_audit_command)
+
     audit = subparsers.add_parser("evidence-audit", help="Read-only audit of FlowGuard evidence reachability and storage.")
     audit.add_argument("--root", default=".flowguard/evidence", help="Evidence root.")
     audit.add_argument("--json", action="store_true")
@@ -2932,6 +3313,15 @@ def _add_evidence_lifecycle_parsers(
         help="Exact audited run path to preserve; repeat for externally bound legacy evidence.",
     )
     plan.add_argument("--output", help="Optional plan artifact path.")
+    plan.add_argument(
+        "--storage-audit",
+        action="store_true",
+        help="Run the one-walk read-light storage audit before evidence audit and planning.",
+    )
+    plan.add_argument(
+        "--storage-root",
+        help="Optional exact storage root for --storage-audit; defaults to the evidence root parent.",
+    )
     plan.add_argument("--json", action="store_true")
     plan.set_defaults(handler=_run_evidence_lifecycle_command, evidence_action="plan")
 
@@ -3007,6 +3397,7 @@ def main(argv: list[str] | None = None) -> int:
     _add_evidence_lifecycle_parsers(subparsers)
     _add_model_system_parsers(subparsers)
     _add_model_maturation_parser(subparsers)
+    _add_project_layout_parser(subparsers)
     _add_project_adoption_parser(
         subparsers,
         "project-audit",

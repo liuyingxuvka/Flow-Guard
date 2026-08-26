@@ -8,7 +8,7 @@ derived current context, and exposes only three execution dispositions:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 import hashlib
 import importlib.metadata
@@ -24,6 +24,7 @@ import tomllib
 from typing import Any, Iterable, Mapping, Sequence
 
 from ._hashing import sha256_bytes as _sha256_bytes
+from .observation_metrics import InvocationMetrics
 from .evidence_receipts import (
     ChildReceiptRequirement,
     ConsumedChildReceipt,
@@ -58,7 +59,9 @@ DEFAULT_TERMINATION_POLICY = "terminate_grace_force_kill_confirm_zero_descendant
 
 _OUTPUT_PREFIXES = (
     ".flowguard/evidence/",
-    ".flowguard/model-mesh/snapshots/",
+    ".flowguard/history/",
+    ".flowguard/models/authority/snapshots/",
+    ".flowguard/structure/reverse-surfaces/",
     ".flowguard/model-system/store/",
     "tmp/",
 )
@@ -345,7 +348,36 @@ def validation_input_manifest(root: str | Path) -> tuple[dict[str, str], ...]:
         "AGENTS.md",
         "LICENSE",
     )
-    rows = list(resolve_input_manifest(root, patterns))
+    rows = list(
+        _validation_input_manifest_from_observation(
+            resolve_input_manifest(root, patterns)
+        )
+    )
+    return tuple(rows)
+
+
+def _validation_input_manifest_from_observation(
+    manifest: Sequence[Mapping[str, str]],
+) -> tuple[dict[str, str], ...]:
+    """Project the validation input set without touching the filesystem."""
+
+    patterns = (
+        "flowguard/**/*",
+        "scripts/**/*",
+        "tests/**/*",
+        "docs/**/*",
+        "openspec/**/*",
+        ".agents/skills/**/*",
+        ".skillguard/**/*",
+        ".flowguard/**/*",
+        "pyproject.toml",
+        "README.md",
+        "CHANGELOG.md",
+        "ROADMAP.md",
+        "AGENTS.md",
+        "LICENSE",
+    )
+    rows = list(filter_resolved_input_manifest(manifest, patterns))
     rows = [
         row
         for row in rows
@@ -436,7 +468,7 @@ def model_authority_release_paths(root: Path) -> tuple[str, ...]:
         raise ValueError("model authority observed snapshot fingerprint is invalid")
     observed_digest = observed_fingerprint.split(":", 1)[1]
     expected_observed_path = (
-        f".flowguard/model-mesh/snapshots/{observed_digest}.json"
+        f".flowguard/models/authority/snapshots/{observed_digest}.json"
     )
     if observed_path != expected_observed_path:
         raise ValueError(
@@ -508,7 +540,7 @@ def model_authority_release_paths(root: Path) -> tuple[str, ...]:
             paths.append(relative)
     if previous:
         paths.append(
-            ".flowguard/model-mesh/snapshots/"
+            ".flowguard/models/authority/snapshots/"
             + previous.split(":", 1)[1]
             + ".json"
         )
@@ -518,17 +550,17 @@ def model_authority_release_paths(root: Path) -> tuple[str, ...]:
                 "bootstrap model authority must bind one bootstrap fingerprint"
             )
         paths.append(
-            ".flowguard/model-mesh/bootstraps/"
+            ".flowguard/models/authority/bootstraps/"
             + accepted.split(":", 1)[1]
             + ".json"
         )
     elif generation > 1:
         paths.extend(
             (
-                ".flowguard/model-mesh/revisions/"
+            ".flowguard/models/authority/revisions/"
                 + accepted.split(":", 1)[1]
                 + ".json",
-                ".flowguard/model-mesh/activations/"
+            ".flowguard/models/authority/activations/"
                 + activation.split(":", 1)[1]
                 + ".json",
             )
@@ -868,7 +900,9 @@ class ValidationOwnerObservation:
     reusable_receipts: tuple[EvidenceReceipt, ...]
     reusable_verifications: tuple[ReceiptVerificationResult, ...]
     observation_fingerprint: str
+    observation_patterns: tuple[str, ...] = ()
     observation_seconds: float = 0.0
+    metrics: Mapping[str, object] = field(default_factory=dict)
 
     @property
     def current_by_owner(self) -> Mapping[str, ValidationOwnerCurrent]:
@@ -892,9 +926,7 @@ class ValidationOwnerObservation:
 
     @property
     def repository_input_manifest_fingerprint(self) -> str:
-        return manifest_fingerprint(
-            _governed_owner_input_manifest(self.owner_currents)
-        )
+        return manifest_fingerprint(self.repository_input_manifest)
 
 
 @dataclass(frozen=True)
@@ -1315,14 +1347,38 @@ def _governed_owner_input_manifest(
     )
 
 
+def _owner_observation_patterns(
+    contracts: Sequence[ValidationOwnerContract],
+) -> tuple[str, ...]:
+    """Return the exact source selectors owned by one observation.
+
+    An owner observation must not walk or hash an entire repository merely to
+    discover whether an unrelated file changed.  The contracts already
+    declare the complete freshness boundary, so the one shared filesystem
+    observation is the union of those selectors.  An empty union is valid for
+    a projection-only contract and intentionally observes no source files.
+    """
+
+    return tuple(
+        dict.fromkeys(
+            pattern
+            for contract in contracts
+            for pattern in contract.input_patterns
+            if str(pattern)
+        )
+    )
+
+
 def _validation_owner_observation(
     root: Path,
     contracts: Sequence[ValidationOwnerContract],
     *,
     receipt_root: Path,
     repository_input_manifest: Sequence[Mapping[str, str]],
+    observation_patterns: Sequence[str],
     receipt_inventory: Sequence[EvidenceReceipt],
     started_at: float,
+    metrics: InvocationMetrics | None = None,
 ) -> ValidationOwnerObservation:
     ordered_contracts = topological_owner_contracts(contracts)
     currents: dict[str, ValidationOwnerCurrent] = {}
@@ -1331,6 +1387,8 @@ def _validation_owner_observation(
     rows: list[ValidationOwnerPlanRow] = []
     for contract in ordered_contracts:
         try:
+            if metrics is not None:
+                metrics.inc("owner_current_builds")
             current = _build_owner_current(
                 root,
                 contract,
@@ -1391,7 +1449,7 @@ def _validation_owner_observation(
         "schema": "flowguard.validation_owner_observation.v1",
         "contracts": [item.to_dict() for item in ordered_contracts],
         "repository_input_manifest_fingerprint": manifest_fingerprint(
-            _governed_owner_input_manifest(currents.values())
+            repository_input_manifest
         ),
         "receipt_inventory_identities": [list(item) for item in receipt_identities],
         "owner_identities": {
@@ -1414,6 +1472,7 @@ def _validation_owner_observation(
         repository_input_manifest=tuple(
             dict(item) for item in repository_input_manifest
         ),
+        observation_patterns=tuple(observation_patterns),
         receipt_inventory_identities=receipt_identities,
         rows=tuple(rows),
         owner_currents=tuple(
@@ -1429,6 +1488,7 @@ def _validation_owner_observation(
         ),
         observation_fingerprint=fingerprint_value(payload),
         observation_seconds=max(0.0, time.perf_counter() - started_at),
+        metrics=(metrics.snapshot() if metrics is not None else {}),
     )
 
 
@@ -1437,6 +1497,8 @@ def observe_validation_owners(
     contracts: Sequence[ValidationOwnerContract],
     *,
     receipt_root: str | Path,
+    additional_input_patterns: Sequence[str] = (),
+    metrics: InvocationMetrics | None = None,
 ) -> ValidationOwnerObservation:
     """Capture one strict owner observation for a bounded invocation."""
 
@@ -1447,15 +1509,24 @@ def observe_validation_owners(
     # then project each owner's exact patterns from that single observation.
     # This is deliberately invocation-local: another plan resolves again so
     # source drift remains visible instead of becoming a cross-run cache hit.
-    repository_input_manifest = resolve_input_manifest(
-        root_path,
-        ("**/*", "*"),
+    if metrics is not None:
+        metrics.inc("source_manifest_builds")
+    observation_patterns = tuple(
+        dict.fromkeys(
+            (
+                *_owner_observation_patterns(ordered_contracts),
+                *(str(item) for item in additional_input_patterns if str(item)),
+            )
+        )
     )
+    repository_input_manifest = resolve_input_manifest(root_path, observation_patterns)
     # One planning pass observes one immutable receipt-store snapshot.  Loading
     # the complete store independently for every owner is both redundant and,
     # on long-lived repositories, quadratic in the owner count.  Final receipt
     # currentness is still verified per owner and later publication phases
     # re-read the store under their own freshness boundary.
+    if metrics is not None:
+        metrics.inc("receipt_directory_scans")
     receipt_inventory = list_evidence_receipts(
         root,
         output_directory=receipt_root,
@@ -1465,8 +1536,10 @@ def observe_validation_owners(
         ordered_contracts,
         receipt_root=Path(receipt_root).resolve(),
         repository_input_manifest=repository_input_manifest,
+        observation_patterns=observation_patterns,
         receipt_inventory=receipt_inventory,
         started_at=started_at,
+        metrics=metrics,
     )
 
 
@@ -1475,6 +1548,7 @@ def plan_validation_owners(
     contracts: Sequence[ValidationOwnerContract],
     *,
     receipt_root: str | Path,
+    metrics: InvocationMetrics | None = None,
 ) -> tuple[
     tuple[ValidationOwnerPlanRow, ...],
     Mapping[str, ValidationOwnerCurrent],
@@ -1486,6 +1560,7 @@ def plan_validation_owners(
         root,
         contracts,
         receipt_root=receipt_root,
+        metrics=metrics,
     )
     return (
         observation.rows,
@@ -1614,6 +1689,7 @@ def refresh_validation_owner_observation_receipts(
     return ValidationOwnerObservation(
         contracts=observation.contracts,
         repository_input_manifest=observation.repository_input_manifest,
+        observation_patterns=observation.observation_patterns,
         receipt_inventory_identities=receipt_identities,
         rows=tuple(rows),
         owner_currents=observation.owner_currents,
@@ -1640,7 +1716,11 @@ def assert_validation_owner_observation_fresh(
     started_at = time.perf_counter()
     root_path = Path(root).resolve()
     receipt_root_path = Path(receipt_root).resolve()
-    current_manifest = resolve_input_manifest(root_path, ("**/*", "*"))
+    current_manifest = resolve_input_manifest(
+        root_path,
+        observation.observation_patterns
+        or _owner_observation_patterns(observation.contracts),
+    )
     findings: list[str] = []
 
     current_owner_ids: dict[str, str] = {}
@@ -1657,7 +1737,7 @@ def assert_validation_owner_observation_fresh(
     current_governed_manifest = _governed_owner_input_manifest(
         current_owner_rows
     )
-    if manifest_fingerprint(current_governed_manifest) != (
+    if manifest_fingerprint(current_manifest) != (
         observation.repository_input_manifest_fingerprint
     ):
         findings.append("repository_input_manifest_changed")
@@ -1698,7 +1778,7 @@ def assert_validation_owner_observation_fresh(
         "schema": "flowguard.validation_owner_freshness.v1",
         "initial_observation_fingerprint": observation.observation_fingerprint,
         "repository_input_manifest_fingerprint": manifest_fingerprint(
-            current_governed_manifest
+            current_manifest
         ),
         "owner_identities": current_owner_ids,
         "receipt_inventory_identities": [list(item) for item in current_receipts],
@@ -1857,6 +1937,7 @@ def build_validation_owner_plan(
     *,
     receipt_root: str | Path,
     required_external_components: Mapping[str, str] | None = None,
+    metrics: InvocationMetrics | None = None,
 ) -> ValidationOwnerPlan:
     """Freeze the full owner DAG and both broad input manifests before execution."""
 
@@ -1897,13 +1978,23 @@ def build_validation_owner_plan(
             f"missing={missing_components}, extra={extra_components}, "
             f"mismatched={mismatched_components}"
         )
-    rows, currents, reusable = plan_validation_owners(
+    observation = observe_validation_owners(
         root_path,
         ordered_contracts,
         receipt_root=receipt_root,
+        metrics=metrics,
     )
-    validation_manifest = validation_input_manifest(root_path)
+    rows = observation.rows
+    currents = observation.current_by_owner
+    reusable = observation.receipt_by_owner
+    validation_manifest = _validation_input_manifest_from_observation(
+        observation.repository_input_manifest
+    )
+    if metrics is not None:
+        metrics.inc("validation_manifest_projections")
     tree_manifest = release_tree_manifest(root_path)
+    if metrics is not None:
+        metrics.inc("release_tree_manifest_builds")
     payload = {
         "schema_version": OWNER_PLAN_SCHEMA,
         "contracts": [
@@ -1942,14 +2033,42 @@ def build_validation_owner_plan(
 def build_validation_parent_current(
     root: str | Path,
     owner_plan: ValidationOwnerPlan,
+    *,
+    frozen_validation_manifest: Sequence[Mapping[str, str]] | None = None,
+    frozen_release_tree_manifest: Sequence[Mapping[str, str]] | None = None,
+    metrics: InvocationMetrics | None = None,
 ) -> ValidationParentCurrent:
-    """Derive one immutable parent identity from a previously frozen owner plan."""
+    """Derive one immutable parent identity from a previously frozen owner plan.
+
+    Callers that already hold the frozen manifests may pass them explicitly;
+    that projection performs no additional filesystem/Git observation.  The
+    default path retains the strict freshness check for standalone callers.
+    """
 
     root_path = Path(root).resolve()
     if owner_plan.blocked:
         raise ValueError("blocked validation owner plan cannot become parent current")
-    current_validation = validation_input_manifest(root_path)
-    current_tree = release_tree_manifest(root_path)
+    if frozen_validation_manifest is None:
+        # Re-observe exactly the source selectors frozen by this owner plan.
+        # The plan intentionally uses the union of declared owner patterns;
+        # rebuilding the historical broad repository manifest here would both
+        # waste a second walk/hash pass and compare a different denominator.
+        current_validation = _validation_input_manifest_from_observation(
+            resolve_input_manifest(
+                root_path,
+                _owner_observation_patterns(owner_plan.contracts),
+            )
+        )
+        if metrics is not None:
+            metrics.inc("validation_manifest_rebuilds")
+    else:
+        current_validation = tuple(dict(item) for item in frozen_validation_manifest)
+    if frozen_release_tree_manifest is None:
+        current_tree = release_tree_manifest(root_path)
+        if metrics is not None:
+            metrics.inc("release_tree_manifest_rebuilds")
+    else:
+        current_tree = tuple(dict(item) for item in frozen_release_tree_manifest)
     if (
         manifest_fingerprint(current_validation)
         != owner_plan.validation_input_manifest_fingerprint
@@ -2704,7 +2823,15 @@ def save_parent_receipt(
     receipt_root_path = Path(receipt_root).resolve()
     owner_plan = parent_current.owner_plan
     contracts = owner_plan.contracts
-    if build_validation_parent_current(root_path, owner_plan).parent_identity != parent_current.parent_identity:
+    if (
+        build_validation_parent_current(
+            root_path,
+            owner_plan,
+            frozen_validation_manifest=owner_plan.validation_input_manifest,
+            frozen_release_tree_manifest=owner_plan.release_tree_manifest,
+        ).parent_identity
+        != parent_current.parent_identity
+    ):
         raise ValueError("validation parent current changed before composition")
     by_subject = {item.subject_id: item for item in child_receipts}
     if len(by_subject) != len(child_receipts):
@@ -2919,7 +3046,16 @@ def verify_parent_receipt(
             continue
         child_receipts[child.receipt_id] = child
         child_results[child.receipt_id] = child_result
-    validation_manifest = validation_input_manifest(root_path)
+    # Re-observe exactly the selectors that were frozen into this parent
+    # proof.  Reconstructing the historical repository-wide manifest here
+    # would both spend a second broad walk/hash pass and compare a different
+    # freshness denominator from the owner plan.
+    validation_manifest = _validation_input_manifest_from_observation(
+        resolve_input_manifest(
+            root_path,
+            _owner_observation_patterns(contracts),
+        )
+    )
     validation_snapshot = snapshot_bytes(
         "input:validation-parent:validation-input-manifest",
         _canonical_bytes([dict(item) for item in validation_manifest]),

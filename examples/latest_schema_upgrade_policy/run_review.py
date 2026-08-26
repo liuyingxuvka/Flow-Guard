@@ -1,4 +1,4 @@
-"""Run the latest-schema upgrade policy self-model."""
+"""Run the direct-current rewrite policy self-model."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from examples.latest_schema_upgrade_policy.model import run_latest_schema_upgrad
 
 def main() -> int:
     report = run_latest_schema_upgrade_policy_review()
-    print("=== latest-schema upgrade policy ===")
+    print("=== direct-current rewrite policy ===")
     print(report.format_text(max_counterexamples=1))
     return 0 if report.ok else 1
 

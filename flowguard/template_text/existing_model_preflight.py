@@ -8,7 +8,7 @@ Created with FlowGuard: https://github.com/liuyingxuvka/FlowGuard
 Purpose: Review whether an agent grounded an existing-system change in the FlowGuard models that already exist.
 Guards against: proposing new modules, rules, workflows, or ownership boundaries before checking existing FunctionBlocks, state owners, side-effect owners, public entrypoints, and model responsibilities.
 Use before editing: Run this before implementation, OpenSpec proposals, major architecture changes, or risky behavior changes in an existing modeled system.
-Run: python .flowguard/existing_model_preflight/run_checks.py
+Run: python .flowguard/verification/owners/existing_model_preflight/run_checks.py
 """
 
 from __future__ import annotations
@@ -31,11 +31,11 @@ def correct_preflight():
         "Extend router scheduling behavior",
         mode="full",
         model_search_performed=True,
-        search_paths=(".flowguard/router", "docs"),
+        search_paths=(".flowguard/models/owners/router", "docs"),
         relevant_models=(
             ModelContextHit(
                 "router-flow",
-                model_path=".flowguard/router/model.py",
+                model_path=".flowguard/models/owners/router/model.py",
                 evidence_id="router:v1",
                 evidence_tier="abstract_green",
                 responsibilities=("route scheduling",),
@@ -103,7 +103,7 @@ def broken_duplicate_preflight():
         "Create a parallel scheduler",
         mode="full",
         model_search_performed=True,
-        search_paths=(".flowguard/router",),
+        search_paths=(".flowguard/models/owners/router",),
         relevant_models=(correct_preflight().relevant_models[0],),
         ownership_snapshot=ExistingOwnershipSnapshot(
             state_owners=(("pending_tasks", "router-flow"),),

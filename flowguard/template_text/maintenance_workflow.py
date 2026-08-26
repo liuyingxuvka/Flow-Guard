@@ -21,7 +21,7 @@ Sleep/Dream/Architect/Installer/Reviewer-style maintenance, automation,
 publication, adoption-log, or sync workflows.
 
 Run:
-python .flowguard/maintenance_workflow/run_checks.py
+python .flowguard/verification/owners/maintenance_workflow/run_checks.py
 
 Rename the roles and state fields to match the project under review.
 """
@@ -394,6 +394,15 @@ def build_workflow(
 '''
 
 MAINTENANCE_WORKFLOW_RUN_CHECKS_TEMPLATE = '''"""Run the formal maintenance workflow template checks."""
+
+from pathlib import Path
+import sys
+
+# The current v2 layout keeps model authority and executable checks in
+# separate role roots.  Resolve the one current model owner explicitly; do not
+# search legacy locations or silently fall back to another copy.
+_MODEL_DIR = Path(__file__).resolve().parents[4] / ".flowguard" / "models" / "owners" / "maintenance_workflow"
+sys.path.insert(0, str(_MODEL_DIR))
 
 from flowguard import (
     FlowGuardCheckPlan,

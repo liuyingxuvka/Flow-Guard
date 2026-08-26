@@ -86,7 +86,7 @@ This is a selective gate, not a blanket rerun rule:
 Run the executable gate model when changing this protocol:
 
 ```powershell
-python .flowguard/model_impact_freshness_gate/run_checks.py
+python .flowguard/verification/owners/model_impact_freshness_gate/run_checks.py
 ```
 
 This prevents both unsafe old-evidence reuse and wasteful full reruns when the

@@ -11,7 +11,7 @@ being overclaimed for future use, duplicate business paths, and wrong-path
 runtime proof.
 Use before editing: when local FlowGuard evidence passes but topology shape may
 still imply future-use hazards.
-Run: python .flowguard/model_topology_hazard_review/run_checks.py
+Run: python .flowguard/verification/owners/model_topology_hazard_review/run_checks.py
 """
 
 from __future__ import annotations

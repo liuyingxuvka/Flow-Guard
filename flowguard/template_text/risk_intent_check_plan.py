@@ -21,7 +21,7 @@ acceptance, deduplication, idempotency, side-effect, or confidence-reporting
 logic.
 
 Run:
-python .flowguard/risk_intent_check_plan/run_checks.py
+python .flowguard/verification/owners/risk_intent_check_plan/run_checks.py
 
 Replace this sample item workflow with the current behavior under review.
 """

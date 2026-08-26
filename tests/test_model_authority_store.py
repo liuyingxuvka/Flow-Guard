@@ -35,6 +35,7 @@ from flowguard.model_revision_set import (
     derive_revision_snapshot_diff,
 )
 from flowguard.model_authority_store import (
+    _collect_rebuild_reachable_artifacts,
     activate_model_revision_set,
     audit_model_authority,
     bootstrap_model_authority,
@@ -351,6 +352,68 @@ def manifest_inventory() -> ManifestModelInventory:
 
 
 class ModelAuthorityStoreTests(unittest.TestCase):
+    def test_rebuild_reachability_walks_multiple_authority_generations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / ".flowguard" / "project.toml"
+            manifest.parent.mkdir(parents=True, exist_ok=True)
+            manifest.write_text(
+                '[flowguard]\nadopted_package_version = "0.68.15"\n',
+                encoding="utf-8",
+            )
+            base = snapshot("git:" + "a" * 40, SHA_A, "observed-a")
+            head_one = bootstrap_model_authority(
+                root,
+                base,
+                bootstrap_evidence_fingerprint=SHA_D,
+            )
+            candidate_one = snapshot("git:" + "b" * 40, SHA_B, "observed-b")
+            accepted_one = revision(root, head_one, base, candidate_one)
+            with patch(
+                "flowguard.model_system_inventory.build_manifest_model_system_snapshot",
+                return_value=candidate_one,
+            ):
+                head_two, _receipt_one = activate_model_revision_set(
+                    root,
+                    candidate_one,
+                    accepted_one,
+                    receipt_id="activation:store-one",
+                )
+
+            candidate_two = snapshot("git:" + "c" * 40, SHA_C, "observed-c")
+            accepted_two = revision(root, head_two, candidate_one, candidate_two)
+            with patch(
+                "flowguard.model_system_inventory.build_manifest_model_system_snapshot",
+                return_value=candidate_two,
+            ):
+                head_three, _receipt_two = activate_model_revision_set(
+                    root,
+                    candidate_two,
+                    accepted_two,
+                    receipt_id="activation:store-two",
+                )
+
+            loaded_head, loaded_snapshot = load_observed_model_system(root)
+            reachable = _collect_rebuild_reachable_artifacts(
+                root,
+                loaded_head,
+                loaded_snapshot,
+            )
+            self.assertEqual(head_three, loaded_head)
+            self.assertEqual(
+                {
+                    ("bootstraps", head_one.accepted_revision_set_fingerprint),
+                    ("revisions", accepted_one.fingerprint),
+                    ("revisions", accepted_two.fingerprint),
+                    ("activations", head_two.activation_receipt_fingerprint),
+                    ("activations", head_three.activation_receipt_fingerprint),
+                    ("snapshots", base.fingerprint),
+                    ("snapshots", candidate_one.fingerprint),
+                    ("snapshots", candidate_two.fingerprint),
+                },
+                reachable,
+            )
+
     def test_bootstrap_and_activation_update_pointer_last(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -388,7 +451,8 @@ class ModelAuthorityStoreTests(unittest.TestCase):
                 (
                     root
                     / ".flowguard"
-                    / "model-mesh"
+                    / "models"
+                    / "authority"
                     / "revisions"
                     / f"{accepted.fingerprint.split(':')[1]}.json"
                 ).is_file()
@@ -448,7 +512,18 @@ class ModelAuthorityStoreTests(unittest.TestCase):
             manifest = root / ".flowguard" / "project.toml"
             manifest.parent.mkdir()
             manifest.write_text("[flowguard]\n", encoding="utf-8")
-            (root / ".flowguard" / "model-regression-manifest.json").write_text(
+            (
+                root
+                / ".flowguard"
+                / "models"
+                / "regression-manifest.json"
+            ).parent.mkdir(parents=True, exist_ok=True)
+            (
+                root
+                / ".flowguard"
+                / "models"
+                / "regression-manifest.json"
+            ).write_text(
                 "{}\n",
                 encoding="utf-8",
             )
@@ -898,7 +973,8 @@ class ModelAuthorityStoreTests(unittest.TestCase):
             rollback_path = (
                 root
                 / ".flowguard"
-                / "model-mesh"
+                / "models"
+                / "authority"
                 / "rollbacks"
                 / f"{rollback_receipt.fingerprint.split(':', 1)[1]}.json"
             )
@@ -1062,7 +1138,8 @@ class ModelAuthorityStoreTests(unittest.TestCase):
                 path = (
                     root
                     / ".flowguard"
-                    / "model-mesh"
+                    / "models"
+                    / "authority"
                     / category
                     / f"{fingerprint.split(':', 1)[1]}.json"
                 )
@@ -1357,7 +1434,8 @@ class ModelAuthorityStoreTests(unittest.TestCase):
             receipt_path = (
                 root
                 / ".flowguard"
-                / "model-mesh"
+                / "models"
+                / "authority"
                 / "activations"
                 / f"{receipt.fingerprint.split(':', 1)[1]}.json"
             )
@@ -1734,7 +1812,8 @@ class ModelAuthorityStoreTests(unittest.TestCase):
             revision_path = (
                 root
                 / ".flowguard"
-                / "model-mesh"
+                / "models"
+                / "authority"
                 / "revisions"
                 / f"{accepted.fingerprint.split(':', 1)[1]}.json"
             )

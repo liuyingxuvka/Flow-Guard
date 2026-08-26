@@ -306,7 +306,7 @@ class TopologyHazardTests(unittest.TestCase):
 
     def test_self_model_checks_pass(self):
         result = subprocess.run(
-            [sys.executable, ".flowguard/model_topology_hazard_review/run_checks.py"],
+            [sys.executable, ".flowguard/verification/owners/model_topology_hazard_review/run_checks.py"],
             cwd=ROOT,
             text=True,
             capture_output=True,

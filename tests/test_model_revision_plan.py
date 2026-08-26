@@ -42,10 +42,12 @@ class ModelRevisionPlanTests(unittest.TestCase):
         self.tempdir.cleanup()
 
     def _entry(self, model_id: str) -> dict[str, object]:
-        model_dir = self.root / ".flowguard" / model_id
+        model_dir = self.root / ".flowguard" / "models" / "owners" / model_id
+        runner_dir = self.root / ".flowguard" / "verification" / "owners" / model_id
         model_dir.mkdir(parents=True, exist_ok=True)
+        runner_dir.mkdir(parents=True, exist_ok=True)
         model_path = model_dir / "model.py"
-        runner_path = model_dir / "run_checks.py"
+        runner_path = runner_dir / "run_checks.py"
         model_path.write_text(
             f"MODEL_ID = {model_id!r}\nVALUE = 1\n",
             encoding="utf-8",
@@ -81,15 +83,18 @@ class ModelRevisionPlanTests(unittest.TestCase):
         )
         return {
             "model_id": model_id,
-            "model_path": f".flowguard/{model_id}/model.py",
-            "runner": ["{python}", f".flowguard/{model_id}/run_checks.py"],
+            "model_path": f".flowguard/models/owners/{model_id}/model.py",
+            "runner": [
+                "{python}",
+                f".flowguard/verification/owners/{model_id}/run_checks.py",
+            ],
             "tier": "fast",
             "timeout_seconds": 5,
             "shard_safe": True,
             "mutation_policy": "none",
             "input_globs": [
-                f".flowguard/{model_id}/model.py",
-                f".flowguard/{model_id}/run_checks.py",
+                f".flowguard/models/owners/{model_id}/model.py",
+                f".flowguard/verification/owners/{model_id}/run_checks.py",
             ],
             "expected_artifacts": [],
             "distribution_policy": "required_public",
@@ -106,14 +111,20 @@ class ModelRevisionPlanTests(unittest.TestCase):
             "shared_input_groups": [],
             "models": [self._entry(model_id) for model_id in model_ids],
         }
-        (self.root / ".flowguard" / "model-regression-manifest.json").write_text(
+        manifest_path = (
+            self.root / ".flowguard" / "models" / "regression-manifest.json"
+        )
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text(
             json.dumps(manifest, sort_keys=True),
             encoding="utf-8",
         )
 
     def _retire_last_four(self) -> tuple[str, ...]:
         retired = tuple(self.model_ids[-4:])
-        manifest_path = self.root / ".flowguard" / "model-regression-manifest.json"
+        manifest_path = (
+            self.root / ".flowguard" / "models" / "regression-manifest.json"
+        )
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
         payload["models"] = [
             item for item in payload["models"] if item["model_id"] not in retired
@@ -123,7 +134,10 @@ class ModelRevisionPlanTests(unittest.TestCase):
             encoding="utf-8",
         )
         for model_id in retired:
-            shutil.rmtree(self.root / ".flowguard" / model_id)
+            shutil.rmtree(self.root / ".flowguard" / "models" / "owners" / model_id)
+            shutil.rmtree(
+                self.root / ".flowguard" / "verification" / "owners" / model_id
+            )
         return retired
 
     def _tree_identity(self) -> tuple[tuple[str, str], ...]:
@@ -307,6 +321,8 @@ class ModelRevisionPlanTests(unittest.TestCase):
         stale_path = (
             self.root
             / ".flowguard"
+            / "models"
+            / "owners"
             / "authoritative_model_system"
             / "model.py"
         )

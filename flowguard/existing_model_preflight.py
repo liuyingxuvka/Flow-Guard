@@ -1113,7 +1113,11 @@ def existing_model_preflight_from_project(
         )
         if path.exists()
     )
-    canonical_ledger_path = Path(ledger_path) if ledger_path else root_path / ".flowguard" / "behavior_commitment_ledger" / "ledger.json"
+    canonical_ledger_path = (
+        Path(ledger_path)
+        if ledger_path
+        else root_path / ".flowguard" / "behavior" / "inventory" / "ledger.json"
+    )
     if not canonical_ledger_path.is_absolute():
         canonical_ledger_path = root_path / canonical_ledger_path
     behavior_lookup_required = bool(ledger_path) or canonical_ledger_path.parent.exists()

@@ -1,4 +1,4 @@
-"""Executable model for FlowGuard's latest-schema upgrade policy."""
+"""Executable model for FlowGuard's direct-current rewrite policy."""
 
 from __future__ import annotations
 
@@ -39,14 +39,16 @@ class UpgradePolicyState:
 
 
 CURRENT_ARTIFACT = UpgradePolicyCase("current_artifact_passes")
-LEGACY_BCL_ARTIFACT_UPGRADED = UpgradePolicyCase(
-    "legacy_behavior_ledger_artifact_upgraded"
+LEGACY_BCL_ARTIFACT_REJECTED = UpgradePolicyCase(
+    "legacy_behavior_ledger_artifact_rejected"
 )
 UNSUPPORTED_REGISTERED_ENVELOPE_BLOCKED = UpgradePolicyCase(
     "unsupported_registered_envelope_blocked"
 )
 TARGET_OWNED_JSON_PRESERVED = UpgradePolicyCase("target_owned_json_preserved")
-OLDER_PROJECT_TRIGGERS_SCAN = UpgradePolicyCase("older_project_triggers_upgrade_scan")
+OLDER_PROJECT_REQUIRES_DIRECT_REWRITE = UpgradePolicyCase(
+    "older_project_requires_direct_current_rewrite"
+)
 UNKNOWN_SCRIPT_BLOCKED = UpgradePolicyCase("unknown_script_blocks")
 RECORDS_ONLY_SCOPED = UpgradePolicyCase("records_only_scope_declared")
 BROKEN_RUNTIME_COMPAT = UpgradePolicyCase("broken_runtime_accepts_old_shape")
@@ -103,16 +105,14 @@ def _state_for_case(case: UpgradePolicyCase) -> UpgradePolicyState:
             upgrade_action="unchanged",
             validation_status="route_evidence_required",
         )
-    if case == LEGACY_BCL_ARTIFACT_UPGRADED:
+    if case == LEGACY_BCL_ARTIFACT_REJECTED:
         return UpgradePolicyState(
             case_name=case.name,
-            artifact_shape="current",
+            artifact_shape="legacy-bcl",
             artifact_ownership="exact-legacy-56083c1e-bcl",
             project_version_state="older",
-            upgrade_action="deterministic_upgrade",
-            json_write_performed=True,
-            json_write_owner="exact-legacy-56083c1e-bcl",
-            validation_status="route_evidence_required",
+            upgrade_action="blocked_direct_rewrite_required",
+            validation_status="blocked",
         )
     if case == UNSUPPORTED_REGISTERED_ENVELOPE_BLOCKED:
         return UpgradePolicyState(
@@ -134,12 +134,12 @@ def _state_for_case(case: UpgradePolicyCase) -> UpgradePolicyState:
             target_owned_json_modified=False,
             target_owned_json_bytes_preserved=True,
         )
-    if case == OLDER_PROJECT_TRIGGERS_SCAN:
+    if case == OLDER_PROJECT_REQUIRES_DIRECT_REWRITE:
         return UpgradePolicyState(
             case_name=case.name,
             artifact_shape="current",
             project_version_state="older",
-            upgrade_action="scan_and_upgrade",
+            upgrade_action="blocked_direct_rewrite_required",
             validation_status="route_evidence_required",
         )
     if case == UNKNOWN_SCRIPT_BLOCKED:
@@ -249,16 +249,23 @@ def runtime_is_current_only(state: UpgradePolicyState, trace) -> InvariantResult
     return InvariantResult.pass_()
 
 
-def older_project_runs_upgrade_scan(state: UpgradePolicyState, trace) -> InvariantResult:
+def older_project_requires_direct_current_rewrite(
+    state: UpgradePolicyState, trace
+) -> InvariantResult:
     del trace
     if (
         state.project_version_state == "older"
-        and state.upgrade_action == "not_run"
+        and (
+            state.artifact_shape == "current"
+            or state.artifact_ownership != "target-owned"
+        )
+        and state.upgrade_action
+        not in {"blocked", "blocked_direct_rewrite_required"}
         and not state.records_only_scope_declared
     ):
         return _fail(
-            "older_project_runs_upgrade_scan",
-            "older project version skipped artifact/model/test upgrade scan",
+            "older_project_requires_direct_current_rewrite",
+            "older project version was accepted without a direct current rewrite gate",
         )
     return InvariantResult.pass_()
 
@@ -278,6 +285,21 @@ def unknown_script_blocks(state: UpgradePolicyState, trace) -> InvariantResult:
     return InvariantResult.pass_()
 
 
+def stale_artifact_action_is_blocked(
+    state: UpgradePolicyState, trace
+) -> InvariantResult:
+    del trace
+    if state.artifact_shape != "current" and state.upgrade_action in {
+        "deterministic_upgrade",
+        "scan_and_upgrade",
+    }:
+        return _fail(
+            "stale_artifact_action_is_blocked",
+            "a stale artifact selected an automatic upgrade action instead of a direct current rewrite",
+        )
+    return InvariantResult.pass_()
+
+
 def safety_classifier_survives_cleanup(state: UpgradePolicyState, trace) -> InvariantResult:
     del trace
     if not state.safety_classifier_preserved:
@@ -288,17 +310,14 @@ def safety_classifier_survives_cleanup(state: UpgradePolicyState, trace) -> Inva
     return InvariantResult.pass_()
 
 
-def artifact_write_requires_exact_bounded_owner(
+def stale_artifacts_are_never_written(
     state: UpgradePolicyState, trace
 ) -> InvariantResult:
     del trace
-    if (
-        state.json_write_performed
-        and state.json_write_owner != "exact-legacy-56083c1e-bcl"
-    ):
+    if state.json_write_performed and state.artifact_shape != "current":
         return _fail(
-            "artifact_write_requires_exact_bounded_owner",
-            "a JSON write occurred without the exact historical 56083c1e BCL owner",
+            "stale_artifacts_are_never_written",
+            "a stale artifact was rewritten instead of being rejected for direct current authoring",
         )
     return InvariantResult.pass_()
 
@@ -333,12 +352,17 @@ def registered_envelopes_are_current_only(
     return InvariantResult.pass_()
 
 
-def upgrade_does_not_replace_validation(state: UpgradePolicyState, trace) -> InvariantResult:
+def direct_rewrite_does_not_replace_validation(
+    state: UpgradePolicyState, trace
+) -> InvariantResult:
     del trace
-    if state.upgrade_action in {"deterministic_upgrade", "scan_and_upgrade"} and state.validation_status == "pass":
+    if (
+        state.upgrade_action == "blocked_direct_rewrite_required"
+        and state.validation_status == "pass"
+    ):
         return _fail(
-            "upgrade_does_not_replace_validation",
-            "upgrade report was treated as route validation evidence",
+            "direct_rewrite_does_not_replace_validation",
+            "a direct rewrite gate was treated as route validation evidence",
         )
     return InvariantResult.pass_()
 
@@ -347,20 +371,25 @@ def invariants() -> tuple[Invariant, ...]:
     return (
         Invariant("runtime_is_current_only", "Runtime accepts only current shapes", runtime_is_current_only),
         Invariant(
-            "older_project_runs_upgrade_scan",
-            "Older adopted projects run upgrade scanning by default",
-            older_project_runs_upgrade_scan,
+            "older_project_requires_direct_current_rewrite",
+            "Older adopted projects stop for direct current rewriting",
+            older_project_requires_direct_current_rewrite,
         ),
         Invariant("unknown_script_blocks", "Unknown behavior-bearing scripts block", unknown_script_blocks),
+        Invariant(
+            "stale_artifact_action_is_blocked",
+            "Stale artifacts never select an automatic upgrade action",
+            stale_artifact_action_is_blocked,
+        ),
         Invariant(
             "safety_classifier_survives_cleanup",
             "Safety classifiers are not cleanup targets",
             safety_classifier_survives_cleanup,
         ),
         Invariant(
-            "artifact_write_requires_exact_bounded_owner",
-            "JSON writes require an exact bounded FlowGuard owner",
-            artifact_write_requires_exact_bounded_owner,
+            "stale_artifacts_are_never_written",
+            "Stale artifacts are never rewritten by FlowGuard",
+            stale_artifacts_are_never_written,
         ),
         Invariant(
             "target_owned_json_is_byte_identical",
@@ -373,9 +402,9 @@ def invariants() -> tuple[Invariant, ...]:
             registered_envelopes_are_current_only,
         ),
         Invariant(
-            "upgrade_does_not_replace_validation",
-            "Upgrade reports do not replace route evidence",
-            upgrade_does_not_replace_validation,
+            "direct_rewrite_does_not_replace_validation",
+            "Direct rewrite gates do not replace route evidence",
+            direct_rewrite_does_not_replace_validation,
         ),
     )
 
@@ -387,10 +416,10 @@ def build_workflow() -> Workflow:
 def all_cases() -> tuple[UpgradePolicyCase, ...]:
     return (
         CURRENT_ARTIFACT,
-        LEGACY_BCL_ARTIFACT_UPGRADED,
+        LEGACY_BCL_ARTIFACT_REJECTED,
         UNSUPPORTED_REGISTERED_ENVELOPE_BLOCKED,
         TARGET_OWNED_JSON_PRESERVED,
-        OLDER_PROJECT_TRIGGERS_SCAN,
+        OLDER_PROJECT_REQUIRES_DIRECT_REWRITE,
         UNKNOWN_SCRIPT_BLOCKED,
         RECORDS_ONLY_SCOPED,
         BROKEN_RUNTIME_COMPAT,
@@ -406,19 +435,28 @@ def all_cases() -> tuple[UpgradePolicyCase, ...]:
 def scenarios() -> tuple[Scenario, ...]:
     expected_violations = {
         BROKEN_RUNTIME_COMPAT.name: ("runtime_is_current_only",),
-        BROKEN_SILENT_SKIP.name: ("older_project_runs_upgrade_scan",),
-        BROKEN_UNKNOWN_REWRITE.name: ("unknown_script_blocks",),
-        BROKEN_CLASSIFIER_DELETED.name: ("safety_classifier_survives_cleanup",),
+        BROKEN_SILENT_SKIP.name: ("older_project_requires_direct_current_rewrite",),
+        BROKEN_UNKNOWN_REWRITE.name: (
+            "unknown_script_blocks",
+            "stale_artifact_action_is_blocked",
+        ),
+        BROKEN_CLASSIFIER_DELETED.name: (
+            "safety_classifier_survives_cleanup",
+            "stale_artifact_action_is_blocked",
+        ),
         BROKEN_NUMERIC_TARGET_JSON_REWRITE.name: (
-            "artifact_write_requires_exact_bounded_owner",
+            "stale_artifacts_are_never_written",
+            "stale_artifact_action_is_blocked",
             "target_owned_json_is_byte_identical",
         ),
         BROKEN_PARTIAL_LEDGER_REWRITE.name: (
-            "artifact_write_requires_exact_bounded_owner",
+            "stale_artifacts_are_never_written",
+            "stale_artifact_action_is_blocked",
             "target_owned_json_is_byte_identical",
         ),
         BROKEN_UNSUPPORTED_REGISTERED_ENVELOPE_REWRITE.name: (
-            "artifact_write_requires_exact_bounded_owner",
+            "stale_artifacts_are_never_written",
+            "stale_artifact_action_is_blocked",
             "registered_envelopes_are_current_only",
         ),
     }
@@ -435,12 +473,12 @@ def scenarios() -> tuple[Scenario, ...]:
         else:
             expectation = ScenarioExpectation(
                 expected_status="ok",
-                summary="OK; latest-schema upgrade policy boundary is preserved",
+                summary="OK; direct-current rewrite policy boundary is preserved",
             )
         result.append(
             Scenario(
                 name=case.name,
-                description=f"Review latest-schema upgrade policy case {case.name}",
+                description=f"Review direct-current rewrite policy case {case.name}",
                 initial_state=UpgradePolicyState(),
                 external_input_sequence=(case,),
                 expected=expectation,
@@ -465,8 +503,8 @@ __all__ = [
     "BROKEN_SILENT_SKIP",
     "BROKEN_UNKNOWN_REWRITE",
     "CURRENT_ARTIFACT",
-    "LEGACY_BCL_ARTIFACT_UPGRADED",
-    "OLDER_PROJECT_TRIGGERS_SCAN",
+    "LEGACY_BCL_ARTIFACT_REJECTED",
+    "OLDER_PROJECT_REQUIRES_DIRECT_REWRITE",
     "RECORDS_ONLY_SCOPED",
     "TARGET_OWNED_JSON_PRESERVED",
     "UNSUPPORTED_REGISTERED_ENVELOPE_BLOCKED",

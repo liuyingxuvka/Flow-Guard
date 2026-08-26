@@ -62,7 +62,7 @@ To create a project scaffold:
 
 ```bash
 python -m flowguard closure-contract-template --output .
-python .flowguard/closure_contract/run_checks.py
+python .flowguard/verification/owners/closure_contract/run_checks.py
 ```
 
 ## Required Gates

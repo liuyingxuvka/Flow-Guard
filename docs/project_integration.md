@@ -180,29 +180,30 @@ Use a read-only audit when you only need to check adoption state:
 python -m flowguard project-audit --root .
 ```
 
-If the installed check-engine version is newer than the project record, run the
-explicit upgrade path before broad confidence claims:
+If the installed check-engine version is newer than the project record, stop
+before broad confidence claims and directly update the project record/model
+under the current FlowGuard authority. There is no compatibility reader or
+automatic artifact migration path:
 
 ```powershell
-python -m flowguard project-upgrade --root .
+python -m flowguard project-audit --root .
 ```
 
-This does more than update version text. For an older adopted repository,
-`project-upgrade` also scans known FlowGuard artifacts, model evidence, tests,
-docs, and guidance for deterministic upgrades into the current FlowGuard
-shape. Use `--records-only` only when intentionally scoping out that scan, and
-run `python -m flowguard artifact-upgrade --root . --apply` when you need the
-upgrade scan directly. Before writing, it must first prove exact parity between
-the authority shipped in the installed package, the current manifest-declared
+An old artifact is a hard blocker. `artifact-upgrade` is an audit-only,
+fail-closed diagnostic retained for identifying stale files; its former
+`--apply` behavior is disabled. Rewrite the current source/model directly,
+regenerate affected tests and receipts under one frozen identity, and only
+then rerun the audit. Before any write, prove exact parity between the
+authority shipped in the installed package, the current manifest-declared
 consumer projection, and the distribution ownership manifest.
 
 Then check release notes or the changelog, rerun affected FlowGuard models and
 tests, and record the evidence. If the installed check-engine version is older
 than the project record, connect a current FlowGuard check engine first.
 
-FlowGuard is latest-schema-first. Old artifacts may be detected and upgraded at
-project/tool boundaries, but normal route logic should not preserve long-lived
-compatibility branches for obsolete fields, aliases, or wrappers.
+FlowGuard is latest-schema-first and current-schema-only. Old artifacts are detected and rejected;
+normal route logic and maintenance commands must not preserve compatibility
+branches for obsolete fields, aliases, wrappers, or alternate success paths.
 
 If the target project also uses a spec/SPAC-style planning or orchestration
 skill, treat that tool's plan as optional FlowGuard handoff context. The handoff

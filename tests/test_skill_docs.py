@@ -696,7 +696,14 @@ class SkillDocsTests(unittest.TestCase):
 
     def test_current_satellite_topology_has_no_stale_fixed_count_model(self):
         satellite_names = sorted(path.name for path in SKILLS_ROOT.iterdir() if path.name.startswith("flowguard-"))
-        topology_model = self.read(ROOT / ".flowguard" / "codex_skill_satellites" / "model.py")
+        topology_model = self.read(
+            ROOT
+            / ".flowguard"
+            / "models"
+            / "owners"
+            / "codex_skill_satellites"
+            / "model.py"
+        )
 
         self.assertEqual(sorted(SATELLITE_SKILLS), satellite_names)
         self.assertNotIn("SATELLITE_COUNT =", topology_model)
@@ -707,6 +714,41 @@ class SkillDocsTests(unittest.TestCase):
         self.assertIn("FixedCountAssertion", topology_model)
         self.assertIn("BrokenFixedCountAuthority", topology_model)
         self.assertNotIn("seven satellites", topology_model)
+
+    def test_current_satellite_topology_uses_shared_identity_helpers_and_nested_owner_paths(self):
+        topology_model = self.read(
+            ROOT
+            / ".flowguard"
+            / "models"
+            / "owners"
+            / "codex_skill_satellites"
+            / "model.py"
+        )
+        topology_runner = self.read(
+            ROOT
+            / ".flowguard"
+            / "verification"
+            / "owners"
+            / "codex_skill_satellites"
+            / "run_checks.py"
+        )
+
+        self.assertIn("from flowguard._normalization import canonical_json_text", topology_model)
+        self.assertIn("from flowguard.evidence_receipts import fingerprint_value", topology_model)
+        self.assertNotIn("def _canonical_json(", topology_model)
+        self.assertNotIn("def _fingerprint(", topology_model)
+
+        self.assertIn("from flowguard._hashing import sha256_bytes", topology_runner)
+        self.assertIn("from flowguard.evidence_receipts import fingerprint_value", topology_runner)
+        self.assertIn(
+            'MODEL_PATH = ROOT / ".flowguard" / "models" / "owners" / "codex_skill_satellites" / "model.py"',
+            topology_runner,
+        )
+        self.assertIn(
+            'RUNNER_PATH = ROOT / ".flowguard" / "verification" / "owners" / "codex_skill_satellites" / "run_checks.py"',
+            topology_runner,
+        )
+        self.assertNotIn('ROOT / ".flowguard" / "codex_skill_satellites"', topology_runner)
 
     def test_agents_snippet_uses_compact_canonical_route_table(self):
         text = self.read(ROOT / "docs" / "agents_snippet.md")
@@ -816,8 +858,22 @@ class SkillDocsTests(unittest.TestCase):
                     self.assertNotIn(phrase, text)
 
     def test_guidance_compression_model_exists(self):
-        model = self.read(ROOT / ".flowguard" / "guidance_compression" / "model.py")
-        run_checks = self.read(ROOT / ".flowguard" / "guidance_compression" / "run_checks.py")
+        model = self.read(
+            ROOT
+            / ".flowguard"
+            / "models"
+            / "owners"
+            / "guidance_compression"
+            / "model.py"
+        )
+        run_checks = self.read(
+            ROOT
+            / ".flowguard"
+            / "verification"
+            / "owners"
+            / "guidance_compression"
+            / "run_checks.py"
+        )
 
         self.assertIn("Input x State -> Set(Output x State)", model)
         self.assertIn("no_done_without_full_sync", model)
@@ -827,8 +883,22 @@ class SkillDocsTests(unittest.TestCase):
         self.assertIn("broken_prompt_only_completion", run_checks)
 
     def test_field_prompt_reduction_model_exists(self):
-        model = self.read(ROOT / ".flowguard" / "field_prompt_reduction" / "model.py")
-        run_checks = self.read(ROOT / ".flowguard" / "field_prompt_reduction" / "run_checks.py")
+        model = self.read(
+            ROOT
+            / ".flowguard"
+            / "models"
+            / "owners"
+            / "field_prompt_reduction"
+            / "model.py"
+        )
+        run_checks = self.read(
+            ROOT
+            / ".flowguard"
+            / "verification"
+            / "owners"
+            / "field_prompt_reduction"
+            / "run_checks.py"
+        )
 
         self.assertIn("Input x State -> Set(Output x State)", model)
         self.assertIn("grouped_fields_preserve_required_evidence", model)

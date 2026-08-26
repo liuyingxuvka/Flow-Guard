@@ -82,8 +82,8 @@ from .validation_ownership import (
     build_owner_current_from_observation,
     build_owner_receipt_context,
     child_from_owner_receipt,
+    filter_resolved_input_manifest,
     observe_validation_owners,
-    plan_validation_owners,
     record_validation_owner_nonpass,
     refresh_validation_owner_observation_receipts,
     save_child_bound_owner_receipt,
@@ -252,7 +252,7 @@ class ModelRegressionManifest:
     @classmethod
     def load(cls, root: str | Path = ".", *, path: str | Path | None = None) -> "ModelRegressionManifest":
         root_path = Path(root).resolve()
-        manifest_path = Path(path).resolve() if path else root_path / ".flowguard" / "model-regression-manifest.json"
+        manifest_path = Path(path).resolve() if path else root_path / ".flowguard" / "models" / "regression-manifest.json"
         if not manifest_path.is_file():
             raise ModelRegressionManifestError(f"missing model regression manifest: {manifest_path}")
         try:
@@ -846,14 +846,14 @@ ProgressCallback = Callable[[Mapping[str, Any]], None]
 
 def discover_model_directories(root: str | Path = ".") -> tuple[Path, ...]:
     root_path = Path(root).resolve()
-    base = root_path / ".flowguard"
+    base = root_path / ".flowguard" / "models" / "owners"
     if not base.is_dir():
         return ()
-    return tuple(sorted(path.parent for path in base.rglob("model.py") if path.is_file()))
+    return tuple(sorted(path.parent for path in base.glob("*/model.py") if path.is_file()))
 
 
 def _model_id(root: Path, directory: Path) -> str:
-    return directory.relative_to(root / ".flowguard").as_posix()
+    return directory.relative_to(root / ".flowguard" / "models" / "owners").as_posix()
 
 
 def audit_manifest(root: str | Path, manifest: ModelRegressionManifest) -> ManifestAudit:
@@ -898,10 +898,14 @@ def audit_manifest(root: str | Path, manifest: ModelRegressionManifest) -> Manif
             errors.append(
                 f"{entry.model_id}: purpose requires one exact logical model-regression evidence identity"
             )
-        if not entry.model_id or entry.model_path != f".flowguard/{entry.model_id}/model.py":
+        expected_model_path = f".flowguard/models/owners/{entry.model_id}/model.py"
+        expected_runner_path = f".flowguard/verification/owners/{entry.model_id}/run_checks.py"
+        if not entry.model_id or entry.model_path != expected_model_path:
             errors.append(f"{entry.model_id or '<empty>'}: model_path must match model_id")
         elif not (root_path / entry.model_path).is_file() and entry.distribution_policy == "required_public":
             errors.append(f"{entry.model_id}: model_path does not exist")
+        if len(entry.runner) < 2 or entry.runner[1] != expected_runner_path:
+            errors.append(f"{entry.model_id or '<empty>'}: runner must use the current verification owner path")
         if entry.tier not in TIER_RANK:
             errors.append(f"{entry.model_id}: invalid tier {entry.tier!r}")
         if entry.timeout_seconds <= 0:
@@ -1044,7 +1048,18 @@ def select_entries(
 ) -> tuple[ModelRegressionEntry, ...]:
     if tier not in TIER_RANK:
         raise ValueError(f"unsupported tier: {tier}")
-    root = manifest.path.parents[1]
+    # The current manifest lives at ``.flowguard/models/regression-manifest.json``.
+    # Resolve the project root from the manifest's ``.flowguard`` anchor rather
+    # than assuming the older one-level layout.  Keeping this derived from the
+    # actual path prevents a direct-current layout rewrite from silently
+    # selecting zero models (and therefore producing no model receipts).
+    try:
+        flowguard_root = manifest.path.parents[1]
+        if flowguard_root.name != ".flowguard":
+            raise ValueError
+        root = flowguard_root.parent
+    except (IndexError, ValueError):
+        root = manifest.path.parents[2]
     selected = [
         entry
         for entry in manifest.entries
@@ -1118,6 +1133,18 @@ def resolve_entry_input_inventory(
     )
 
 
+def _entry_input_inventory_from_observation(
+    entry: ModelRegressionEntry,
+    observation: ValidationOwnerObservation,
+) -> tuple[dict[str, str], ...]:
+    """Project one model's inputs from the already-frozen repository view."""
+
+    return filter_resolved_input_manifest(
+        observation.repository_input_manifest,
+        entry.effective_input_patterns,
+    )
+
+
 def input_inventory_fingerprint(
     inventory: Sequence[Mapping[str, str]],
 ) -> str:
@@ -1186,9 +1213,11 @@ def _run_entry(
     timeout_override: float | None,
     cancel_event: threading.Event,
     progress: ProgressCallback | None,
+    input_inventory: Sequence[Mapping[str, str]] | None = None,
 ) -> ModelRunResult:
     started = time.monotonic()
-    input_inventory = resolve_entry_input_inventory(root, entry)
+    if input_inventory is None:
+        input_inventory = resolve_entry_input_inventory(root, entry)
     inventory_fingerprint = input_inventory_fingerprint(input_inventory)
     instance = build_regression_model_instance(
         root,
@@ -1352,6 +1381,62 @@ def _snapshot(paths: Sequence[Path]) -> dict[str, str]:
     return snapshot
 
 
+def _git_worktree_snapshot(root: Path, paths: Sequence[Path]) -> dict[str, str] | None:
+    """Observe Git status and hash only paths already dirty at the boundary.
+
+    Clean tracked files are represented by an empty status token; their index
+    identity is already owned by Git and does not need a second full SHA-256
+    read.  Dirty/untracked paths retain an exact content hash so a file that
+    stays dirty while changing during execution is still detected.
+    """
+
+    git = shutil.which("git")
+    if not git:
+        return None
+    try:
+        completed = subprocess.run(
+            [git, "status", "--porcelain=v2", "--untracked-files=all", "-z"],
+            cwd=root,
+            capture_output=True,
+            check=False,
+        )
+    except OSError:
+        return None
+    if completed.returncode != 0:
+        return None
+    status_by_path: dict[str, str] = {}
+    for raw in completed.stdout.split(b"\0"):
+        if not raw:
+            continue
+        decoded = raw.decode("utf-8", errors="surrogateescape")
+        if decoded.startswith("? "):
+            relative = decoded[2:]
+            status = "untracked"
+        elif decoded.startswith(("1 ", "2 ", "u ")):
+            fields = decoded.split("\t", 1)
+            header = fields[0].split()
+            relative = fields[-1] if len(fields) > 1 else header[-1]
+            status = header[1] if len(header) > 1 else "changed"
+        else:
+            continue
+        status_by_path[relative.replace("\\", "/")] = status
+    snapshot: dict[str, str] = {}
+    for path in paths:
+        try:
+            relative = path.resolve().relative_to(root.resolve()).as_posix()
+        except ValueError:
+            relative = str(path.resolve())
+        status = status_by_path.get(relative, "clean")
+        value = status
+        if status != "clean":
+            if path.is_file():
+                value += "|sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+            else:
+                value += "|<missing>"
+        snapshot[str(path.resolve())] = value
+    return snapshot
+
+
 def _mutation_paths(before: Mapping[str, str], after: Mapping[str, str], root: Path) -> tuple[str, ...]:
     changed = sorted(key for key in set(before) | set(after) if before.get(key) != after.get(key))
     values: list[str] = []
@@ -1381,7 +1466,7 @@ def _model_owner_contract(
                             entry.model_id
                         )
                         if pattern
-                        != ".flowguard/model-regression-manifest.json"
+                        != ".flowguard/models/regression-manifest.json"
                     ),
                 )
             )
@@ -1429,7 +1514,7 @@ def _model_parent_owner_contract(
             claim_scope,
         ),
         input_patterns=(
-            ".flowguard/model-regression-manifest.json",
+            ".flowguard/models/regression-manifest.json",
             "flowguard/model_regressions.py",
             "flowguard/evidence_receipts.py",
             "flowguard/validation_ownership.py",
@@ -1570,6 +1655,7 @@ def _execute_pending_models(
     planning_observation: ValidationOwnerObservation,
     cancel: threading.Event,
     progress: ProgressCallback | None,
+    input_inventories: Mapping[str, Sequence[Mapping[str, str]]] | None = None,
 ) -> tuple[list[ModelRunResult], ValidationObservationFreshness]:
     """Preflight every model resource lease, then execute the frozen set."""
 
@@ -1618,6 +1704,7 @@ def _execute_pending_models(
                     timeout_override=timeout,
                     cancel_event=cancel,
                     progress=progress,
+                    input_inventory=(input_inventories or {}).get(entry.model_id),
                 )
                 completed.append((entry, owner_started_at, result))
                 if cancel.is_set():
@@ -1637,6 +1724,7 @@ def _execute_pending_models(
                         timeout_override=timeout,
                         cancel_event=cancel,
                         progress=progress,
+                        input_inventory=(input_inventories or {}).get(entry.model_id),
                     ): (
                         entry,
                         datetime.now(timezone.utc).isoformat(),
@@ -2336,11 +2424,14 @@ def resolve_current_full_model_regression_parent(
     contracts = tuple(
         _model_owner_contract(root_path, manifest, entry) for entry in entries
     )
-    plan_rows, currents, reusable = plan_validation_owners(
+    planning_observation = observe_validation_owners(
         root_path,
         contracts,
         receipt_root=receipt_root,
     )
+    plan_rows = planning_observation.rows
+    currents = planning_observation.current_by_owner
+    reusable = planning_observation.receipt_by_owner
     noncurrent = tuple(
         f"{row.owner_id} ({row.reason})"
         for row in plan_rows
@@ -2673,7 +2764,9 @@ def resolve_current_full_model_regression_parent(
                 f"model child proof result is not terminal pass: {model_id}"
             )
         entry = entries_by_model[model_id]
-        inventory = resolve_entry_input_inventory(root_path, entry)
+        inventory = _entry_input_inventory_from_observation(
+            entry, planning_observation
+        )
         expected_model_instance = build_regression_model_instance(
             root_path,
             entry,
@@ -2878,10 +2971,17 @@ def run_manifest_regressions(
     contracts = tuple(
         _model_owner_contract(root_path, manifest, entry) for entry in selected
     )
+    parent_contract = _model_parent_owner_contract(
+        manifest,
+        selected,
+        claim_scope=parent_claim_scope,
+        tier=tier,
+    )
     planning_observation = observe_validation_owners(
         root_path,
         contracts,
         receipt_root=receipt_root,
+        additional_input_patterns=parent_contract.input_patterns,
     )
     plan_rows = planning_observation.rows
     currents = planning_observation.current_by_owner
@@ -2943,6 +3043,12 @@ def run_manifest_regressions(
         for row in plan_rows
         if row.disposition == OWNER_EXECUTE
     )
+    input_inventories = {
+        entry.model_id: _entry_input_inventory_from_observation(
+            entry, planning_observation
+        )
+        for entry in pending
+    }
     if jobs > 1 and any(not entry.shard_safe for entry in pending):
         unsafe = tuple(entry.model_id for entry in pending if not entry.shard_safe)
         raise ValueError("parallel execution includes non-shard-safe models: " + ", ".join(unsafe))
@@ -2953,7 +3059,7 @@ def run_manifest_regressions(
     ensure_new_run_directory(output_path)
     cancel = cancel_event or threading.Event()
     tracked = _tracked_paths(root_path)
-    before = _snapshot(tracked)
+    before = _git_worktree_snapshot(root_path, tracked) or _snapshot(tracked)
     started_at = time.time()
     results: list[ModelRunResult] = list(reused_results.values())
     source_freshness = ValidationObservationFreshness.not_run(
@@ -2972,10 +3078,11 @@ def run_manifest_regressions(
                 planning_observation=planning_observation,
                 cancel=cancel,
                 progress=progress,
+                input_inventories=input_inventories,
             )
         results.extend(executed_results)
     results.sort(key=lambda item: item.model_id)
-    after = _snapshot(tracked)
+    after = _git_worktree_snapshot(root_path, tracked) or _snapshot(tracked)
     mutations = _mutation_paths(before, after, root_path)
     selected_ids = tuple(entry.model_id for entry in selected)
     unavailable_optional_ids = tuple(

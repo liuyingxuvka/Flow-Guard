@@ -7,7 +7,7 @@ Purpose: Prove that one business intent has one primary runtime authority and th
 Guards against: automatic fallback success after primary failure, compatibility facades becoming second authorities, old fields or backup caches masking broken primary paths, manual recovery paths being auto-invoked, and broad confidence claims without full Cartesian coverage evidence.
 Use before editing: Run this before path-sensitive feature work, bug fixes, refactors, API compatibility decisions, or release claims where alternate execution paths may hide the real broken path.
 
-Run: python .flowguard/primary_path_authority/run_checks.py
+Run: python .flowguard/verification/owners/primary_path_authority/run_checks.py
 """
 
 from flowguard import (
@@ -43,7 +43,7 @@ def current_proof():
     return ProofArtifactRef(
         "proof:submit-order-primary",
         producer_route="runtime_path_evidence",
-        command="python .flowguard/primary_path_authority/run_checks.py",
+        command="python .flowguard/verification/owners/primary_path_authority/run_checks.py",
         result_path=".flowguard/evidence/submit-order-primary.json",
         result_status="passed",
         exit_code=0,

@@ -47,6 +47,12 @@ fixtures, and notes.
   alias, fallback, fixed old member inventory, or stale prompt semantics
 - **THEN** installed currentness fails and activation is refused or rolled back
 
+#### Scenario: An older OpenSpec-only prompt is installed
+- **WHEN** staged or active consumer content contains the retired OpenSpec-only
+  prompt semantics instead of the frozen provider-neutral projection
+- **THEN** installed currentness SHALL fail and activation SHALL be refused or
+  rolled back
+
 #### Scenario: A read-only currentness check runs
 - **WHEN** the installer or project audit checks the active prompt projection
 - **THEN** it compares exact authority and content identity without launching
@@ -115,3 +121,30 @@ and GitHub Release target SHALL be compared only to `ReleaseTreeManifest`.
 - **WHEN** release commit, local tag, remote tag, or GitHub Release target
   resolves to a tree different from the receipt-bound release manifest
 - **THEN** remote release verification blocks and the immutable tag is not moved
+
+## ADDED Requirements
+
+### Requirement: Consumer release identity has one canonical wire authority
+
+FlowGuard consumer-release manifests SHALL use one documented wire identity
+policy shared with the independent SkillGuard consumer auditor: compact
+canonical JSON with sorted keys and UTF-8 semantics, a final newline only in
+the stored manifest bytes, lowercase hexadecimal SHA-256 digests with the
+`sha256:` prefix, and one exact release-id/manifest-hash derivation. A second
+pretty-JSON, uppercase, unprefixed, or self-consistent hash authority SHALL be
+invalid; compatibility readers and dual authorities are not permitted.
+
+#### Scenario: Independent auditor replays a FlowGuard manifest
+
+- **WHEN** a FlowGuard producer writes a consumer-release manifest
+- **AND** SkillGuard independently parses and recomputes its release id and
+  manifest hash using the current wire policy
+- **THEN** the auditor SHALL accept the manifest only when every identity and
+  file hash matches exactly
+
+#### Scenario: Hash-policy drift is detected
+
+- **WHEN** a manifest is recomputed with pretty JSON, uppercase hex, a missing
+  prefix, or a different newline policy
+- **THEN** validation SHALL report a canonical-wire-identity mismatch and block
+  the consumer projection

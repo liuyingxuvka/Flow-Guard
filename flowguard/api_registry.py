@@ -43,7 +43,7 @@ def build_public_api_registry(
 
 
 def dedupe_public_names(*groups: Sequence[str]) -> list[str]:
-    """Compatibility-preserving list projection used by ``flowguard.__all__``."""
+    """Ordered current-name projection used by ``flowguard.__all__``."""
 
     names: list[str] = []
     seen: set[str] = set()

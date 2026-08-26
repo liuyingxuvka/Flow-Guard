@@ -291,7 +291,7 @@ class BehaviorCommitmentLookupTests(unittest.TestCase):
     def test_read_only_cli_matches_api_result_and_does_not_change_ledger(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            target = root / ".flowguard" / "behavior_commitment_ledger" / "ledger.json"
+            target = root / ".flowguard" / "behavior" / "inventory" / "ledger.json"
             write_behavior_commitment_ledger(target, three_plane_ledger())
             before = target.read_bytes()
             query = BehaviorLookupQuery(
@@ -331,7 +331,7 @@ class BehaviorCommitmentLookupTests(unittest.TestCase):
     def test_existing_model_preflight_uses_plane_lookup_before_path_inventory(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            target = root / ".flowguard" / "behavior_commitment_ledger" / "ledger.json"
+            target = root / ".flowguard" / "behavior" / "inventory" / "ledger.json"
             write_behavior_commitment_ledger(target, three_plane_ledger())
 
             preflight = existing_model_preflight_from_project(

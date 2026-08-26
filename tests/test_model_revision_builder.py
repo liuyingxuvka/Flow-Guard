@@ -79,10 +79,18 @@ class ModelRevisionBuilderTests(unittest.TestCase):
             )
         entries = []
         for model_id in _MODEL_IDS:
-            model_dir = self.root / ".flowguard" / model_id
+            model_dir = self.root / ".flowguard" / "models" / "owners" / model_id
+            runner_dir = (
+                self.root
+                / ".flowguard"
+                / "verification"
+                / "owners"
+                / model_id
+            )
             model_dir.mkdir(parents=True, exist_ok=True)
+            runner_dir.mkdir(parents=True, exist_ok=True)
             model_path = model_dir / "model.py"
-            runner_path = model_dir / "run_checks.py"
+            runner_path = runner_dir / "run_checks.py"
             model_path.write_text(
                 source_overrides.get(model_id, source),
                 encoding="utf-8",
@@ -119,18 +127,18 @@ class ModelRevisionBuilderTests(unittest.TestCase):
             entries.append(
                 {
                     "model_id": model_id,
-                    "model_path": f".flowguard/{model_id}/model.py",
+                    "model_path": model_path.relative_to(self.root).as_posix(),
                     "runner": [
                         "{python}",
-                        f".flowguard/{model_id}/run_checks.py",
+                        runner_path.relative_to(self.root).as_posix(),
                     ],
                     "tier": "fast",
                     "timeout_seconds": 5,
                     "shard_safe": True,
                     "mutation_policy": "none",
                     "input_globs": [
-                        f".flowguard/{model_id}/model.py",
-                        f".flowguard/{model_id}/run_checks.py",
+                        model_path.relative_to(self.root).as_posix(),
+                        runner_path.relative_to(self.root).as_posix(),
                     ],
                     "intent_source_inputs": ["docs/current-design.md"],
                     "expected_artifacts": [],
@@ -144,12 +152,17 @@ class ModelRevisionBuilderTests(unittest.TestCase):
             )
         manifest = {
             "schema_version": MANIFEST_SCHEMA,
-            "governed_input_globs": [".flowguard/**/*.py"],
+            "governed_input_globs": [
+                ".flowguard/models/owners/**/*.py",
+                ".flowguard/verification/owners/**/*.py",
+            ],
             "snapshot_only_input_globs": [],
             "shared_input_groups": [],
             "models": entries,
         }
-        (self.root / ".flowguard" / "model-regression-manifest.json").write_text(
+        manifest_path = self.root / ".flowguard" / "models" / "regression-manifest.json"
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text(
             json.dumps(manifest),
             encoding="utf-8",
         )
@@ -179,7 +192,9 @@ class ModelRevisionBuilderTests(unittest.TestCase):
             ],
             "claim_boundary": "Only this isolated revision-builder fixture.",
         }
-        (self.root / NATIVE_OWNER_BINDINGS_RELATIVE_PATH).write_text(
+        bindings_path = self.root / NATIVE_OWNER_BINDINGS_RELATIVE_PATH
+        bindings_path.parent.mkdir(parents=True, exist_ok=True)
+        bindings_path.write_text(
             json.dumps(bindings), encoding="utf-8"
         )
 
@@ -195,7 +210,7 @@ class ModelRevisionBuilderTests(unittest.TestCase):
             "no_declared_intent_rationale_id": "no-intent:builder-fixture",
             "no_declared_intent_evidence_fingerprints": (
                 ("fixture_manifest", file_fingerprint(
-                    self.root / ".flowguard" / "model-regression-manifest.json"
+                    self.root / ".flowguard" / "models" / "regression-manifest.json"
                 )),
             ),
             "no_declared_intent_rationale": (
@@ -252,7 +267,7 @@ class ModelRevisionBuilderTests(unittest.TestCase):
                 )
             )
         result = tuple(contributions)
-        manifest_path = self.root / ".flowguard" / "model-regression-manifest.json"
+        manifest_path = self.root / ".flowguard" / "models" / "regression-manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         desired_by_owner = {
             item.logical_model_id.split("model:", 1)[1]: [item.source_ref]
@@ -565,7 +580,7 @@ class ModelRevisionBuilderTests(unittest.TestCase):
         self._write_current_model("VALUE = 2\n")
         snapshot_id = "observed-missing-intent-owner-input"
         bootstrap_kwargs = self._intent_bootstrap_kwargs(snapshot_id)
-        manifest_path = self.root / ".flowguard" / "model-regression-manifest.json"
+        manifest_path = self.root / ".flowguard" / "models" / "regression-manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         manifest["models"][0]["intent_source_inputs"] = []
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
@@ -772,7 +787,7 @@ class ModelRevisionBuilderTests(unittest.TestCase):
                     "no-intent:builder-cli-fixture",
                     "--no-declared-intent-evidence-fingerprints",
                     json.dumps({"fixture_manifest": file_fingerprint(
-                        self.root / ".flowguard" / "model-regression-manifest.json"
+                        self.root / ".flowguard" / "models" / "regression-manifest.json"
                     )}),
                     "--no-declared-intent-rationale",
                     (
@@ -842,7 +857,7 @@ class ModelRevisionBuilderTests(unittest.TestCase):
                             "fixture_manifest": file_fingerprint(
                                 self.root
                                 / ".flowguard"
-                                / "model-regression-manifest.json"
+                                / "models" / "regression-manifest.json"
                             )
                         }
                     ),

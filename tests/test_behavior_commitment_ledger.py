@@ -360,7 +360,7 @@ class BehaviorCommitmentLedgerTests(unittest.TestCase):
     def test_native_runner_performs_one_live_source_scan(self):
         runner_path = (
             Path(__file__).resolve().parents[1]
-            / ".flowguard/behavior_commitment_ledger/run_checks.py"
+            / ".flowguard/verification/owners/behavior_commitment_ledger/run_checks.py"
         )
         tree = ast.parse(runner_path.read_text(encoding="utf-8"))
         calls = tuple(node for node in ast.walk(tree) if isinstance(node, ast.Call))
@@ -478,7 +478,7 @@ class BehaviorCommitmentLedgerTests(unittest.TestCase):
 
     def test_project_ledger_uses_normative_contract_sources_and_separate_bindings(self):
         ledger_model = load_repo_model(
-            ".flowguard/behavior_commitment_ledger/model.py",
+            ".flowguard/models/owners/behavior_commitment_ledger/model.py",
             "flowguard_behavior_commitment_ledger_external_contract_test",
         )
         project_ledger = ledger_model.build_flowguard_behavior_commitment_ledger()
@@ -504,7 +504,7 @@ class BehaviorCommitmentLedgerTests(unittest.TestCase):
 
     def test_permanent_owner_commitments_and_public_facade_evidence_are_current(self):
         ledger_model = load_repo_model(
-            ".flowguard/behavior_commitment_ledger/model.py",
+            ".flowguard/models/owners/behavior_commitment_ledger/model.py",
             "flowguard_behavior_commitment_ledger_permanent_owner_test",
         )
         project_ledger = ledger_model.build_flowguard_behavior_commitment_ledger()
@@ -514,9 +514,9 @@ class BehaviorCommitmentLedgerTests(unittest.TestCase):
         }
 
         expected_owners = {
-            "commitment:validation-evidence-gates": ".flowguard/validation_evidence_gates/model.py",
-            "commitment:user-facing-model-diagrams": ".flowguard/user_facing_model_diagrams/model.py",
-            "commitment:codex-skill-satellites": ".flowguard/codex_skill_satellites/model.py",
+            "commitment:validation-evidence-gates": ".flowguard/models/owners/validation_evidence_gates/model.py",
+            "commitment:user-facing-model-diagrams": ".flowguard/models/owners/user_facing_model_diagrams/model.py",
+            "commitment:codex-skill-satellites": ".flowguard/models/owners/codex_skill_satellites/model.py",
         }
         for commitment_id, owner_model_id in expected_owners.items():
             with self.subTest(commitment_id=commitment_id):
@@ -528,7 +528,7 @@ class BehaviorCommitmentLedgerTests(unittest.TestCase):
 
         public_api = commitment_by_id["commitment:flowguard-public-api-surface"]
         self.assertIn(
-            ".flowguard/architecture_reduction/model.py",
+            ".flowguard/models/owners/architecture_reduction/model.py",
             public_api.path_authority.evidence_refs,
         )
         self.assertNotIn(
@@ -538,11 +538,11 @@ class BehaviorCommitmentLedgerTests(unittest.TestCase):
 
     def test_ui_content_admission_has_single_primary_owner(self):
         ledger_model = load_repo_model(
-            ".flowguard/behavior_commitment_ledger/model.py",
+            ".flowguard/models/owners/behavior_commitment_ledger/model.py",
             "flowguard_behavior_commitment_ledger_model_for_test",
         )
         closure_model = load_repo_model(
-            ".flowguard/harden_ui_content_visibility_validation/model.py",
+            ".flowguard/models/owners/harden_ui_content_visibility_validation/model.py",
             "flowguard_ui_content_visibility_closure_model_for_test",
         )
         project_ledger = ledger_model.build_flowguard_behavior_commitment_ledger()
@@ -555,7 +555,7 @@ class BehaviorCommitmentLedgerTests(unittest.TestCase):
         self.assertEqual(1, len(commitments))
         commitment_row = commitments[0]
         self.assertEqual(
-            ".flowguard/ui_flow_structure_skill/model.py",
+            ".flowguard/models/owners/ui_flow_structure_skill/model.py",
             commitment_row.primary_owner_model_id,
         )
         self.assertNotIn(
@@ -569,7 +569,7 @@ class BehaviorCommitmentLedgerTests(unittest.TestCase):
         self.assertEqual(
             (
                 closure_model.CODE_CONTRACT_ID,
-                "owner-contract:.flowguard/ui_flow_structure_skill/model.py",
+                "owner-contract:.flowguard/models/owners/ui_flow_structure_skill/model.py",
             ),
             commitment_row.evidence.code_contract_ids,
         )
@@ -595,7 +595,7 @@ class BehaviorCommitmentLedgerTests(unittest.TestCase):
 
     def test_every_active_flowguard_commitment_binds_its_current_blueprint_owner_contract(self):
         ledger_model = load_repo_model(
-            ".flowguard/behavior_commitment_ledger/model.py",
+            ".flowguard/models/owners/behavior_commitment_ledger/model.py",
             "flowguard_behavior_commitment_owner_contracts_for_test",
         )
         project_ledger = ledger_model.build_flowguard_behavior_commitment_ledger()

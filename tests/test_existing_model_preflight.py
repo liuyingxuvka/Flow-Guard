@@ -364,7 +364,7 @@ class ExistingModelPreflightTests(unittest.TestCase):
             model_root = root / ".flowguard"
             instances = []
             for model_id in ("token_guidance", "unrelated_ui", "unrelated_fields"):
-                model_dir = model_root / model_id
+                model_dir = model_root / "models" / "owners" / model_id
                 model_dir.mkdir(parents=True)
                 model_path = model_dir / "model.py"
                 model_path.write_text(
@@ -421,7 +421,7 @@ class ExistingModelPreflightTests(unittest.TestCase):
                 plane_ambiguity=False,
                 ledger_fingerprint="sha256:ledger",
             )
-            (model_root / "behavior_commitment_ledger").mkdir()
+            (model_root / "behavior" / "inventory").mkdir(parents=True)
 
             with (
                 patch(
@@ -469,14 +469,14 @@ class ExistingModelPreflightTests(unittest.TestCase):
     def test_blocked_modeled_lookup_never_uses_root_lexical_or_file_fallback(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            model_dir = root / ".flowguard" / "router"
+            model_dir = root / ".flowguard" / "models" / "owners" / "router"
             model_dir.mkdir(parents=True)
             model_path = model_dir / "model.py"
             model_path.write_text(
                 '"""FlowGuard Purpose: router behavior."""\nclass RouteTask: pass\n',
                 encoding="utf-8",
             )
-            (root / ".flowguard" / "behavior_commitment_ledger").mkdir()
+            (root / ".flowguard" / "behavior" / "inventory").mkdir(parents=True)
             (root / ".flowguard" / "project.toml").write_text(
                 "[model_authority]\n",
                 encoding="utf-8",
@@ -523,7 +523,7 @@ class ExistingModelPreflightTests(unittest.TestCase):
                 preflight = existing_model_preflight_from_project(
                     root,
                     "Change router RouteTask",
-                    changed_paths=(".flowguard/router/model.py",),
+                    changed_paths=(".flowguard/models/owners/router/model.py",),
                     downstream_routes=("development_process_flow",),
                 )
 

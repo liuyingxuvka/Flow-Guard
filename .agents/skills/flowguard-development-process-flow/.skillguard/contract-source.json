@@ -16,7 +16,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/development_process_flow/model.py"
+          "path": ".flowguard/models/owners/development_process_flow/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -52,11 +52,11 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/development_process_flow/model.py"
+          "path": ".flowguard/models/owners/development_process_flow/model.py"
         },
         {
           "kind": "path",
-          "path": ".flowguard/development_process_flow/run_checks.py"
+          "path": ".flowguard/verification/owners/development_process_flow/run_checks.py"
         },
         {
           "kind": "path",
@@ -117,35 +117,35 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/development_process_strategy/active_change_baseline.json"
+          "path": ".flowguard/models/owners/development_process_strategy/active_change_baseline.json"
         },
         {
           "kind": "path",
-          "path": ".flowguard/development_process_strategy/architecture_reduction.py"
+          "path": ".flowguard/models/owners/development_process_strategy/architecture_reduction.py"
         },
         {
           "kind": "path",
-          "path": ".flowguard/development_process_strategy/code_structure.json"
+          "path": ".flowguard/models/owners/development_process_strategy/code_structure.json"
         },
         {
           "kind": "path",
-          "path": ".flowguard/development_process_strategy/contract_exhaustion.py"
+          "path": ".flowguard/models/owners/development_process_strategy/contract_exhaustion.py"
         },
         {
           "kind": "path",
-          "path": ".flowguard/development_process_strategy/field_lifecycle.py"
+          "path": ".flowguard/models/owners/development_process_strategy/field_lifecycle.py"
         },
         {
           "kind": "path",
-          "path": ".flowguard/development_process_strategy/model.py"
+          "path": ".flowguard/models/owners/development_process_strategy/model.py"
         },
         {
           "kind": "path",
-          "path": ".flowguard/development_process_strategy/preflight.json"
+          "path": ".flowguard/models/owners/development_process_strategy/preflight.json"
         },
         {
           "kind": "path",
-          "path": ".flowguard/development_process_strategy/run_checks.py"
+          "path": ".flowguard/verification/owners/development_process_strategy/run_checks.py"
         },
         {
           "kind": "path",
@@ -204,7 +204,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/development_process_flow/model.py"
+          "path": ".flowguard/models/owners/development_process_flow/model.py"
         },
         {
           "kind": "path",
@@ -259,7 +259,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/development_process_flow/model.py"
+          "path": ".flowguard/models/owners/development_process_flow/model.py"
         },
         {
           "kind": "path",
@@ -323,7 +323,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/development_process_flow/model.py"
+          "path": ".flowguard/models/owners/development_process_flow/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -592,13 +592,14 @@
     "claim_boundary": "flowguard-development-process-flow owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
     "integration_mode": "native-integrated",
-      "native_check_ids": [
-        "check:flowguard-development-process-flow:plane-boundary",
-        "check:flowguard-development-process-flow:native-authority",
-        "check:flowguard-development-process-flow:process-strategy-equivalence",
-        "check:flowguard-development-process-flow:author-shadow-sync-atomic-currentness",
-        "check:flowguard-development-process-flow:validation-observation-bounded-currentness",
-        "check:flowguard-development-process-flow:evidence-closure",
+    "model_deepening_check_id": "check:flowguard-development-process-flow:native-authority",
+    "native_check_ids": [
+      "check:flowguard-development-process-flow:plane-boundary",
+      "check:flowguard-development-process-flow:native-authority",
+      "check:flowguard-development-process-flow:process-strategy-equivalence",
+      "check:flowguard-development-process-flow:author-shadow-sync-atomic-currentness",
+      "check:flowguard-development-process-flow:validation-observation-bounded-currentness",
+      "check:flowguard-development-process-flow:evidence-closure",
       "check:flowguard-development-process-flow:plan-detailing:plane-boundary",
       "check:flowguard-development-process-flow:plan-detailing:native-authority",
       "check:flowguard-development-process-flow:plan-detailing:evidence-closure",
@@ -606,7 +607,6 @@
       "check:flowguard-development-process-flow:agent-workflow:native-authority",
       "check:flowguard-development-process-flow:agent-workflow:evidence-closure"
     ],
-    "model_deepening_check_id": "check:flowguard-development-process-flow:native-authority",
     "native_owner_id": "development_process_flow",
     "native_route_ids": [
       "route:development_process_flow",
@@ -614,14 +614,14 @@
       "route:agent_workflow_rehearsal"
     ],
     "profile_id": "profile:flowguard-development-process-flow:fixed-enforced-declared-check-supervision",
-      "provider_runtime": {
-        "provider_id": "skillguard-local-provider",
-        "readiness_check_ids": [
-          "check:flowguard-development-process-flow:native-authority",
-          "check:flowguard-development-process-flow:process-strategy-equivalence",
-          "check:flowguard-development-process-flow:author-shadow-sync-atomic-currentness",
-          "check:flowguard-development-process-flow:validation-observation-bounded-currentness",
-          "check:flowguard-development-process-flow:plan-detailing:native-authority",
+    "provider_runtime": {
+      "provider_id": "skillguard-local-provider",
+      "readiness_check_ids": [
+        "check:flowguard-development-process-flow:native-authority",
+        "check:flowguard-development-process-flow:process-strategy-equivalence",
+        "check:flowguard-development-process-flow:author-shadow-sync-atomic-currentness",
+        "check:flowguard-development-process-flow:validation-observation-bounded-currentness",
+        "check:flowguard-development-process-flow:plan-detailing:native-authority",
         "check:flowguard-development-process-flow:agent-workflow:native-authority"
       ],
       "required_capability_ids": [
@@ -640,16 +640,36 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard-development-process-flow:plane-boundary",
+        "check:flowguard-development-process-flow:native-authority",
+        "check:flowguard-development-process-flow:process-strategy-equivalence",
+        "check:flowguard-development-process-flow:author-shadow-sync-atomic-currentness",
+        "check:flowguard-development-process-flow:validation-observation-bounded-currentness",
+        "check:flowguard-development-process-flow:evidence-closure",
+        "check:flowguard-development-process-flow:plan-detailing:plane-boundary",
+        "check:flowguard-development-process-flow:plan-detailing:native-authority",
+        "check:flowguard-development-process-flow:plan-detailing:evidence-closure",
+        "check:flowguard-development-process-flow:agent-workflow:plane-boundary",
+        "check:flowguard-development-process-flow:agent-workflow:native-authority",
+        "check:flowguard-development-process-flow:agent-workflow:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard-development-process-flow:native-authority",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard-development-process-flow"
   },
   "implementation_paths": [
     ".agents/skills/flowguard-development-process-flow",
-    ".flowguard/development_process_flow",
+    ".flowguard/models/owners/development_process_flow",
+    ".flowguard/verification/owners/development_process_flow",
     "flowguard/development_process_flow.py",
     "flowguard/skill_contract_model.py",
     "tests/test_development_process_flow.py",
     "tests/test_development_process_simulator.py",
-    ".flowguard/development_process_strategy",
+    ".flowguard/models/owners/development_process_strategy",
+    ".flowguard/verification/owners/development_process_strategy",
     "flowguard/development_process_strategy.py",
     "flowguard/_development_process_strategy_review.py",
     "tests/test_development_process_strategy.py",
@@ -698,7 +718,7 @@
     "flowguard-ui-flow-structure"
   ],
   "model_id": "flowguard.development_process_flow.skill_contract.v2",
-  "model_path": ".flowguard/development_process_flow/model.py",
+  "model_path": ".flowguard/models/owners/development_process_flow/model.py",
   "native_check_bindings": [
     {
       "authority": "target-native",

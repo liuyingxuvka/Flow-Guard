@@ -145,7 +145,7 @@ def load_affected_authority_inventory(
     """Load the independent affected-path inventory when the project declares one."""
 
     root_path = Path(root).resolve()
-    path = root_path / ".flowguard" / "authoritative_model_system" / "affected_authority_inventory.json"
+    path = root_path / ".flowguard" / "models" / "owners" / "authoritative_model_system" / "affected_authority_inventory.json"
     if not path.is_file():
         return None
     payload = _load_json_object(path)
@@ -273,7 +273,7 @@ def _owner_model_id(
     normalized = str(owner or "").replace("\\", "/")
     if normalized in path_to_model_id:
         return path_to_model_id[normalized]
-    match = re.search(r"\.flowguard/([^/]+)/model\.py", normalized)
+    match = re.search(r"\.flowguard/models/owners/([^/]+)/model\.py", normalized)
     if match and match.group(1) in model_ids:
         return match.group(1)
     if normalized.startswith("model:") and normalized.split(":", 1)[1] in model_ids:
@@ -287,7 +287,8 @@ def _commitment_records(
     path = (
         root
         / ".flowguard"
-        / "behavior_commitment_ledger"
+        / "behavior"
+        / "inventory"
         / "ledger.json"
     )
     if not path.is_file():

@@ -1,10 +1,10 @@
 {
   "artifacts": [],
-  "check_declarations_hash": "A34D4D6A532AEB946386597C3977B517F309A24A81C114E5A406045902BEA0E1",
+  "check_declarations_hash": "3C49CB622982D477E5AAE6C54C60E9AD8D4AAF4A523A33A4B9109BCF8E0C49B0",
   "checks": [
     {
       "args": [
-        ".flowguard/behavior_commitment_ledger/model.py"
+        ".flowguard/models/owners/behavior_commitment_ledger/model.py"
       ],
       "assertion_scope": "current_full_flowguard_model",
       "check_id": "check:flowguard-behavior-commitment-ledger:plane-boundary",
@@ -24,25 +24,25 @@
         "exit_code": 0
       },
       "input_component_ids": [
-        "component:documentation_model:02a8c940cb017abb",
-        "component:documentation_model:39ddd5a65c54d5a8",
+        "component:documentation_model:44b44eea0970f857",
+        "component:documentation_model:4bcc044013ebf62c",
         "component:runtime_source:c78d2ae7e91b0327"
       ],
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/behavior_commitment_ledger/ledger.json"
+          "path": ".flowguard/behavior/inventory/ledger.json"
         },
         {
           "kind": "path",
-          "path": ".flowguard/behavior_commitment_ledger/model.py"
+          "path": ".flowguard/models/owners/behavior_commitment_ledger/model.py"
         }
       ],
       "kind": "model_assertion",
       "maintenance_unit_id": "unit:flowguard-suite",
       "member_skill_id": "flowguard-behavior-commitment-ledger",
-      "owner_declaration_hash": "sha256:1ffe6f7615d62fd204adc994f0a6680e4e34f9c26537ee2b4cba93030755d6c5",
-      "owner_input_projection_hash": "sha256:b66a84bd699dbf20ab3873240b2bc4b332cb836dd35c1b40e1aa0a2fe3842fd5",
+      "owner_declaration_hash": "sha256:e528f51d104e8042427933641bdae7ef0d9bb590a1cb8ecc1da328f86a382bc1",
+      "owner_input_projection_hash": "sha256:b112118d170be6c3f9fdede6729bd4537fa63b641742f354fbd5a1e2ad86e472",
       "projection_declaration_hash": "sha256:4fa70e2dd043fd3d4eed3a08567b96a627f2a4179690df20f84aabb4eedbcd73",
       "semantic_check_id": "semantic:check:flowguard-behavior-commitment-ledger:plane-boundary",
       "target_input_role_ids": [],
@@ -50,7 +50,7 @@
     },
     {
       "args": [
-        ".flowguard/behavior_commitment_ledger/run_checks.py"
+        ".flowguard/verification/owners/behavior_commitment_ledger/run_checks.py"
       ],
       "check_id": "check:flowguard-behavior-commitment-ledger:native-authority",
       "command": "python",
@@ -69,27 +69,28 @@
         "exit_code": 0
       },
       "input_component_ids": [
-        "component:documentation_model:02a8c940cb017abb",
-        "component:documentation_model:39ddd5a65c54d5a8",
-        "component:documentation_model:9e2f40b884066c50",
+        "component:documentation_model:44b44eea0970f857",
+        "component:documentation_model:46a407fd58df66a4",
+        "component:documentation_model:4bcc044013ebf62c",
         "component:documentation_model:f0b0d816cf75296f",
-        "component:runtime_source:0858314292606e6b",
+        "component:runtime_source:0a05eabd6051a0d2",
         "component:runtime_source:77d300f161a7de08",
+        "component:runtime_source:7d9071b97bdd1648",
         "component:runtime_source:c78d2ae7e91b0327",
         "component:test_dev:162881f0b299ae86"
       ],
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/behavior_commitment_ledger/ledger.json"
+          "path": ".flowguard/behavior/inventory/ledger.json"
         },
         {
           "kind": "path",
-          "path": ".flowguard/behavior_commitment_ledger/model.py"
+          "path": ".flowguard/models/owners/behavior_commitment_ledger/model.py"
         },
         {
           "kind": "path",
-          "path": ".flowguard/behavior_commitment_ledger/run_checks.py"
+          "path": ".flowguard/verification/owners/behavior_commitment_ledger/run_checks.py"
         },
         {
           "kind": "role",
@@ -107,8 +108,8 @@
       "kind": "command",
       "maintenance_unit_id": "unit:flowguard-suite",
       "member_skill_id": "flowguard-behavior-commitment-ledger",
-      "owner_declaration_hash": "sha256:a41b9e634c97f49eedd0b99e1b0cb2e3aff92e7f5a205e7cce5e9e8911dff47c",
-      "owner_input_projection_hash": "sha256:c215cbb2a3ba8cd9e7eda4fd748aec152b52e973fcc4f365e7031704ebb564df",
+      "owner_declaration_hash": "sha256:e18249835ae012b17189b0d9a2cd821568735295fa14d9a6661ec6fb08b7a3ea",
+      "owner_input_projection_hash": "sha256:94b9a202e7e48598762df0b6354b1e662d5596d9024a8b929fe4a443dec5dd3b",
       "projection_declaration_hash": "sha256:1c4afbe8ccbd05cae270b9e12bf3a9cce6ac9749cf4d186864c183d013ea07d5",
       "semantic_check_id": "semantic:check:flowguard-behavior-commitment-ledger:native-authority",
       "target_input_role_ids": [],
@@ -116,7 +117,7 @@
     },
     {
       "args": [
-        ".flowguard/behavior_commitment_ledger/model.py"
+        ".flowguard/models/owners/behavior_commitment_ledger/model.py"
       ],
       "assertion_scope": "current_full_flowguard_model",
       "check_id": "check:flowguard-behavior-commitment-ledger:evidence-closure",
@@ -136,20 +137,20 @@
         "exit_code": 0
       },
       "input_component_ids": [
-        "component:documentation_model:02a8c940cb017abb",
+        "component:documentation_model:44b44eea0970f857",
         "component:runtime_source:c78d2ae7e91b0327"
       ],
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/behavior_commitment_ledger/model.py"
+          "path": ".flowguard/models/owners/behavior_commitment_ledger/model.py"
         }
       ],
       "kind": "model_assertion",
       "maintenance_unit_id": "unit:flowguard-suite",
       "member_skill_id": "flowguard-behavior-commitment-ledger",
-      "owner_declaration_hash": "sha256:72aef48a19a452cb6af1a934826327a7ab92e7eff5696945fb82b168ecdbba0f",
-      "owner_input_projection_hash": "sha256:03faf0efb1aff8668f146a45e187c212d2431bcd45b11064141b1ed5da83a180",
+      "owner_declaration_hash": "sha256:92ce271519bb3054ad562c6d9e3f9a54c8b0765457b7fa1d41a13c69745b0d09",
+      "owner_input_projection_hash": "sha256:1c60ee5b2bbd312abdaacac37839ac1d839c9a20f927edc0a34adc07a05dbe5d",
       "projection_declaration_hash": "sha256:c5c30b68bfd9787487ee5dcab233d6de153ee4b92b569c7664aa9fdb53861d69",
       "semantic_check_id": "semantic:check:flowguard-behavior-commitment-ledger:evidence-closure",
       "target_input_role_ids": [],
@@ -182,7 +183,7 @@
   },
   "content_impact_plan": {
     "all_owner_component_ids": [
-      "component:documentation_model:02a8c940cb017abb",
+      "component:documentation_model:44b44eea0970f857",
       "component:runtime_source:c78d2ae7e91b0327"
     ],
     "check_projections": [
@@ -225,7 +226,7 @@
         "classification_rule_ids": [
           "skillguard.content_role_classifier.current:contract_schema"
         ],
-        "component_hash": "sha256:807f7a1897b3e442d1811ed87d79ed6a7ec3bef861338a5da718d255dea91d77",
+        "component_hash": "sha256:66bdaf3e9dbb3b24654a41effcb2acdfd9cf60940540005749945fcc4b4c24b4",
         "component_id": "component:contract_schema:7ab4ef6acbd2caad",
         "consumer_ids": [
           "projection:contract-compile",
@@ -258,8 +259,8 @@
         "classification_rule_ids": [
           "skillguard.content_role_classifier.current:documentation_model"
         ],
-        "component_hash": "sha256:832942face1e07503d18c3cf9e5c5e7c03ce441de7d2c83dcd42d20597256e9a",
-        "component_id": "component:documentation_model:02a8c940cb017abb",
+        "component_hash": "sha256:4224b7cc5c5d5281e39465d71b9f0eaa8e3a17f53088989fe569be8b52b9118f",
+        "component_id": "component:documentation_model:44b44eea0970f857",
         "consumer_ids": [
           "owner:check:flowguard-behavior-commitment-ledger:evidence-closure",
           "owner:check:flowguard-behavior-commitment-ledger:native-authority",
@@ -268,7 +269,7 @@
         ],
         "install_disposition": "source_only",
         "member_paths": [
-          ".flowguard/behavior_commitment_ledger/model.py"
+          ".flowguard/models/owners/behavior_commitment_ledger/model.py"
         ],
         "role": "documentation_model"
       },
@@ -276,15 +277,15 @@
         "classification_rule_ids": [
           "skillguard.content_role_classifier.current:documentation_model"
         ],
-        "component_hash": "sha256:937b70293449338aca7b27e6339c7d20f9c7ac5bf47c93c534a43652ca16ffce",
-        "component_id": "component:documentation_model:9e2f40b884066c50",
+        "component_hash": "sha256:8c6f72ae7fbc3afc75507971792945ebfecf7e1a79e7e1bbbbb18b59e9782bb7",
+        "component_id": "component:documentation_model:46a407fd58df66a4",
         "consumer_ids": [
           "owner:check:flowguard-behavior-commitment-ledger:native-authority"
         ],
         "install_disposition": "source_only",
         "member_paths": [
-          ".flowguard/behavior_commitment_ledger/result.json",
-          ".flowguard/behavior_commitment_ledger/run_checks.py"
+          ".flowguard/verification/owners/behavior_commitment_ledger/result.json",
+          ".flowguard/verification/owners/behavior_commitment_ledger/run_checks.py"
         ],
         "role": "documentation_model"
       },
@@ -292,15 +293,15 @@
         "classification_rule_ids": [
           "skillguard.content_role_classifier.current:documentation_model"
         ],
-        "component_hash": "sha256:baa388e7f1908fc9fd169565b382a932c644b3da6a1ce0bec9d9e154066b262a",
-        "component_id": "component:documentation_model:39ddd5a65c54d5a8",
+        "component_hash": "sha256:b1c94cc19a44bfff63608c21dbbef0953937ff5a80440b6e91895fe9910eb620",
+        "component_id": "component:documentation_model:4bcc044013ebf62c",
         "consumer_ids": [
           "owner:check:flowguard-behavior-commitment-ledger:native-authority",
           "owner:check:flowguard-behavior-commitment-ledger:plane-boundary"
         ],
         "install_disposition": "source_only",
         "member_paths": [
-          ".flowguard/behavior_commitment_ledger/ledger.json"
+          ".flowguard/behavior/inventory/ledger.json"
         ],
         "role": "documentation_model"
       },
@@ -308,14 +309,15 @@
         "classification_rule_ids": [
           "skillguard.content_role_classifier.current:runtime_source"
         ],
-        "component_hash": "sha256:b55fead4b64f1bae6be6384a73b9f00c510ed7308024d7c097e2420c11ed7fbc",
-        "component_id": "component:runtime_source:0858314292606e6b",
+        "component_hash": "sha256:f0fe467ace89184a6fd917eaf1f9710c221fdefa8a7e2a7aadebb58b8fcc5f8f",
+        "component_id": "component:runtime_source:0a05eabd6051a0d2",
         "consumer_ids": [
           "owner:check:flowguard-behavior-commitment-ledger:native-authority",
           "projection:installation"
         ],
         "install_disposition": "copy",
         "member_paths": [
+          ".agents/skills/flowguard-behavior-commitment-ledger/.skillguard/surface-semantic-map.json",
           ".agents/skills/flowguard-behavior-commitment-ledger/agents/openai.yaml"
         ],
         "role": "runtime_source"
@@ -342,7 +344,7 @@
         "classification_rule_ids": [
           "skillguard.content_role_classifier.current:runtime_source"
         ],
-        "component_hash": "sha256:073245ff134017ed83404fbd88e76524225bc6241cd7634471b55222c13cfe06",
+        "component_hash": "sha256:10a38d75008f7c9febe2df803721d0400491e31eb9ca83cd201c84d1c086e84a",
         "component_id": "component:runtime_source:77d300f161a7de08",
         "consumer_ids": [
           "owner:check:flowguard-behavior-commitment-ledger:native-authority"
@@ -356,9 +358,25 @@
       },
       {
         "classification_rule_ids": [
+          "skillguard.content_role_classifier.current:runtime_source"
+        ],
+        "component_hash": "sha256:7eb46b279bfe32e2914d3f233b8f20ed5338ca3c8a5217932efe655cb0d7a9d2",
+        "component_id": "component:runtime_source:7d9071b97bdd1648",
+        "consumer_ids": [
+          "owner:check:flowguard-behavior-commitment-ledger:native-authority",
+          "projection:source-maintenance"
+        ],
+        "install_disposition": "source_only",
+        "member_paths": [
+          ".agents/skills/flowguard-behavior-commitment-ledger/.skillguard/surface-inventory.json"
+        ],
+        "role": "runtime_source"
+      },
+      {
+        "classification_rule_ids": [
           "skillguard.content_role_classifier.current:test_dev"
         ],
-        "component_hash": "sha256:397f8ced4807891e0fbf8b1238a5f81df3484bc0518af9bcb7e0ababbe20b76c",
+        "component_hash": "sha256:1dcd3d56f3a0b9e56c5645d553a62436a550b6571f7d20e4b55d6dc8ec609573",
         "component_id": "component:test_dev:162881f0b299ae86",
         "consumer_ids": [
           "owner:check:flowguard-behavior-commitment-ledger:native-authority"
@@ -386,14 +404,28 @@
       "owner_cycles": [],
       "unmapped_paths": []
     },
-    "impact_graph_hash": "sha256:6c9e716769109c154aa891ab694a20d58ccc66dc2782396c921c6ea8908e27b8",
+    "impact_graph_hash": "sha256:e8fcbbd27632512657eed30f0182442ec3f00e107da82c6eb485cb92bc7e62e1",
     "inventory": [
       {
         "classification_rule_id": "skillguard.content_role_classifier.current:contract_schema",
-        "content_hash": "sha256:8fb330c5cf2c3e1af0a610f8a6a034665c562e46241fd5ddf85a37020e4cad94",
+        "content_hash": "sha256:2759c9ca752871dacbc0d882335afe5b0626b9adbdb310d53325b0f471cd79b7",
         "install_disposition": "source_only",
         "path": ".agents/skills/flowguard-behavior-commitment-ledger/.skillguard/contract-source.json",
         "role": "contract_schema"
+      },
+      {
+        "classification_rule_id": "skillguard.content_role_classifier.current:runtime_source",
+        "content_hash": "sha256:99037ea526e104fccd4db33cbc7b4e81cdaf30687e0e60686063161cf9ec723b",
+        "install_disposition": "source_only",
+        "path": ".agents/skills/flowguard-behavior-commitment-ledger/.skillguard/surface-inventory.json",
+        "role": "runtime_source"
+      },
+      {
+        "classification_rule_id": "skillguard.content_role_classifier.current:runtime_source",
+        "content_hash": "sha256:c09f11e3bf7b6ed2e0d887a84ee97c084c01ee04dcfff1b716418b19ffbbe08e",
+        "install_disposition": "copy",
+        "path": ".agents/skills/flowguard-behavior-commitment-ledger/.skillguard/surface-semantic-map.json",
+        "role": "runtime_source"
       },
       {
         "classification_rule_id": "skillguard.content_role_classifier.current:documentation_model",
@@ -418,35 +450,35 @@
       },
       {
         "classification_rule_id": "skillguard.content_role_classifier.current:documentation_model",
-        "content_hash": "sha256:c649614f0ac7b21b5cfe5fba40cb6b12c53d944f2f89a31c71a36470ff800567",
+        "content_hash": "sha256:b44e48c01666de427f02413c8a3bd7bbc2b0867f44dd8b69117e7dc8852b3d26",
         "install_disposition": "source_only",
-        "path": ".flowguard/behavior_commitment_ledger/ledger.json",
+        "path": ".flowguard/behavior/inventory/ledger.json",
         "role": "documentation_model"
       },
       {
         "classification_rule_id": "skillguard.content_role_classifier.current:documentation_model",
-        "content_hash": "sha256:4cbe5f12a4db89b4716d99250a0d0f81c26bcc402707cb219548ef1d01eb987a",
+        "content_hash": "sha256:2aba900f41208d0a9342f3226a9c84f80c2c6b6aef0b24a08023f40f71f8add6",
         "install_disposition": "source_only",
-        "path": ".flowguard/behavior_commitment_ledger/model.py",
+        "path": ".flowguard/models/owners/behavior_commitment_ledger/model.py",
         "role": "documentation_model"
       },
       {
         "classification_rule_id": "skillguard.content_role_classifier.current:documentation_model",
-        "content_hash": "sha256:bb8b97079e37e2f8bc983f50cf6ec73b041d9aba2d8c29d318478c3633d3120b",
+        "content_hash": "sha256:a97a707fc03ffbc874931540c83f55a552c67f634c21eb7c6f50bf791862b844",
         "install_disposition": "source_only",
-        "path": ".flowguard/behavior_commitment_ledger/result.json",
+        "path": ".flowguard/verification/owners/behavior_commitment_ledger/result.json",
         "role": "documentation_model"
       },
       {
         "classification_rule_id": "skillguard.content_role_classifier.current:documentation_model",
-        "content_hash": "sha256:e2926c9fd1b6743f70a72eebb1e4fb3918ffc491363aa00a61ca7238abc466dd",
+        "content_hash": "sha256:a5891774f2dc8f4c82433b283f6f55e4e85461adc835bd16a4cf8af79e8477a3",
         "install_disposition": "source_only",
-        "path": ".flowguard/behavior_commitment_ledger/run_checks.py",
+        "path": ".flowguard/verification/owners/behavior_commitment_ledger/run_checks.py",
         "role": "documentation_model"
       },
       {
         "classification_rule_id": "skillguard.content_role_classifier.current:runtime_source",
-        "content_hash": "sha256:0e068d56f498554df6869d4ed9e184c56422808b30ca23f9837cfa1b7190323c",
+        "content_hash": "sha256:23ac534702ff7c6c0e31c32e231ece2e4a014396dff7d7422d99c986018a066e",
         "install_disposition": "source_only",
         "path": "flowguard/behavior_commitment.py",
         "role": "runtime_source"
@@ -467,20 +499,20 @@
       },
       {
         "classification_rule_id": "skillguard.content_role_classifier.current:test_dev",
-        "content_hash": "sha256:a8df92dfd55b41e17a393796445dbca2dcaf23a14fc2c477a807aff0d53ca1ba",
+        "content_hash": "sha256:2b3596f3ac27bae36416ea9262ca6d696f83c7bff777cb15e76a9ef90988a6e4",
         "install_disposition": "source_only",
         "path": "tests/test_behavior_commitment_ledger.py",
         "role": "test_dev"
       },
       {
         "classification_rule_id": "skillguard.content_role_classifier.current:test_dev",
-        "content_hash": "sha256:bcf15af5e920d034207a04baab545b4230c4b4d6b8b2e5f1a515230bbb7eca04",
+        "content_hash": "sha256:2731564c42bc937e33ec745a6019316e705e00eb29628231d77f80d9faa1d03d",
         "install_disposition": "source_only",
         "path": "tests/test_behavior_commitment_lookup.py",
         "role": "test_dev"
       }
     ],
-    "inventory_hash": "sha256:b413009c92d4ed42a7a943ae612fd4e1c919325de4432d2336b6f59b963dddc1",
+    "inventory_hash": "sha256:8f5b60dce945c90ebb2471a4dc96efe10cf76278220a8520e00371f7b4383ca9",
     "member_root_path": ".agents/skills/flowguard-behavior-commitment-ledger",
     "owner_receipt_root_ref": {
       "path_token": "owner_evidence_root",
@@ -494,17 +526,17 @@
         "depends_on_owner_ids": [],
         "execution_owner_id": "owner:check:flowguard-behavior-commitment-ledger:evidence-closure",
         "input_component_ids": [
-          "component:documentation_model:02a8c940cb017abb",
+          "component:documentation_model:44b44eea0970f857",
           "component:runtime_source:c78d2ae7e91b0327"
         ],
         "input_selectors": [
           {
             "kind": "path",
-            "path": ".flowguard/behavior_commitment_ledger/model.py"
+            "path": ".flowguard/models/owners/behavior_commitment_ledger/model.py"
           }
         ],
-        "owner_declaration_hash": "sha256:72aef48a19a452cb6af1a934826327a7ab92e7eff5696945fb82b168ecdbba0f",
-        "owner_input_projection_hash": "sha256:03faf0efb1aff8668f146a45e187c212d2431bcd45b11064141b1ed5da83a180",
+        "owner_declaration_hash": "sha256:92ce271519bb3054ad562c6d9e3f9a54c8b0765457b7fa1d41a13c69745b0d09",
+        "owner_input_projection_hash": "sha256:1c60ee5b2bbd312abdaacac37839ac1d839c9a20f927edc0a34adc07a05dbe5d",
         "target_input_role_ids": []
       },
       {
@@ -514,27 +546,28 @@
         "depends_on_owner_ids": [],
         "execution_owner_id": "owner:check:flowguard-behavior-commitment-ledger:native-authority",
         "input_component_ids": [
-          "component:documentation_model:02a8c940cb017abb",
-          "component:documentation_model:39ddd5a65c54d5a8",
-          "component:documentation_model:9e2f40b884066c50",
+          "component:documentation_model:44b44eea0970f857",
+          "component:documentation_model:46a407fd58df66a4",
+          "component:documentation_model:4bcc044013ebf62c",
           "component:documentation_model:f0b0d816cf75296f",
-          "component:runtime_source:0858314292606e6b",
+          "component:runtime_source:0a05eabd6051a0d2",
           "component:runtime_source:77d300f161a7de08",
+          "component:runtime_source:7d9071b97bdd1648",
           "component:runtime_source:c78d2ae7e91b0327",
           "component:test_dev:162881f0b299ae86"
         ],
         "input_selectors": [
           {
             "kind": "path",
-            "path": ".flowguard/behavior_commitment_ledger/ledger.json"
+            "path": ".flowguard/behavior/inventory/ledger.json"
           },
           {
             "kind": "path",
-            "path": ".flowguard/behavior_commitment_ledger/model.py"
+            "path": ".flowguard/models/owners/behavior_commitment_ledger/model.py"
           },
           {
             "kind": "path",
-            "path": ".flowguard/behavior_commitment_ledger/run_checks.py"
+            "path": ".flowguard/verification/owners/behavior_commitment_ledger/run_checks.py"
           },
           {
             "kind": "role",
@@ -549,8 +582,8 @@
             "role": "test_dev"
           }
         ],
-        "owner_declaration_hash": "sha256:a41b9e634c97f49eedd0b99e1b0cb2e3aff92e7f5a205e7cce5e9e8911dff47c",
-        "owner_input_projection_hash": "sha256:c215cbb2a3ba8cd9e7eda4fd748aec152b52e973fcc4f365e7031704ebb564df",
+        "owner_declaration_hash": "sha256:e18249835ae012b17189b0d9a2cd821568735295fa14d9a6661ec6fb08b7a3ea",
+        "owner_input_projection_hash": "sha256:94b9a202e7e48598762df0b6354b1e662d5596d9024a8b929fe4a443dec5dd3b",
         "target_input_role_ids": []
       },
       {
@@ -560,22 +593,22 @@
         "depends_on_owner_ids": [],
         "execution_owner_id": "owner:check:flowguard-behavior-commitment-ledger:plane-boundary",
         "input_component_ids": [
-          "component:documentation_model:02a8c940cb017abb",
-          "component:documentation_model:39ddd5a65c54d5a8",
+          "component:documentation_model:44b44eea0970f857",
+          "component:documentation_model:4bcc044013ebf62c",
           "component:runtime_source:c78d2ae7e91b0327"
         ],
         "input_selectors": [
           {
             "kind": "path",
-            "path": ".flowguard/behavior_commitment_ledger/ledger.json"
+            "path": ".flowguard/behavior/inventory/ledger.json"
           },
           {
             "kind": "path",
-            "path": ".flowguard/behavior_commitment_ledger/model.py"
+            "path": ".flowguard/models/owners/behavior_commitment_ledger/model.py"
           }
         ],
-        "owner_declaration_hash": "sha256:1ffe6f7615d62fd204adc994f0a6680e4e34f9c26537ee2b4cba93030755d6c5",
-        "owner_input_projection_hash": "sha256:b66a84bd699dbf20ab3873240b2bc4b332cb836dd35c1b40e1aa0a2fe3842fd5",
+        "owner_declaration_hash": "sha256:e528f51d104e8042427933641bdae7ef0d9bb590a1cb8ecc1da328f86a382bc1",
+        "owner_input_projection_hash": "sha256:b112118d170be6c3f9fdede6729bd4537fa63b641742f354fbd5a1e2ad86e472",
         "target_input_role_ids": []
       }
     ],
@@ -584,17 +617,17 @@
     "projection_consumers": [
       {
         "consumer_id": "projection:contract-compile",
-        "consumer_projection_hash": "sha256:3ff3859cedaea1b2a646ec02b041057308d8bf1f3fc27788171e7b001ac8ccd4",
+        "consumer_projection_hash": "sha256:a053781cf5930081fbf5f762b08ee0d1fe4f49c3dcb129258165d988115ff62c",
         "impact_plan_schema_version": "skillguard.content_impact_plan.current",
         "impact_policy_id": "skillguard.content_impact_policy.current",
         "input_component_ids": [
           "component:contract_schema:7ab4ef6acbd2caad",
-          "component:documentation_model:02a8c940cb017abb",
+          "component:documentation_model:44b44eea0970f857",
           "component:runtime_source:c78d2ae7e91b0327"
         ],
-        "input_projection_hash": "sha256:137b1d169635f6cfbfdf8055e8aead732657a6a391edd710ca34150e01854fd1",
+        "input_projection_hash": "sha256:b704f06b164898f1f3cd6dad330a236ec7491a20ad3588b1758f3d2f40865d6c",
         "kind": "contract_compile",
-        "projection_declaration_hash": "sha256:49a349173ebff3f594b73e40c177278b895a09a8136a29dddab846764ddd566b"
+        "projection_declaration_hash": "sha256:9d4e382a7fb7fc6925ddc24338525305d07c91a4a922f405f0f2234e65d3ff80"
       },
       {
         "consumer_id": "projection:global-router",
@@ -608,16 +641,16 @@
       },
       {
         "consumer_id": "projection:installation",
-        "consumer_projection_hash": "sha256:17b08d1c9fcd026e096467a81c37b6411bdeb766f46b55ce9afd1571b2f15230",
+        "consumer_projection_hash": "sha256:3a83e733dcacab74b46a64bbcd25baa7bc9761557a20439dfbb1cda52bb7bf33",
         "impact_plan_schema_version": "skillguard.content_impact_plan.current",
         "impact_policy_id": "skillguard.content_impact_policy.current",
         "input_component_ids": [
           "component:documentation_model:f0b0d816cf75296f",
-          "component:runtime_source:0858314292606e6b"
+          "component:runtime_source:0a05eabd6051a0d2"
         ],
-        "input_projection_hash": "sha256:91e8a637419a77a7cbc65168adfd02fb83b0338b8d72a21a9a990f7855be35c5",
+        "input_projection_hash": "sha256:8203fa6d8f29c1795bc77aeb4a9b16d1fa1d7d2a6565af2f9ab97e2504274611",
         "kind": "installation",
-        "projection_declaration_hash": "sha256:fd1e8609c634d4db23fc319c70943b3f0de9144ae232a247404ecc56f7ba80e4"
+        "projection_declaration_hash": "sha256:ca38e791755dce8a77f3147de377ef055fbab878f90c51bcf41563ae1e720e77"
       },
       {
         "consumer_id": "projection:portfolio",
@@ -631,21 +664,22 @@
       },
       {
         "consumer_id": "projection:source-maintenance",
-        "consumer_projection_hash": "sha256:03ff4af9895a0f7d97398537613832d2ff27436c7317feb61938755bbaebae4b",
+        "consumer_projection_hash": "sha256:9507f56e894c7ac280185d1f2afd18f7db357ed63929c116e2df43676a944681",
         "impact_plan_schema_version": "skillguard.content_impact_plan.current",
         "impact_policy_id": "skillguard.content_impact_policy.current",
         "input_component_ids": [
-          "component:contract_schema:7ab4ef6acbd2caad"
+          "component:contract_schema:7ab4ef6acbd2caad",
+          "component:runtime_source:7d9071b97bdd1648"
         ],
-        "input_projection_hash": "sha256:fdfc7b73e6f0695a9040ef49c1830310ab3c266d58b9e753f0049931ae6a4d9a",
+        "input_projection_hash": "sha256:f4762773c9ea8be43974abe46868a377df3e426c0cd4aa533ed1dcad87d59b0c",
         "kind": "source_maintenance",
-        "projection_declaration_hash": "sha256:188091f4963c992b5e9d628c5928422b846e2760acb471ea4513fe490d6c208b"
+        "projection_declaration_hash": "sha256:df2cd6b075614e946f0d674be739eff897a574037a8ad6bf04e6f8c8a9ffffbc"
       }
     ],
     "schema_version": "skillguard.content_impact_plan.current",
     "unknown_mapping_disposition": "block"
   },
-  "contract_hash": "70CCABDB71E746D5DD853F2814378D8E083B3B4A94B0E4C5CBFA3B826B959D52",
+  "contract_hash": "B4DCD5AB1D902E0F94B7E6D5CD23462C91E2AC423DD3BC897F969E7AE7E5ED46",
   "depth_profile": {
     "claim_boundary": "flowguard-behavior-commitment-ledger owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
@@ -682,6 +716,15 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard-behavior-commitment-ledger:plane-boundary",
+        "check:flowguard-behavior-commitment-ledger:native-authority",
+        "check:flowguard-behavior-commitment-ledger:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard-behavior-commitment-ledger:native-authority",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard-behavior-commitment-ledger"
   },
   "flowguard_schema_version": "1.0",
@@ -715,7 +758,7 @@
     "flowguard-ui-flow-structure"
   ],
   "model_id": "flowguard.behavior_commitment_ledger.skill_contract.v2",
-  "model_path": ".flowguard/behavior_commitment_ledger/model.py",
+  "model_path": ".flowguard/models/owners/behavior_commitment_ledger/model.py",
   "obligations": [
     {
       "evidence_classes": [
@@ -783,16 +826,18 @@
   "schema_version": "skillguard.compiled_contract.v2",
   "skill_id": "flowguard-behavior-commitment-ledger",
   "source_fingerprints": {
-    "binding": "8FB330C5CF2C3E1AF0A610F8A6A034665C562E46241FD5DDF85A37020E4CAD94",
+    "binding": "2759C9CA752871DACBC0D882335AFE5B0626B9ADBDB310D53325B0F471CD79B7",
     "entrypoint": "2D7A99776C219E787F5E85205C13BEEC519308AA1457DB51F89769E95928D4D6",
     "implementation:.agents/skills/flowguard-behavior-commitment-ledger": "1410D3ABD308F1C53E271A77E6CF96E3D0BF7778C4CF23F3A9D0F3D363AC57A9",
-    "implementation:.flowguard/behavior_commitment_ledger": "151AE9D074BF77E682D1627625E0ACD57E63F5650B3F26682C885F3CCBEC5B15",
-    "implementation:flowguard/behavior_commitment.py": "0E068D56F498554DF6869D4ED9E184C56422808B30CA23F9837CFA1B7190323C",
+    "implementation:.flowguard/behavior/inventory/ledger.json": "B44E48C01666DE427F02413C8A3BD7BBC2B0867F44DD8B69117E7DC8852B3D26",
+    "implementation:.flowguard/models/owners/behavior_commitment_ledger": "7C30BF1003AD3819BC1FC6925F76BCCF71D16A4ACDEECBF6F707CCD45C1BB87C",
+    "implementation:.flowguard/verification/owners/behavior_commitment_ledger": "97CB2A9832104CED9A99350120490E450848B906F1927C79E0E5780487025258",
+    "implementation:flowguard/behavior_commitment.py": "23AC534702FF7C6C0E31C32E231ECE2E4A014396DFF7D7422D99C986018A066E",
     "implementation:flowguard/behavior_commitment_lookup.py": "92E5566CB5C29849B975F72EAB94965C14B8D01733549320EED0A47F9AB98A85",
     "implementation:flowguard/skill_contract_model.py": "D2EE0C3A0F3B731BD070E1619443C83A1F1A59B0949ABFDB22289430EB4ED9DB",
-    "implementation:tests/test_behavior_commitment_ledger.py": "A8DF92DFD55B41E17A393796445DBCA2DCAF23A14FC2C477A807AFF0D53CA1BA",
-    "implementation:tests/test_behavior_commitment_lookup.py": "BCF15AF5E920D034207A04BAAB545B4230C4B4D6B8B2E5F1A515230BBB7ECA04",
-    "model": "4CBE5F12A4DB89B4716D99250A0D0F81C26BCC402707CB219548EF1D01EB987A",
+    "implementation:tests/test_behavior_commitment_ledger.py": "2B3596F3AC27BAE36416EA9262CA6D696F83C7BFF777CB15E76A9EF90988A6E4",
+    "implementation:tests/test_behavior_commitment_lookup.py": "2731564C42BC937E33EC745A6019316E705E00EB29628231D77F80D9FAA1D03D",
+    "model": "2ABA900F41208D0A9342F3226A9C84F80C2C6B6AEF0B24A08023F40F71F8ADD6",
     "model_export": "32A34DE047E87726D866F267B06A3D8883C8846D9A75EFD5C3BC45B10EBEFF02"
   },
   "steps": [

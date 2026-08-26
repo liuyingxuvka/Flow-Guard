@@ -16,7 +16,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/model_test_code_alignment/model.py"
+          "path": ".flowguard/models/owners/model_test_code_alignment/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -27,7 +27,7 @@
     },
     {
       "args": [
-        ".flowguard/model_test_code_alignment/run_checks.py"
+        ".flowguard/verification/owners/model_test_code_alignment/run_checks.py"
       ],
       "check_id": "check:flowguard-model-test-alignment:native-authority",
       "command": "python",
@@ -48,11 +48,11 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/model_test_code_alignment/model.py"
+          "path": ".flowguard/models/owners/model_test_code_alignment/model.py"
         },
         {
           "kind": "path",
-          "path": ".flowguard/model_test_code_alignment/run_checks.py"
+          "path": ".flowguard/verification/owners/model_test_code_alignment/run_checks.py"
         },
         {
           "kind": "path",
@@ -124,7 +124,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/model_test_code_alignment/model.py"
+          "path": ".flowguard/models/owners/model_test_code_alignment/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -178,12 +178,12 @@
     "claim_boundary": "flowguard-model-test-alignment owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
     "integration_mode": "native-integrated",
+    "model_deepening_check_id": "check:flowguard-model-test-alignment:native-authority",
     "native_check_ids": [
       "check:flowguard-model-test-alignment:plane-boundary",
       "check:flowguard-model-test-alignment:native-authority",
       "check:flowguard-model-test-alignment:evidence-closure"
     ],
-    "model_deepening_check_id": "check:flowguard-model-test-alignment:native-authority",
     "native_owner_id": "model_test_alignment",
     "native_route_ids": [
       "route:model_test_alignment"
@@ -210,11 +210,21 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard-model-test-alignment:plane-boundary",
+        "check:flowguard-model-test-alignment:native-authority",
+        "check:flowguard-model-test-alignment:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard-model-test-alignment:native-authority",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard-model-test-alignment"
   },
   "implementation_paths": [
     ".agents/skills/flowguard-model-test-alignment",
-    ".flowguard/model_test_code_alignment",
+    ".flowguard/models/owners/model_test_code_alignment",
+    ".flowguard/verification/owners/model_test_code_alignment",
     "flowguard/model_test_alignment.py",
     "flowguard/skill_contract_model.py",
     "flowguard/implementation_blueprint.py",
@@ -250,7 +260,7 @@
     "flowguard-ui-flow-structure"
   ],
   "model_id": "flowguard.model_test_alignment.skill_contract.v2",
-  "model_path": ".flowguard/model_test_code_alignment/model.py",
+  "model_path": ".flowguard/models/owners/model_test_code_alignment/model.py",
   "native_check_bindings": [
     {
       "authority": "target-native",

@@ -32,7 +32,7 @@ TARGET_SYSTEM_PROVIDER_PROFILE_REGISTRY_SCHEMA = (
     "flowguard.target_system_provider_profile_registry.v1"
 )
 TARGET_SYSTEM_DNA_QUALIFICATION_SCHEMA = (
-    "flowguard.target_system_dna_qualification.v1"
+    "flowguard.target_system_dna_qualification.v2"
 )
 MODEL_PATH_QUALITY_BLUEPRINT_BINDING_SCHEMA = (
     "flowguard.model_path_quality_blueprint_binding.v1"
@@ -65,6 +65,8 @@ EXECUTED_EVIDENCE_STATUSES = (
     "blocked",
     "not_applicable",
 )
+DNA_EXECUTION_STATUSES = (*EXECUTED_EVIDENCE_STATUSES, "missing")
+DNA_CLAIM_STATUSES = ("qualified", "static_ready", "blocked")
 MODEL_PATH_QUALITY_CHANGE_KINDS = frozenset(
     {"new", "materially_changed", "unchanged"}
 )
@@ -1079,9 +1081,13 @@ class TargetSystemDnaQualification:
     test_binding_fingerprint: str
     reasons: tuple[str, ...] = ()
     claim_boundary: str = (
-        "Qualification reports current evidence identities and model depth only; "
-        "it does not create a target or a second model authority."
+        "Static readiness reports model and binding closure only. Broad DNA "
+        "qualification additionally requires terminal passed execution evidence "
+        "with a current fingerprint; this result does not create a target or a "
+        "second model authority."
     )
+    execution_status: str = "not_run"
+    execution_evidence_fingerprint: str = ""
 
     def __post_init__(self) -> None:
         for field_name in (
@@ -1098,6 +1104,12 @@ class TargetSystemDnaQualification:
                 field_name,
                 _text(getattr(self, field_name), f"DNA qualification {field_name}"),
             )
+        execution_fingerprint = self.execution_evidence_fingerprint
+        if execution_fingerprint is None:
+            execution_fingerprint = ""
+        elif not isinstance(execution_fingerprint, str):
+            execution_fingerprint = str(execution_fingerprint)
+        object.__setattr__(self, "execution_evidence_fingerprint", execution_fingerprint)
         for field_name in (
             "static_status",
             "semantic_status",
@@ -1110,10 +1122,17 @@ class TargetSystemDnaQualification:
                     f"DNA qualification status is not current: {field_name}={status}"
                 )
             object.__setattr__(self, field_name, status)
+        execution_status = str(self.execution_status or "not_run")
+        if execution_status not in DNA_EXECUTION_STATUSES:
+            raise TargetSystemBlueprintError(
+                "DNA qualification execution status is not current: "
+                f"{execution_status}"
+            )
+        object.__setattr__(self, "execution_status", execution_status)
         object.__setattr__(self, "reasons", _strings(self.reasons, "DNA qualification reason"))
 
     @property
-    def qualified(self) -> bool:
+    def static_ready(self) -> bool:
         return all(
             status == "current"
             for status in (
@@ -1125,8 +1144,34 @@ class TargetSystemDnaQualification:
         )
 
     @property
+    def runtime_qualified(self) -> bool:
+        return bool(
+            self.static_ready
+            and self.execution_status == "passed"
+            and self.execution_evidence_fingerprint
+            and self.semantic_evidence_fingerprint
+            and self.code_binding_fingerprint
+            and self.test_binding_fingerprint
+        )
+
+    @property
+    def qualified(self) -> bool:
+        """Whether the broad current DNA claim is licensed.
+
+        ``static_ready`` intentionally remains a separate, narrower claim.
+        A statically complete binding cannot promote itself to broad
+        qualification without a terminal execution evidence identity.
+        """
+
+        return self.runtime_qualified
+
+    @property
     def status(self) -> str:
-        return "qualified" if self.qualified else "blocked"
+        if self.runtime_qualified:
+            return "qualified"
+        if self.static_ready:
+            return "static_ready"
+        return "blocked"
 
     @property
     def fingerprint(self) -> str:
@@ -1145,8 +1190,12 @@ class TargetSystemDnaQualification:
             "semantic_evidence_fingerprint": self.semantic_evidence_fingerprint,
             "code_binding_fingerprint": self.code_binding_fingerprint,
             "test_binding_fingerprint": self.test_binding_fingerprint,
+            "execution_status": self.execution_status,
+            "execution_evidence_fingerprint": self.execution_evidence_fingerprint,
             "reasons": list(self.reasons),
             "status": self.status,
+            "static_ready": self.static_ready,
+            "runtime_qualified": self.runtime_qualified,
             "qualified": self.qualified,
             "claim_boundary": self.claim_boundary,
         }
@@ -1168,8 +1217,12 @@ class TargetSystemDnaQualification:
             "semantic_evidence_fingerprint",
             "code_binding_fingerprint",
             "test_binding_fingerprint",
+            "execution_status",
+            "execution_evidence_fingerprint",
             "reasons",
             "status",
+            "static_ready",
+            "runtime_qualified",
             "qualified",
             "claim_boundary",
             "fingerprint",
@@ -1188,10 +1241,17 @@ class TargetSystemDnaQualification:
             semantic_evidence_fingerprint=data["semantic_evidence_fingerprint"],
             code_binding_fingerprint=data["code_binding_fingerprint"],
             test_binding_fingerprint=data["test_binding_fingerprint"],
+            execution_status=data["execution_status"],
+            execution_evidence_fingerprint=data["execution_evidence_fingerprint"],
             reasons=tuple(_array(data["reasons"], "DNA qualification reasons")),
             claim_boundary=data["claim_boundary"],
         )
-        if data["status"] != qualification.status or bool(data["qualified"]) != qualification.qualified:
+        if (
+            data["status"] != qualification.status
+            or bool(data["static_ready"]) != qualification.static_ready
+            or bool(data["runtime_qualified"]) != qualification.runtime_qualified
+            or bool(data["qualified"]) != qualification.qualified
+        ):
             raise TargetSystemBlueprintError("target-system DNA qualification status projection mismatch")
         if qualification.fingerprint != _text(data["fingerprint"], "DNA qualification fingerprint"):
             raise TargetSystemBlueprintError("target-system DNA qualification fingerprint mismatch")
@@ -1209,6 +1269,8 @@ def qualify_target_system_dna(
     code_binding_fingerprint: str,
     test_binding_status: str,
     test_binding_fingerprint: str,
+    execution_status: str | None = None,
+    execution_evidence_fingerprint: str | None = None,
 ) -> TargetSystemDnaQualification:
     """Derive one honest qualification result from already-owned evidence."""
 
@@ -1223,8 +1285,12 @@ def qualify_target_system_dna(
     if static_status != "current":
         reasons.append(f"static:{static_status}")
     raw_semantic = str(semantic_status).strip()
-    if raw_semantic in {"current", "complete"} and semantic_binding_current and semantic_evidence_fingerprint:
-        normalized_semantic = "current"
+    if raw_semantic in {"current", "complete"} and semantic_binding_current:
+        if semantic_evidence_fingerprint:
+            normalized_semantic = "current"
+        else:
+            normalized_semantic = "missing"
+            reasons.append("semantic:evidence_fingerprint_missing")
     elif raw_semantic in {"candidate", "candidate_defined_not_verified"}:
         normalized_semantic = "candidate"
         reasons.append("semantic:candidate_defined_not_verified")
@@ -1242,6 +1308,9 @@ def qualify_target_system_dna(
         code_status = "current"
     if code_status not in DNA_QUALIFICATION_STATUSES:
         code_status = "unknown"
+    if code_status == "current" and not str(code_binding_fingerprint or "").strip():
+        code_status = "missing"
+        reasons.append("code_binding:evidence_fingerprint_missing")
     if code_status != "current":
         reasons.append(f"code_binding:{code_status}")
     test_status = str(test_binding_status or "unknown").strip()
@@ -1249,8 +1318,61 @@ def qualify_target_system_dna(
         test_status = "current"
     if test_status not in DNA_QUALIFICATION_STATUSES:
         test_status = "unknown"
+    if test_status == "current" and not str(test_binding_fingerprint or "").strip():
+        test_status = "missing"
+        reasons.append("test_binding:evidence_fingerprint_missing")
     if test_status != "current":
         reasons.append(f"test_binding:{test_status}")
+
+    ledger = getattr(report, "readiness_ledger", None)
+    ledger_execution_status = getattr(ledger, "executed_evidence_status", None)
+    ledger_execution_fingerprint = getattr(
+        ledger, "execution_evidence_fingerprint", ""
+    )
+    raw_execution_status = (
+        execution_status
+        if execution_status is not None
+        else ledger_execution_status
+        or "not_run"
+    )
+    raw_execution_fingerprint = (
+        execution_evidence_fingerprint
+        if execution_evidence_fingerprint is not None
+        else ledger_execution_fingerprint
+        or ""
+    )
+    normalized_execution = str(raw_execution_status or "not_run").strip()
+    if normalized_execution in {"complete", "pass"}:
+        normalized_execution = "passed"
+    elif normalized_execution not in DNA_EXECUTION_STATUSES:
+        normalized_execution = "unknown"
+    ledger_normalized_execution = str(
+        ledger_execution_status or "not_run"
+    ).strip()
+    if ledger_normalized_execution in {"complete", "pass"}:
+        ledger_normalized_execution = "passed"
+    elif ledger_normalized_execution not in DNA_EXECUTION_STATUSES:
+        ledger_normalized_execution = "unknown"
+    if (
+        ledger_execution_status is not None
+        and execution_status is not None
+        and normalized_execution != ledger_normalized_execution
+    ):
+        reasons.append("execution:ledger_status_mismatch")
+        normalized_execution = "blocked"
+    execution_fingerprint = str(raw_execution_fingerprint or "").strip()
+    if (
+        ledger_execution_fingerprint
+        and execution_evidence_fingerprint is not None
+        and execution_fingerprint != str(ledger_execution_fingerprint)
+    ):
+        reasons.append("execution:evidence_fingerprint_mismatch")
+        normalized_execution = "stale"
+    if normalized_execution == "passed" and not execution_fingerprint:
+        normalized_execution = "missing"
+        reasons.append("execution:evidence_fingerprint_missing")
+    if normalized_execution != "passed":
+        reasons.append(f"execution:{normalized_execution}")
     return TargetSystemDnaQualification(
         qualification_id=qualification_id,
         target_system_id=report.descriptor.target_system_id,
@@ -1262,6 +1384,8 @@ def qualify_target_system_dna(
         semantic_evidence_fingerprint=str(semantic_evidence_fingerprint or "missing"),
         code_binding_fingerprint=str(code_binding_fingerprint or "missing"),
         test_binding_fingerprint=str(test_binding_fingerprint or "missing"),
+        execution_status=normalized_execution,
+        execution_evidence_fingerprint=execution_fingerprint,
         reasons=tuple(sorted(set(reasons))),
     )
 
@@ -1800,6 +1924,31 @@ class BlueprintReadinessLedger:
             default="not_applicable",
         )
 
+    @cached_property
+    def execution_evidence_fingerprint(self) -> str:
+        """Fingerprint exact layer execution dispositions and evidence ids.
+
+        This is an identity over already-owned evidence; computing it never
+        executes a provider, validator, test, or target action.  A non-passed
+        disposition may still have a fingerprint for diagnostics, but the DNA
+        qualifier only consumes it when the aggregate status is ``passed``.
+        """
+
+        return fingerprint_value(
+            {
+                "target_profile": self.target_profile,
+                "rows": [
+                    {
+                        "layer": row.layer,
+                        "status": row.status,
+                        "executed_evidence_status": row.executed_evidence_status,
+                        "evidence_ids": list(row.evidence_ids),
+                    }
+                    for row in self.rows
+                ],
+            }
+        )
+
     @property
     def implementation_admitted(self) -> bool:
         return bool(self.rows[-1].implementation_admitted)
@@ -1824,6 +1973,7 @@ class BlueprintReadinessLedger:
             "gap_count": self.gap_count,
             "pre_code_status": self.pre_code_status,
             "executed_evidence_status": self.executed_evidence_status,
+            "execution_evidence_fingerprint": self.execution_evidence_fingerprint,
             "implementation_admitted": self.implementation_admitted,
         }
         if include_fingerprint:
@@ -2930,6 +3080,8 @@ __all__ = [
     "BLUEPRINT_UNDERSTANDING_SCHEMA",
     "CANONICAL_NON_CODE_WORKFLOW_LAYER_PLAN",
     "CANONICAL_SOFTWARE_LAYER_PLAN",
+    "DNA_CLAIM_STATUSES",
+    "DNA_EXECUTION_STATUSES",
     "FROZEN_TARGET_SYSTEM_EVIDENCE_SCHEMA",
     "MODEL_PATH_QUALITY_BLUEPRINT_BINDING_SCHEMA",
     "MODEL_PATH_QUALITY_CHANGE_KINDS",

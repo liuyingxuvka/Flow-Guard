@@ -93,6 +93,7 @@ class ApiSurfaceTests(unittest.TestCase):
                 "coverage_inventory",
                 "work_context",
                 "portable_verification",
+                "implementation_surface_audit",
             },
         )
 
@@ -1193,6 +1194,7 @@ class ApiSurfaceTests(unittest.TestCase):
             "CODE_STRUCTURE_RECOMMENDATION_ROUTE_API",
             "CONTRACT_EXHAUSTION_MESH_API",
             "CORE_API",
+            "IMPLEMENTATION_SURFACE_AUDIT_API",
             "DEVELOPMENT_PROCESS_FLOW_ROUTE_API",
             "DEVELOPMENT_PROCESS_SIMULATOR_ROUTE_API",
             "EVIDENCE_FIELD_STRUCTURE_API",
@@ -1228,6 +1230,9 @@ class ApiSurfaceTests(unittest.TestCase):
             "WORK_CONTEXT_API",
             "COVERAGE_INVENTORY_API",
             "STRUCTURE_MESH_ROUTE_API",
+            "STORAGE_AUDIT_SCHEMA",
+            "StorageAuditReport",
+            "audit_storage",
             "TEST_MESH_ROUTE_API",
             "TOPOLOGY_HAZARD_ROUTE_API",
             "UI_FLOW_STRUCTURE_ROUTE_API",
@@ -1258,7 +1263,6 @@ class ApiSurfaceTests(unittest.TestCase):
             "ARTIFACT_UPGRADE_STATUS_BLOCKED",
             "ARTIFACT_UPGRADE_STATUS_SKIPPED",
             "ARTIFACT_UPGRADE_STATUS_UNCHANGED",
-            "ARTIFACT_UPGRADE_STATUS_UPGRADED",
             "ARTIFACT_UPGRADE_STATUSES",
             "ARTIFACT_UPGRADE_TEXT_REPLACEMENTS",
         )

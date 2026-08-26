@@ -16,7 +16,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/minimum_valuable_model_entry/model.py"
+          "path": ".flowguard/models/owners/minimum_valuable_model_entry/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -27,7 +27,7 @@
     },
     {
       "args": [
-        ".flowguard/minimum_valuable_model_entry/run_checks.py"
+        ".flowguard/verification/owners/minimum_valuable_model_entry/run_checks.py"
       ],
       "check_id": "check:flowguard:native-authority",
       "command": "python",
@@ -48,11 +48,11 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/minimum_valuable_model_entry/model.py"
+          "path": ".flowguard/models/owners/minimum_valuable_model_entry/model.py"
         },
         {
           "kind": "path",
-          "path": ".flowguard/minimum_valuable_model_entry/run_checks.py"
+          "path": ".flowguard/verification/owners/minimum_valuable_model_entry/run_checks.py"
         },
         {
           "kind": "path",
@@ -151,7 +151,7 @@
         },
         {
           "kind": "path",
-          "path": ".flowguard/authoritative_model_system/model.py"
+          "path": ".flowguard/models/owners/authoritative_model_system/model.py"
         },
         {
           "kind": "path",
@@ -296,11 +296,11 @@
         },
         {
           "kind": "path",
-          "path": ".flowguard/implementation_blueprint/model.py"
+          "path": ".flowguard/models/owners/implementation_blueprint/model.py"
         },
         {
           "kind": "path",
-          "path": ".flowguard/implementation_blueprint/run_checks.py"
+          "path": ".flowguard/verification/owners/implementation_blueprint/run_checks.py"
         },
         {
           "kind": "path",
@@ -462,7 +462,7 @@
         },
         {
           "kind": "path",
-          "path": ".flowguard/model-regression-manifest.json"
+          "path": ".flowguard/models/regression-manifest.json"
         },
         {
           "kind": "path",
@@ -506,7 +506,7 @@
         },
         {
           "kind": "path",
-          "path": ".flowguard/authoritative_model_system/model.py"
+          "path": ".flowguard/models/owners/authoritative_model_system/model.py"
         }
       ],
       "kind": "command",
@@ -530,7 +530,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/minimum_valuable_model_entry/model.py"
+          "path": ".flowguard/models/owners/minimum_valuable_model_entry/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -587,6 +587,7 @@
     "claim_boundary": "flowguard owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
     "integration_mode": "native-integrated",
+    "model_deepening_check_id": "check:flowguard:model-maturation-closure",
     "native_check_ids": [
       "check:flowguard:plane-boundary",
       "check:flowguard:native-authority",
@@ -595,7 +596,6 @@
       "check:flowguard:model-revision-build",
       "check:flowguard:evidence-closure"
     ],
-    "model_deepening_check_id": "check:flowguard:model-maturation-closure",
     "native_owner_id": "model_first_function_flow",
     "native_route_ids": [
       "route:model_first_function_flow"
@@ -623,18 +623,36 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard:plane-boundary",
+        "check:flowguard:native-authority",
+        "check:flowguard:model-maturation-closure",
+        "check:flowguard:understanding-readiness",
+        "check:flowguard:model-revision-build",
+        "check:flowguard:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard:model-maturation-closure",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard"
   },
   "implementation_paths": [
     ".agents/skills/flowguard",
-    ".flowguard/minimum_valuable_model_entry",
-    ".flowguard/authoritative_model_system",
-    ".flowguard/model_mesh_closure_model",
-    ".flowguard/task_coverage_demand",
-    ".flowguard/model_maturation_loop",
-    ".flowguard/implementation_blueprint",
-    ".flowguard/model-regression-manifest.json",
-    ".flowguard/behavior_commitment_ledger/ledger.json",
+    ".flowguard/models/owners/minimum_valuable_model_entry",
+    ".flowguard/verification/owners/minimum_valuable_model_entry",
+    ".flowguard/models/owners/authoritative_model_system",
+    ".flowguard/verification/owners/authoritative_model_system",
+    ".flowguard/models/owners/model_mesh_closure_model",
+    ".flowguard/verification/owners/model_mesh_closure_model",
+    ".flowguard/models/owners/task_coverage_demand",
+    ".flowguard/verification/owners/task_coverage_demand",
+    ".flowguard/models/owners/model_maturation_loop",
+    ".flowguard/verification/owners/model_maturation_loop",
+    ".flowguard/models/owners/implementation_blueprint",
+    ".flowguard/verification/owners/implementation_blueprint",
+    ".flowguard/models/regression-manifest.json",
+    ".flowguard/behavior/inventory/ledger.json",
     "flowguard/skill_contract_model.py",
     "flowguard/behavior_commitment_lookup.py",
     "flowguard/portable_model.py",
@@ -671,7 +689,8 @@
     "scripts/run_flowguard_model_regressions.py",
     "flowguard/__init__.py",
     "flowguard/__main__.py",
-    ".flowguard/compositional_verification_kernel",
+    ".flowguard/models/owners/compositional_verification_kernel",
+    ".flowguard/verification/owners/compositional_verification_kernel",
     "tests/test_flowguard_skill_trigger.py",
     "tests/test_flowguard_skill_collaboration.py",
     "tests/test_model_maturation.py",
@@ -730,7 +749,7 @@
     "flowguard-ui-flow-structure"
   ],
   "model_id": "flowguard.model_first_function_flow.skill_contract.v2",
-  "model_path": ".flowguard/minimum_valuable_model_entry/model.py",
+  "model_path": ".flowguard/models/owners/minimum_valuable_model_entry/model.py",
   "native_check_bindings": [
     {
       "authority": "target-native",

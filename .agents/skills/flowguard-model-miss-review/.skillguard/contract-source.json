@@ -16,7 +16,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/model_miss_review/model.py"
+          "path": ".flowguard/models/owners/model_miss_review/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -27,7 +27,7 @@
     },
     {
       "args": [
-        ".flowguard/model_miss_review/run_checks.py"
+        ".flowguard/verification/owners/model_miss_review/run_checks.py"
       ],
       "check_id": "check:flowguard-model-miss-review:native-authority",
       "command": "python",
@@ -48,11 +48,11 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/model_miss_review/model.py"
+          "path": ".flowguard/models/owners/model_miss_review/model.py"
         },
         {
           "kind": "path",
-          "path": ".flowguard/model_miss_review/run_checks.py"
+          "path": ".flowguard/verification/owners/model_miss_review/run_checks.py"
         },
         {
           "kind": "role",
@@ -88,7 +88,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/model_miss_review/model.py"
+          "path": ".flowguard/models/owners/model_miss_review/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -142,12 +142,12 @@
     "claim_boundary": "flowguard-model-miss-review owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
     "integration_mode": "native-integrated",
+    "model_deepening_check_id": "check:flowguard-model-miss-review:native-authority",
     "native_check_ids": [
       "check:flowguard-model-miss-review:plane-boundary",
       "check:flowguard-model-miss-review:native-authority",
       "check:flowguard-model-miss-review:evidence-closure"
     ],
-    "model_deepening_check_id": "check:flowguard-model-miss-review:native-authority",
     "native_owner_id": "model_miss_review",
     "native_route_ids": [
       "route:model_miss_review"
@@ -174,11 +174,21 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard-model-miss-review:plane-boundary",
+        "check:flowguard-model-miss-review:native-authority",
+        "check:flowguard-model-miss-review:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard-model-miss-review:native-authority",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard-model-miss-review"
   },
   "implementation_paths": [
     ".agents/skills/flowguard-model-miss-review",
-    ".flowguard/model_miss_review",
+    ".flowguard/models/owners/model_miss_review",
+    ".flowguard/verification/owners/model_miss_review",
     "flowguard/model_miss_diagnostics.py",
     "flowguard/recurring_model_miss.py",
     "flowguard/skill_contract_model.py",
@@ -208,7 +218,7 @@
     "flowguard-ui-flow-structure"
   ],
   "model_id": "flowguard.model_miss_review.skill_contract.v2",
-  "model_path": ".flowguard/model_miss_review/model.py",
+  "model_path": ".flowguard/models/owners/model_miss_review/model.py",
   "native_check_bindings": [
     {
       "authority": "target-native",

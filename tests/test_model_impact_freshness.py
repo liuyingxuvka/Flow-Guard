@@ -37,7 +37,7 @@ class ModelImpactFreshnessTests(unittest.TestCase):
                     ),
                     ModelFreshnessRecord(
                         "development-process",
-                        ".flowguard/development_process_flow/model.py",
+                        ".flowguard/models/owners/development_process_flow/model.py",
                         dependency_artifact_ids=("flowguard.release",),
                         previous_evidence_id="development-process-prev",
                     ),

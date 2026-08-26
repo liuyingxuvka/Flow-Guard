@@ -1,5 +1,6 @@
 import unittest
 from dataclasses import replace
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -44,6 +45,7 @@ from flowguard import (
     ImplementationAuthorization,
     MODEL_MATURATION_DECISION_PROGRESS_STALLED,
     ProofArtifactRef,
+    sha256_fingerprint,
     ProcessAction,
     ProcessArtifact,
     ProcessEvidence,
@@ -82,18 +84,20 @@ def base_artifacts(*, code_version="2", test_version="1", requirement_version="1
 
 
 def proof_artifact(artifact_id="artifact:unit", *covered):
+    result_path = Path(__file__).resolve()
+    result_fingerprint = sha256_fingerprint(result_path.read_bytes())
     return ProofArtifactRef(
         artifact_id,
         producer_route="development_process_flow",
         command="python -m pytest tests/test_development_process_flow.py -q",
         result_status=PROCESS_EVIDENCE_PASSED,
         exit_code=0,
-        result_path=f"tmp/{artifact_id.replace(':', '_')}.json",
+        result_path=str(result_path),
         started_at="2026-08-02T00:00:00+00:00",
         finished_at="2026-08-02T00:00:01+00:00",
         subject_id=f"subject:{artifact_id}",
-        subject_fingerprint="sha256:subject-test",
-        artifact_fingerprints={f"tmp/{artifact_id.replace(':', '_')}.json": "sha256:test"},
+        subject_fingerprint="sha256:" + "1" * 64,
+        artifact_fingerprints={"result": result_fingerprint},
         covered_obligation_ids=covered,
     )
 

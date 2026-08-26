@@ -19,7 +19,35 @@ dist/
 venv/
 env/
 
-.flowguard/
+# FlowGuard keeps runtime evidence and work products local, while the current
+# model and verification source are part of the repository's direct-current
+# source boundary.  Older paths remain retired by the layout contract.
+.flowguard/*
+!.flowguard/models/
+!.flowguard/models/owners/
+!.flowguard/models/owners/**
+!.flowguard/models/authority/
+!.flowguard/models/authority/**
+!.flowguard/models/regression-manifest.json
+!.flowguard/verification/
+!.flowguard/verification/owners/
+!.flowguard/verification/owners/**
+# Authority history and intermediate activation records are local evidence.  A
+# release publishes only the explicitly staged current/previous snapshot,
+# accepted revision, and activation receipt selected by model_authority; future
+# upgrades must stage their new current files explicitly.
+.flowguard/models/authority/activations/
+.flowguard/models/authority/bootstraps/
+.flowguard/models/authority/revisions/
+.flowguard/models/authority/snapshots/
+.flowguard/models/owners/**/__pycache__/
+.flowguard/models/owners/**/*.py[cod]
+.flowguard/verification/owners/**/__pycache__/
+.flowguard/verification/owners/**/*.py[cod]
+.flowguard/verification/owners/**/result.json
+.flowguard/verification/skill-suite-static/
+.agents/skills/**/.skillguard/surface-inventory.json
+.agents/skills/**/.skillguard/surface-semantic-map.json
 .skillguard/global-router/
 kb/
 docs/flowguard_adoption_log.md
@@ -31,3 +59,4 @@ openspec/**/verification-receipts/
 openspec/**/verification-report.json
 openspec/**/verification-provenance.json
 openspec/changes/archive/**/verification-contract.yaml
+openspec/changes/**/strict-check-temp.log

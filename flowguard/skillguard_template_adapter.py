@@ -184,7 +184,10 @@ def build_skillguard_template_projection(
     declared_routes = {str(item["route_id"]) for item in metadata.values()}
     if route_id not in declared_routes:
         raise ValueError(f"unknown FlowGuard template route: {route_id}")
-    selection = select_template_packs(manifest, {"route_id": route_id})
+    selection_context = {"route_id": route_id}
+    if route_id == BASE_ROUTE_ID:
+        selection_context["explicit_base_template_id"] = BASE_TEMPLATE_ID
+    selection = select_template_packs(manifest, selection_context)
     if selection.disposition not in {"selected", "base_selected"}:
         raise ValueError(f"FlowGuard native template selection blocked: {selection.disposition}")
     matched = set(selection.matched_template_ids)

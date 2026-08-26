@@ -66,10 +66,13 @@ Before editing or claiming behavior coverage, classify the ledger work:
 ## Canonical Ledger And Relations
 
 The project source of truth is the machine-readable
-`.flowguard/behavior_commitment_ledger/ledger.json`. The adjacent `model.py` is
-a thin loader/check adapter and `result.json` is run evidence; neither is a
-second behavior inventory. Use `load_behavior_commitment_ledger()`,
-`write_behavior_commitment_ledger()`, and
+`.flowguard/behavior/inventory/ledger.json`. Its model owner is the separate
+`.flowguard/models/owners/behavior_commitment_ledger/model.py`, and its native
+verification owner is
+`.flowguard/verification/owners/behavior_commitment_ledger/run_checks.py`.
+Run outputs and receipts belong under the evidence/work roots; they are not
+adjacent siblings and never become a second behavior inventory. Use
+`load_behavior_commitment_ledger()`, `write_behavior_commitment_ledger()`, and
 `behavior_commitment_ledger_fingerprint()` at tool boundaries.
 
 The bundled public template emits the complete current canonical envelope.
@@ -81,8 +84,10 @@ Commitments connect through typed `BehaviorCommitmentRelation` rows:
 `depends_on`, `invokes`, `validates`, `governs`, or
 `requires_evidence_from`. Cross-plane relations need a reason and never move
 the target commitment into the source plane. Legacy
-`dependency_commitment_ids` is migration-only input; normal runtime rows use
-typed relations and do not retain an old successful authority path.
+`dependency_commitment_ids` is diagnostic evidence of a stale producer only;
+it is never materialized by FlowGuard and never becomes a current relation.
+The maintaining agent must author the current typed relations directly, then
+rerun model, test, and receipt validation under the new identity.
 
 ## What The Ledger Checks
 
@@ -155,10 +160,11 @@ blocks that commitment and any broad claim depending on it.
 
 The current runtime binding accepts and emits only one `primary_path_id`.
 Retired `primary_path_ids` is never a runtime input or compatibility alias.
-The bounded artifact upgrader may consume the exact historical BCL producer
-shape once: zero or one old value is materialized directly as the current
-singular field, while multiple values block until upgrade AI supplies one
-evidence-bound current disposition.
+Historical BCL producer shapes are inspected only to explain why the current
+artifact is blocked. FlowGuard never materializes an old value, rewrites the
+file, or treats a deterministic candidate as current. The maintaining agent
+must directly author the singular current field and supply fresh model, test,
+owner, and receipt evidence; any missing or ambiguous value remains blocked.
 
 ## Public API Shape
 

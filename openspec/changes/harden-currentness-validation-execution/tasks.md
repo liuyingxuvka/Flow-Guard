@@ -19,7 +19,7 @@
 
 ## 3. Authoritative Model Inventory And Revision Transaction
 
-- [x] 3.1 Restore `.flowguard/project_adoption_version_gate/model.py` and `run_checks.py` with current purpose closure, native good/bad/oracle evidence, and Git reachability.
+- [x] 3.1 Restore `.flowguard/models/owners/project_adoption_version_gate/model.py` and `.flowguard/verification/owners/project_adoption_version_gate/run_checks.py` with current purpose closure, native good/bad/oracle evidence, and Git reachability.
 - [x] 3.2 Change model-system inventory to report declared, materialized, required, covered, and missing ids independently; observed authority is incomplete when any declared non-excluded model or runner is absent.
 - [x] 3.3 Add pure full snapshot-diff derivation for model, relation, root, coverage, gap, field, side-effect, contract, test, and owner-artifact changes.
 - [x] 3.4 Add pure fixed-point affected-closure derivation over exact base/candidate typed relations and owner bindings, including only independently affected siblings.
@@ -41,6 +41,12 @@
 - [x] 4.5 Make PlanDetail preserve only exact independently verified receipt references; unresolved references remain blocked.
 - [x] 4.6 Replace normal-runtime caller-authoritative reuse/current/match booleans with loaded receipt plus independently derived verification in TestReuse, Model-Test Alignment, and TestMesh.
 - [x] 4.7 Require reused test evidence to cover exact owner obligations, partition inventory, leaf cells, shards, and payload cases without broadening its receipt.
+- [x] 4.8 Add the native runtime pytest collection/result reconciliation owner that materializes concrete parameterized leaves separately from static test inventory and preserves selected, executed, reused, not-run, outcome, and reason state.
+- [x] 4.9 Compare parent summary counts/status with independently recomputed leaf accounting and block hidden skip, missing-result, duplicate, unrelated, and not-run mismatches.
+- [x] 4.10 Add focused runtime-evidence tests for parameterized leaves, reuse/not-run separation, parent skip mismatch, xfail normalization, and canonical round-trip; export the owner through the TestMesh API.
+- [x] 4.11 Add the finite ContractExhaustionMesh runtime evidence owner that binds one current generated-case inventory and coverage-universe fingerprint to native executed/reused terminal rows without launching a target process.
+- [x] 4.12 Reconcile required, selected, explicitly-not-selected, executed, reused, not-run, outcome, reason, oracle-status, result-fingerprint, orphan, conflict, and parent-summary state for contract cases; keep synthetic fault profiles outside live evidence.
+- [x] 4.13 Add focused contract-runtime negative, required-case omission, parent-mismatch, oracle-mismatch, artifact-fingerprint, and canonical round-trip tests and export the owner through the ContractExhaustionMesh and TestMesh APIs.
 
 ## 5. Frozen Validation Owner Plan And Affected-Only Freshness
 
@@ -119,3 +125,17 @@
 - [ ] 12.5 Push the release commit to GitHub, create an immutable annotated version tag, push the tag, and create a source-only GitHub Release with zero assets.
 - [ ] 12.6 Run published identity comparison against commit, remote main, remote tag, GitHub Release target, version, receipt-bound release tree, installed projection, and asset count without restarting heavy producers.
 - [ ] 12.7 Perform the predictive-KB postflight, record the reusable mistake-first lesson and final exact identities, then close every OpenSpec task and the persistent goal.
+
+## 13. Cross-tool consumer identity and reverse dependency negatives
+
+- [ ] 13.1 Publish the canonical consumer-release wire policy and make the
+  FlowGuard producer and SkillGuard auditor implement the same compact JSON,
+  newline, digest-case, prefix, release-id, and manifest-hash rules.
+- [ ] 13.2 Add cross-implementation fixtures proving FlowGuard-produced
+  manifests replay in SkillGuard and that pretty/uppercase/unprefixed or
+  self-consistent alternate manifests fail closed.
+- [ ] 13.3 Make consumer scans parse structured keys as well as text so
+  underscore forms such as `skillguard_version` cannot evade the dependency
+  gate; add a typed policy for negative retired-path sentinels.
+- [ ] 13.4 Re-audit every maintained consumer, remove author-control identity
+  leakage, and keep ordinary consumer runtime independent of SkillGuard.

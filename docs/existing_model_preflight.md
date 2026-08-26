@@ -105,11 +105,11 @@ preflight = ExistingModelPreflight(
     "Extend router scheduling behavior",
     mode="full",
     model_search_performed=True,
-    search_paths=(".flowguard/router", "docs"),
+    search_paths=(".flowguard/models/owners/router", "docs"),
     relevant_models=(
         ModelContextHit(
             "router-flow",
-            model_path=".flowguard/router/model.py",
+            model_path=".flowguard/models/owners/router/model.py",
             responsibilities=("route scheduling",),
             function_blocks=("RouteTask",),
             state_owned=("pending_tasks",),

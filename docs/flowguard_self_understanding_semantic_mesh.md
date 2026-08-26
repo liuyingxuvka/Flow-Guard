@@ -4,7 +4,7 @@ FlowGuard's current candidate model universe contains 51 executable models. The
 semantic self mesh does more than inventory their names: every model has one of
 four dispositions, at least one semantic parent, at least one consumer, and a
 plain-language rationale. The machine-readable authority is
-`.flowguard/authoritative_model_system/semantic_model_mesh.json`.
+`.flowguard/models/owners/authoritative_model_system/semantic_model_mesh.json`.
 
 The checked-in mesh is deliberately a **model candidate**, not a self-issued
 completion receipt. It becomes usable for a whole-system understanding claim

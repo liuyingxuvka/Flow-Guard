@@ -38,6 +38,7 @@ from flowguard.validation_ownership import (
     topological_owner_contracts,
     validation_input_manifest,
 )
+from flowguard.observation_metrics import InvocationMetrics
 
 
 def contract(
@@ -121,6 +122,23 @@ class ValidationExecutionOwnershipTests(unittest.TestCase):
             self.assertEqual(1, list_receipts.call_count)
             self.assertEqual(2, len(observation.owner_currents))
             self.assertTrue(observation.observation_fingerprint.startswith("sha256:"))
+
+    def test_observation_metrics_report_real_single_pass_work(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self._repository(Path(temporary))
+            metrics = InvocationMetrics()
+            observation = observe_validation_owners(
+                root,
+                (contract("a"), contract("b")),
+                receipt_root=root / "receipts",
+                metrics=metrics,
+            )
+
+            counters = metrics.snapshot()["counters"]
+            self.assertEqual(1, counters["source_manifest_builds"])
+            self.assertEqual(1, counters["receipt_directory_scans"])
+            self.assertEqual(2, counters["owner_current_builds"])
+            self.assertEqual(metrics.snapshot(), dict(observation.metrics))
 
     def test_observation_freshness_is_visible_and_detects_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -302,7 +320,7 @@ class ValidationExecutionOwnershipTests(unittest.TestCase):
             self.assertEqual(expected_keys, set(owner.environment_metadata))
             self.assertEqual(expected_keys, set(parent.environment_metadata))
 
-    def test_owner_plan_resolves_repository_inputs_once_then_filters_owners(
+    def test_owner_plan_resolves_declared_repository_inputs_once_then_filters_owners(
         self,
     ) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -324,7 +342,7 @@ class ValidationExecutionOwnershipTests(unittest.TestCase):
 
             self.assertEqual(1, resolve_manifest.call_count)
             self.assertEqual(
-                ("**/*", "*"),
+                ("source.txt", "other.txt"),
                 resolve_manifest.call_args.args[1],
             )
             self.assertEqual(
@@ -403,6 +421,38 @@ class ValidationExecutionOwnershipTests(unittest.TestCase):
             output.write_text('{"status":"pass"}\n', encoding="utf-8")
             after = manifest_fingerprint(validation_input_manifest(root))
             self.assertEqual(before, after)
+
+    def test_history_and_reverse_surface_payloads_do_not_enter_source_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self._repository(Path(temporary))
+            current = root / "flowguard" / "current.py"
+            history = root / ".flowguard" / "history" / "retired" / "old.py"
+            reverse = (
+                root
+                / ".flowguard"
+                / "structure"
+                / "reverse-surfaces"
+                / "current-discovery.json"
+            )
+            current.parent.mkdir(parents=True)
+            history.parent.mkdir(parents=True)
+            reverse.parent.mkdir(parents=True)
+            current.write_text("CURRENT = True\n", encoding="utf-8")
+            history.write_text("OLD = True\n", encoding="utf-8")
+            reverse.write_text('{"status":"passed"}\n', encoding="utf-8")
+
+            rows = resolve_input_manifest(
+                root,
+                ("flowguard/**/*.py", ".flowguard/**/*.py"),
+            )
+            paths = {row["path"] for row in rows}
+
+            self.assertIn("flowguard/current.py", paths)
+            self.assertNotIn(".flowguard/history/retired/old.py", paths)
+            self.assertNotIn(
+                ".flowguard/structure/reverse-surfaces/current-discovery.json",
+                paths,
+            )
 
     def test_git_candidates_preserve_recursive_globs_without_walking_ignored_evidence(
         self,

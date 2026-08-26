@@ -12,10 +12,12 @@ class LongCheckObservabilityTests(unittest.TestCase):
     def test_progress_precedes_terminal_receipt_and_full_output_is_artifact_backed(self):
         with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as output:
             root = Path(directory)
-            model_dir = root / ".flowguard" / "observable"
+            model_dir = root / ".flowguard" / "models" / "owners" / "observable"
             model_dir.mkdir(parents=True)
+            runner_dir = root / ".flowguard" / "verification" / "owners" / "observable"
+            runner_dir.mkdir(parents=True)
             model_dir.joinpath("model.py").write_text("VALUE = 1\n", encoding="utf-8")
-            model_dir.joinpath("run_checks.py").write_text("print('x' * 50000)\n", encoding="utf-8")
+            runner_dir.joinpath("run_checks.py").write_text("print('x' * 50000)\n", encoding="utf-8")
             purpose = build_model_purpose_closure(
                 model_instance_id="regression:observable:current",
                 reusable_model_type_id="observable",
@@ -36,30 +38,39 @@ class LongCheckObservabilityTests(unittest.TestCase):
                     "check:observable:progress-and-terminal-artifact",
                 ),
                 model_sha256=file_fingerprint(model_dir / "model.py"),
-                runner_sha256=file_fingerprint(model_dir / "run_checks.py"),
+                runner_sha256=file_fingerprint(runner_dir / "run_checks.py"),
             )
             manifest = {
                 "schema_version": MANIFEST_SCHEMA,
-                "governed_input_globs": [".flowguard/**/*.py"],
+                "governed_input_globs": [
+                    ".flowguard/models/owners/**/*.py",
+                    ".flowguard/verification/owners/**/*.py",
+                ],
                 "snapshot_only_input_globs": [],
                 "shared_input_groups": [],
                 "models": [
                     {
                         "model_id": "observable",
-                        "model_path": ".flowguard/observable/model.py",
-                        "runner": ["{python}", ".flowguard/observable/run_checks.py"],
+                        "model_path": ".flowguard/models/owners/observable/model.py",
+                        "runner": [
+                            "{python}",
+                            ".flowguard/verification/owners/observable/run_checks.py",
+                        ],
                         "tier": "fast",
                         "timeout_seconds": 5,
                         "shard_safe": True,
                         "mutation_policy": "none",
-                        "input_globs": [".flowguard/observable/model.py", ".flowguard/observable/run_checks.py"],
+                        "input_globs": [
+                            ".flowguard/models/owners/observable/model.py",
+                            ".flowguard/verification/owners/observable/run_checks.py",
+                        ],
                         "expected_artifacts": [],
                         "exclusion_reason": "",
                         "purpose_closure": purpose.to_dict(),
                     }
                 ],
             }
-            (root / ".flowguard" / "model-regression-manifest.json").write_text(
+            (root / ".flowguard" / "models" / "regression-manifest.json").write_text(
                 json.dumps(manifest), encoding="utf-8"
             )
             events = []

@@ -37,7 +37,7 @@ test coverage claims, model confidence reports, model-backed feature work, or
 release notes that claim model and test coverage agree.
 
 Run:
-python .flowguard/model_test_alignment/run_checks.py
+python .flowguard/verification/owners/model_test_alignment/run_checks.py
 
 This template does not use TestMesh, StructureMesh, or ModelMesh. It compares
 plain model obligations, required owner code external contracts, and plain test
@@ -846,7 +846,7 @@ test evidence, same-class or negative check, replay evidence, or fake
 file/work-package payload evidence is missing.
 Use before editing: field, state, input/output, side-effect, or runtime-shape
 changes whose model obligations need direct code/test binding.
-Run: python .flowguard/model_test_alignment/run_checks.py
+Run: python .flowguard/verification/owners/model_test_alignment/run_checks.py
 Modeled block shape: Input x State -> Set(Output x State).
 """
 

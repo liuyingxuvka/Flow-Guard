@@ -16,7 +16,7 @@ Use before editing: Read declared planning, specification, Spike, changelog,
 Superpowers, or other provider artifacts before non-trivial modeled work.
 
 Run:
-python .flowguard/work_context/run_checks.py --adapter <adapter-id> --work-id <id>
+python .flowguard/verification/owners/work_context/run_checks.py --adapter <adapter-id> --work-id <id>
 
 The native provider keeps all authoring, execution, validation, status, and
 lifecycle authority. Provider status is planning context, never FlowGuard proof.

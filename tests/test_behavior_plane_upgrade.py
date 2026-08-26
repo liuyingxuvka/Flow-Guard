@@ -105,7 +105,12 @@ class BehaviorPlaneUpgradeTests(unittest.TestCase):
 
     def test_self_maintenance_binds_current_full_validation_owner_inventory(self):
         model_source = (
-            ROOT / ".flowguard" / "self_maintenance_mesh" / "model.py"
+            ROOT
+            / ".flowguard"
+            / "models"
+            / "owners"
+            / "self_maintenance_mesh"
+            / "model.py"
         ).read_text(encoding="utf-8")
         runner_source = (
             ROOT / "scripts" / "check_flowguard_skill_suite.py"
@@ -113,7 +118,7 @@ class BehaviorPlaneUpgradeTests(unittest.TestCase):
 
         for owner_id in (
             "project_audit",
-            "skill_suite_static",
+            "skill_suite_light",
             "skill_self_governance",
             "model_regressions_full",
             "pytest",

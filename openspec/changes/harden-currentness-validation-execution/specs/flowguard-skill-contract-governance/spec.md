@@ -1,8 +1,3 @@
-## RENAMED Requirements
-
-- FROM: `Seventeen Skill Deep Certification`
-- TO: `Canonical Suite Deep Certification`
-
 ## MODIFIED Requirements
 
 ### Requirement: Canonical Suite Deep Certification
@@ -11,6 +6,8 @@ prompt-budget, and target-native validation to pass for every member declared
 by the current package-owned consumer authority, with zero hollow-contract,
 parallel-route-risk, legacy-schema, missing-control, stale-generation,
 retired-public-entry, unresolved-placeholder, or projection-drift findings.
+Consumer readiness SHALL separately require a clean target-owned projection
+with no author controls.
 
 #### Scenario: One canonical member is hollow
 - **WHEN** every other authority-declared member passes but one member lacks
@@ -24,24 +21,6 @@ retired-public-entry, unresolved-placeholder, or projection-drift findings.
 - **THEN** contract governance fails and requires package-authority derivation
 
 ## ADDED Requirements
-
-### Requirement: One suite maintenance unit
-All current FlowGuard consumer skill members SHALL remain in the single
-`unit:flowguard-suite` author maintenance unit. Every semantic check SHALL have
-one target-declared member, evidence subject, execution owner, obligation
-boundary, and dependency position. Official OpenSpec and unrelated installed
-skills MUST remain outside that unit.
-
-#### Scenario: A second FlowGuard unit reuses suite receipts
-- **WHEN** a proposed maintenance unit imports, projects, or reuses a receipt
-  from `unit:flowguard-suite`
-- **THEN** SkillGuard blocks the plan as foreign-unit evidence
-
-#### Scenario: Same-unit producer owns several projections
-- **WHEN** the target explicitly assigns one producer to several semantic
-  checks with identical producer inputs and dependencies
-- **THEN** the producer executes at most once while each semantic projection
-  retains its distinct subject and obligation identity
 
 ### Requirement: Maintained prompt reduction preserves semantic gates
 Prompt maintenance SHALL compare every touched consumer bundle with its frozen

@@ -13,18 +13,15 @@ from .adoption import (
 )
 from .adoption_audit import AdoptionAuditFinding, AdoptionAuditReport, audit_flowguard_adoption
 from .artifact_upgrade import (
+    ARTIFACT_UPGRADE_POLICY,
     ARTIFACT_UPGRADE_STATUS_BLOCKED,
     ARTIFACT_UPGRADE_STATUS_SKIPPED,
     ARTIFACT_UPGRADE_STATUS_UNCHANGED,
-    ARTIFACT_UPGRADE_STATUS_UPGRADED,
     ARTIFACT_UPGRADE_STATUSES,
     ARTIFACT_UPGRADE_TEXT_REPLACEMENTS,
     ArtifactUpgradeItem,
     ArtifactUpgradeReport,
-    BehaviorLedgerMigrationFinding,
-    BehaviorLedgerMigrationResult,
     review_artifact_upgrades,
-    upgrade_behavior_commitment_ledger_mapping,
 )
 from .project_adoption import (
     FLOWGUARD_AGENTS_BEGIN,
@@ -58,6 +55,20 @@ from .project_adoption import (
     update_agents_text,
     upgrade_project,
 )
+from .project_layout import (
+    CANONICAL_FILES,
+    CANONICAL_ROLE_ROOTS,
+    PROJECT_LAYOUT_CLAIM_BOUNDARY,
+    PROJECT_LAYOUT_MANIFEST,
+    PROJECT_LAYOUT_SCHEMA,
+    PROJECT_LAYOUT_VERSION,
+    ProjectLayoutFinding,
+    ProjectLayoutReport,
+    audit_project_layout,
+    current_layout_manifest_text,
+    current_layout_readme_text,
+)
+from .storage_audit import STORAGE_AUDIT_SCHEMA, StorageAuditReport, audit_storage
 from .model_authority import (
     CoverageUniverse,
     ModelAuthorityHead,
@@ -875,6 +886,8 @@ from . import plan_intake as _plan_intake
 from . import primary_path_authority as _primary_path_authority
 from . import behavior_commitment as _behavior_commitment
 from . import behavior_commitment_lookup as _behavior_commitment_lookup
+from . import behavior_surface_audit as _behavior_surface_audit
+from . import dna_completion_gate as _dna_completion_gate
 from . import recurring_model_miss as _recurring_model_miss
 from . import risk_evidence_ledger as _risk_evidence_ledger
 from . import risk_templates as _risk_templates
@@ -883,6 +896,10 @@ from . import self_maintenance as _self_maintenance
 from . import state_closure as _state_closure
 from . import structuremesh as _structuremesh
 from . import testmesh as _testmesh
+from . import runtime_test_evidence as _runtime_test_evidence
+from . import contract_runtime_evidence as _contract_runtime_evidence
+from . import fault_matrix_evidence as _fault_matrix_evidence
+from .behavior_surface_audit import *  # noqa: F403
 from . import topology_hazard as _topology_hazard
 from . import ui_structure as _ui_structure
 from . import model_freshness as _model_freshness
@@ -948,6 +965,10 @@ from .target_native_qualification import *  # noqa: F403
 from .project_blueprint import *  # noqa: F403
 from .test_inventory import *  # noqa: F403
 from .test_inventory_python import *  # noqa: F403
+from .runtime_test_evidence import *  # noqa: F403
+from .contract_runtime_evidence import *  # noqa: F403
+from .fault_matrix_evidence import *  # noqa: F403
+from .dna_completion_gate import *  # noqa: F403
 from .self_blueprint import *  # noqa: F403
 from .self_architecture_reduction import *  # noqa: F403
 from .self_reduction_inventory import *  # noqa: F403
@@ -1201,19 +1222,24 @@ from .risk_templates import (
     RiskTemplateHarvestReport,
     RiskTemplateMatch,
     RiskTemplateSearchReport,
+    TemplateSeedHarvestReport,
     TemplateHarvestReview,
     TemplateReuseReview,
     builtin_risk_templates,
     default_local_template_library_root,
     harvest_risk_template_candidate,
+    harvest_template_seed_candidate,
+    load_local_template_seeds,
     load_local_risk_templates,
     merge_risk_templates,
     review_known_bad_proofs,
     review_minimum_model_contract,
     review_template_harvest_closure,
     review_template_reuse,
+    promote_template_seed,
     search_risk_templates,
     write_local_risk_template,
+    write_local_template_seed,
 )
 from .risk_evidence_ledger import (
     NON_PASSING_PROOF_STATUSES,
@@ -1316,7 +1342,12 @@ from .proof_artifact import (
     PROOF_ARTIFACT_STATUS_STALE,
     ProofArtifactRef,
     coerce_proof_artifact_ref,
+    is_sha256_fingerprint,
     proof_artifact_gap_codes,
+    proof_artifact_integrity_gap_codes,
+    sha256_fingerprint,
+    verify_proof_artifact,
+    verify_proof_artifact_ref,
 )
 from .test_reuse import (
     TestResultReuseTicket,
@@ -1370,11 +1401,13 @@ from .templates import (
     behavior_commitment_ledger_template_files,
     closure_contract_template_files,
     code_structure_recommendation_template_files,
+    contract_exhaustion_template_files,
     development_process_flow_template_files,
     existing_model_preflight_template_files,
     field_lifecycle_template_files,
     layered_boundary_proof_template_files,
     maintenance_workflow_template_files,
+    model_mesh_template_files,
     model_miss_review_full_template_files,
     model_miss_review_template_files,
     model_test_alignment_full_template_files,
@@ -1387,6 +1420,7 @@ from .templates import (
     risk_intent_template_files,
     risk_template_library_template_files,
     runtime_path_evidence_template_files,
+    reverse_surface_closure_template_files,
     work_context_template_files,
     structure_mesh_template_files,
     test_mesh_template_files,
@@ -1395,6 +1429,19 @@ from .templates import (
     ui_flow_structure_template_files,
     workflow_step_contracts_template_files,
     write_template_files,
+)
+from .template_packs import (
+    TEMPLATE_SEED_CLOSURE_DISPOSITIONS,
+    TEMPLATE_SEED_PRIVACY_DISPOSITIONS,
+    TEMPLATE_SEED_PROMOTION_STATUSES,
+    TEMPLATE_SEED_SCHEMA,
+    TemplateSeed,
+    TemplateSeedSelection,
+    TemplateSeedValidation,
+    builtin_template_seeds,
+    close_template_seed,
+    select_template_seeds,
+    validate_template_seed,
 )
 from .trace import Trace, TraceStep
 from .workflow import Workflow, WorkflowPath, WorkflowRun
@@ -1502,7 +1549,13 @@ PLAN_INTAKE_STARTER_API = (
 PLAN_INTAKE_ADVANCED_API = PLAN_INTAKE_CLAIM_API
 AGENT_WORKFLOW_REHEARSAL_ROUTE_API = tuple(name for name in _agent_workflow_rehearsal.__all__ if name in globals())
 FLOWGUARD_CLOSURE_CONTRACT_API = tuple(_closure_contract.__all__)
-CONTRACT_EXHAUSTION_MESH_API = tuple(_contract_exhaustion.__all__)
+CONTRACT_EXHAUSTION_MESH_API = tuple(
+    dict.fromkeys(
+        tuple(_contract_exhaustion.__all__)
+        + tuple(_contract_runtime_evidence.__all__)
+        + tuple(_fault_matrix_evidence.__all__)
+    )
+)
 _PROCESS_OPTIMIZATION_API = tuple(
     name for name in _development_process_strategy.__all__ if name in globals()
 )
@@ -1547,7 +1600,17 @@ FLOWGUARD_SELF_MAINTENANCE_ROUTE_API = (
 )
 STATE_CLOSURE_ROUTE_API = tuple(_state_closure.__all__)
 STRUCTURE_MESH_ROUTE_API = tuple(name for name in _structuremesh.__all__ if name in globals())
-TEST_MESH_ROUTE_API = tuple(name for name in _testmesh.__all__ if name in globals())
+TEST_MESH_ROUTE_API = tuple(
+    dict.fromkeys(
+        tuple(name for name in _testmesh.__all__ if name in globals())
+        + tuple(name for name in _runtime_test_evidence.__all__ if name in globals())
+        + tuple(name for name in _contract_runtime_evidence.__all__ if name in globals())
+        + tuple(name for name in _fault_matrix_evidence.__all__ if name in globals())
+    )
+)
+DNA_COMPLETION_GATE_API = tuple(_dna_completion_gate.__all__)
+FAULT_MATRIX_EVIDENCE_API = tuple(_fault_matrix_evidence.__all__)
+IMPLEMENTATION_SURFACE_AUDIT_API = tuple(_behavior_surface_audit.__all__)
 TOPOLOGY_HAZARD_ROUTE_API = tuple(_topology_hazard.__all__)
 UI_FLOW_STRUCTURE_ROUTE_API = tuple(name for name in _ui_structure.__all__ if name in globals())
 MODEL_IMPACT_FRESHNESS_API = tuple(_model_freshness.__all__)
@@ -1568,6 +1631,10 @@ IMPLEMENTATION_BLUEPRINT_API = tuple(
         + tuple(_project_blueprint.__all__)
         + tuple(_test_inventory.__all__)
         + tuple(_test_inventory_python.__all__)
+        + tuple(_runtime_test_evidence.__all__)
+        + tuple(_contract_runtime_evidence.__all__)
+        + tuple(_fault_matrix_evidence.__all__)
+        + tuple(_dna_completion_gate.__all__)
         + tuple(_self_blueprint.__all__)
         + tuple(_self_architecture_reduction.__all__)
         + tuple(_self_reduction_inventory.__all__)
@@ -2444,7 +2511,12 @@ REPORTING_HELPER_API = (
     "review_ui_model_misses",
     "ProofArtifactRef",
     "coerce_proof_artifact_ref",
+    "is_sha256_fingerprint",
     "proof_artifact_gap_codes",
+    "proof_artifact_integrity_gap_codes",
+    "sha256_fingerprint",
+    "verify_proof_artifact",
+    "verify_proof_artifact_ref",
     "TestResultReuseTicket",
     "coerce_test_result_reuse_ticket",
     "test_result_reuse_gap_codes",
@@ -2462,10 +2534,8 @@ REPORTING_HELPER_API = (
     "review_legacy_path_dispositions",
     "ArtifactUpgradeItem",
     "ArtifactUpgradeReport",
-    "BehaviorLedgerMigrationFinding",
-    "BehaviorLedgerMigrationResult",
+    "ARTIFACT_UPGRADE_POLICY",
     "review_artifact_upgrades",
-    "upgrade_behavior_commitment_ledger_mapping",
     "AutoSplitCandidate",
     "AutoSplitFinding",
     "AutoSplitPlan",
@@ -2602,6 +2672,17 @@ REPORTING_HELPER_API = (
     "normalize_managed_agents_block",
     "update_agents_text",
     "upgrade_project",
+    "CANONICAL_FILES",
+    "CANONICAL_ROLE_ROOTS",
+    "PROJECT_LAYOUT_CLAIM_BOUNDARY",
+    "PROJECT_LAYOUT_MANIFEST",
+    "PROJECT_LAYOUT_SCHEMA",
+    "PROJECT_LAYOUT_VERSION",
+    "ProjectLayoutFinding",
+    "ProjectLayoutReport",
+    "audit_project_layout",
+    "current_layout_manifest_text",
+    "current_layout_readme_text",
     "FLOWGUARD_AGENTS_BEGIN",
     "FLOWGUARD_AGENTS_END",
     "FLOWGUARD_MANAGED_RULES",
@@ -2673,11 +2754,13 @@ EVIDENCE_API = (
     "behavior_commitment_ledger_template_files",
     "closure_contract_template_files",
     "code_structure_recommendation_template_files",
+    "contract_exhaustion_template_files",
     "development_process_flow_template_files",
     "existing_model_preflight_template_files",
     "field_lifecycle_template_files",
     "layered_boundary_proof_template_files",
     "maintenance_workflow_template_files",
+    "model_mesh_template_files",
     "model_miss_review_full_template_files",
     "model_miss_review_template_files",
     "model_test_alignment_full_template_files",
@@ -2692,9 +2775,21 @@ EVIDENCE_API = (
     "risk_intent_template_files",
     "risk_template_library_template_files",
     "runtime_path_evidence_template_files",
+    "reverse_surface_closure_template_files",
     "structure_mesh_template_files",
     "test_mesh_template_files",
     "topology_hazard_template_files",
+    "TEMPLATE_SEED_CLOSURE_DISPOSITIONS",
+    "TEMPLATE_SEED_PRIVACY_DISPOSITIONS",
+    "TEMPLATE_SEED_PROMOTION_STATUSES",
+    "TEMPLATE_SEED_SCHEMA",
+    "TemplateSeed",
+    "TemplateSeedSelection",
+    "TemplateSeedValidation",
+    "builtin_template_seeds",
+    "close_template_seed",
+    "select_template_seeds",
+    "validate_template_seed",
     "ui_flow_structure_full_template_files",
     "ui_flow_structure_template_files",
     "workflow_step_contracts_template_files",
@@ -2726,8 +2821,22 @@ TEMPLATE_STRUCTURE_API = (
     "development_process_flow_template_files",
     "workflow_step_contracts_template_files",
     "test_mesh_template_files",
+    "model_mesh_template_files",
+    "contract_exhaustion_template_files",
+    "reverse_surface_closure_template_files",
     "topology_hazard_template_files",
     "structure_mesh_template_files",
+    "TEMPLATE_SEED_CLOSURE_DISPOSITIONS",
+    "TEMPLATE_SEED_PRIVACY_DISPOSITIONS",
+    "TEMPLATE_SEED_PROMOTION_STATUSES",
+    "TEMPLATE_SEED_SCHEMA",
+    "TemplateSeed",
+    "TemplateSeedSelection",
+    "TemplateSeedValidation",
+    "builtin_template_seeds",
+    "close_template_seed",
+    "select_template_seeds",
+    "validate_template_seed",
 )
 
 EVIDENCE_FIELD_STRUCTURE_API = (
@@ -2934,12 +3043,17 @@ _ROUTE_STARTER_API_GROUPS = {
         "BehaviorCommitmentLedger",
         "BehaviorCommitment",
         "BehaviorSourceSurface",
+        "BehaviorInventoryItem",
+        "BehaviorInventory",
+        "BehaviorInventoryReport",
         "BehaviorPathAuthorityBinding",
         "BehaviorCommitmentCoverageReport",
+        "review_independent_behavior_inventory",
         "review_behavior_commitment_ledger",
         "behavior_commitment_contract_exhaustion_plan",
         "behavior_commitment_ledger_template_files",
     ),
+    "dna_completion_gate": tuple(_dna_completion_gate.__all__),
     "primary_path_authority": (
         "PrimaryPathContract",
         "FallbackPathCandidate",
@@ -3193,6 +3307,7 @@ API_SURFACE = {
         "SystemCompositionReport",
         "check_system_composition",
     ),
+    "implementation_surface_audit": IMPLEMENTATION_SURFACE_AUDIT_API,
 }
 
 PORTABLE_VERIFICATION_API = API_SURFACE["portable_verification"]
@@ -3205,6 +3320,7 @@ _PUBLIC_API_SUPPLEMENT = (
     "CODE_STRUCTURE_RECOMMENDATION_ROUTE_API",
     "CONTRACT_EXHAUSTION_MESH_API",
     "CORE_API",
+    "IMPLEMENTATION_SURFACE_AUDIT_API",
     "DEVELOPMENT_PROCESS_FLOW_ROUTE_API",
     "DEVELOPMENT_PROCESS_SIMULATOR_ROUTE_API",
     "EVIDENCE_FIELD_STRUCTURE_API",
@@ -3240,6 +3356,9 @@ _PUBLIC_API_SUPPLEMENT = (
     "WORK_CONTEXT_API",
     "COVERAGE_INVENTORY_API",
     "STRUCTURE_MESH_ROUTE_API",
+    "STORAGE_AUDIT_SCHEMA",
+    "StorageAuditReport",
+    "audit_storage",
     "TEST_MESH_ROUTE_API",
     "TOPOLOGY_HAZARD_ROUTE_API",
     "UI_FLOW_STRUCTURE_ROUTE_API",
@@ -3270,7 +3389,6 @@ _PUBLIC_API_SUPPLEMENT = (
     "ARTIFACT_UPGRADE_STATUS_BLOCKED",
     "ARTIFACT_UPGRADE_STATUS_SKIPPED",
     "ARTIFACT_UPGRADE_STATUS_UNCHANGED",
-    "ARTIFACT_UPGRADE_STATUS_UPGRADED",
     "ARTIFACT_UPGRADE_STATUSES",
     "ARTIFACT_UPGRADE_TEXT_REPLACEMENTS",
 )
@@ -3286,5 +3404,6 @@ __all__ = dedupe_public_names(
     EVIDENCE_API,
     FLOWGUARD_GOVERNANCE_API,
     PORTABLE_VERIFICATION_API,
+    IMPLEMENTATION_SURFACE_AUDIT_API,
     _PUBLIC_API_SUPPLEMENT,
 )

@@ -8,7 +8,7 @@ Created with FlowGuard: https://github.com/liuyingxuvka/FlowGuard
 Purpose: Review whether a final FlowGuard confidence claim is backed by model obligations, public code contracts, contract-exhaustion coverage, UI real-surface/functional-capability/functional-chain/done-claim gates, payload gates, topology/business-path gates, model/test split gates, and current evidence.
 Guards against: coarse models hiding untested internal branches, skipped same-class or Cartesian contract cases, skipped UI inventory, functional capability coverage, functional-chain, source-baseline interaction, click-through, or file/work-package payload evidence for real surfaces, business-path-sensitive claims proved by the wrong route, oversized direct model evidence bypassing ModelMesh, slow or broad validation bypassing TestMesh, tests covering only helper paths, skipped or stale evidence being treated as pass, and background progress being counted as final proof.
 Use before editing: Run this before claiming done, release-ready, or fully validated after model/test/code changes.
-Run: python .flowguard/risk_evidence_ledger/run_checks.py
+Run: python .flowguard/verification/owners/risk_evidence_ledger/run_checks.py
 """
 
 from __future__ import annotations
@@ -135,14 +135,14 @@ def maturation_evidence():
     snapshot = snapshot_bytes(
         "artifact:checkout-model",
         b"checkout-model",
-        path_token="<WORKSPACE>/.flowguard/checkout/model.py",
+        path_token="<WORKSPACE>/.flowguard/models/owners/checkout/model.py",
         obligation_ids=("obligation:checkout-maturation",),
     )
     environment = {"python_version": "template"}
     publication = ModelMaturationReceiptPublication(
         producer_id="flowguard.model_maturation",
         producer_version="template",
-        command=("python", ".flowguard/checkout/run_checks.py"),
+        command=("python", ".flowguard/verification/owners/checkout/run_checks.py"),
         started_at="2026-01-01T00:00:00+00:00",
         finished_at="2026-01-01T00:00:01+00:00",
         environment_metadata=environment,
@@ -255,7 +255,7 @@ def correct_ledger() -> RiskEvidenceLedgerPlan:
                 proof_kind="replay",
                 result_status=RISK_PROOF_STATUS_PASSED,
                 producer_route="conformance_replay",
-                command="python .flowguard/checkout/run_checks.py",
+                command="python .flowguard/verification/owners/checkout/run_checks.py",
                 summary="representative replay covered invalid payment",
                 proof_artifact=ProofArtifactRef(
                     "artifact:replay-invalid-payment",
@@ -344,7 +344,7 @@ def broken_missing_model_split_gate_ledger() -> RiskEvidenceLedgerPlan:
                 "model:checkout-direct",
                 result_status=RISK_PROOF_STATUS_PASSED,
                 producer_route="model_mesh_maintenance",
-                command="python .flowguard/checkout/run_checks.py",
+                command="python .flowguard/verification/owners/checkout/run_checks.py",
                 summary="direct model evidence passed, but no current parent/child split gate was consumed",
             ),
         ),
@@ -420,7 +420,7 @@ def broken_open_maintenance_obligation_ledger() -> RiskEvidenceLedgerPlan:
                 "test:structure-parity",
                 result_status=RISK_PROOF_STATUS_PASSED,
                 producer_route="structure_mesh_maintenance",
-                command="python .flowguard/structure_mesh/run_checks.py",
+                command="python .flowguard/verification/owners/structure_mesh/run_checks.py",
                 summary="test passed, but the remembered StructureMesh obligation is still open",
             ),
         ),

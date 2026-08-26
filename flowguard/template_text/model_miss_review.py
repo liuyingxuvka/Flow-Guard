@@ -38,7 +38,7 @@ non-trivial bug-fix, model-miss, runtime-validation, replay, or completion-gate
 logic.
 
 Run:
-python .flowguard/model_miss_review/run_checks.py
+python .flowguard/verification/owners/model_miss_review/run_checks.py
 
 Replace the event names and obligations with the bug class under review.
 """
@@ -104,7 +104,7 @@ CLASSIFY_MISS = Event(
     "classify_miss",
     affected_behavior_plane="agent_operation",
     affected_commitment_id="commitment:flowguard-agent-guidance-route",
-    primary_owner_model_id=".flowguard/minimum_valuable_model_entry/model.py",
+    primary_owner_model_id=".flowguard/models/owners/minimum_valuable_model_entry/model.py",
     affected_blueprint_gap_id="blueprint-gap:model-miss-review:guidance-route",
     same_plane_lookup_performed=True,
 )
@@ -1200,7 +1200,7 @@ same-class test evidence, owner code contract binding, replay/negative
 evidence, or UI promised-capability classification after a green claim.
 Use before editing: non-trivial bug repairs after runtime, tests, replay, or
 manual validation reveals a FlowGuard model miss.
-Run: python .flowguard/model_miss_review/run_checks.py
+Run: python .flowguard/verification/owners/model_miss_review/run_checks.py
 Modeled block shape: Input x State -> Set(Output x State).
 """
 

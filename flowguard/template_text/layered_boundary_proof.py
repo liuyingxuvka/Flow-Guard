@@ -8,7 +8,7 @@ Created with FlowGuard: https://github.com/liuyingxuvka/FlowGuard
 Purpose: Review whether a parent model is fully covered by child models, child boundaries are disjoint, child evidence reattaches to the parent, and leaf code boundaries have complete finite Input x State coverage.
 Guards against: parent coverage gaps, illegal child overlap, stale child evidence, coarse leaf models, and happy-path-only boundary testing.
 Use before editing: Run this before claiming parent model, full-system, release, or done confidence from a parent/child FlowGuard model tree.
-Run: python .flowguard/layered_boundary_proof/run_checks.py
+Run: python .flowguard/verification/owners/layered_boundary_proof/run_checks.py
 """
 
 from __future__ import annotations

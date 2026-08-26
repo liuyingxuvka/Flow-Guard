@@ -72,9 +72,12 @@ class CurrentSkillContractParityTests(unittest.TestCase):
                 ROOT / ".skillguard" / "flowguard-suite" / "suite-map.json",
                 suite_map,
             )
-            model = repo / ".flowguard" / "development_process_flow" / "model.py"
+            model = repo / ".flowguard" / "models" / "owners" / "development_process_flow" / "model.py"
             model.parent.mkdir(parents=True)
-            shutil.copy2(ROOT / ".flowguard" / "development_process_flow" / "model.py", model)
+            shutil.copy2(
+                ROOT / ".flowguard" / "models" / "owners" / "development_process_flow" / "model.py",
+                model,
+            )
 
             source_path = copied_skill / CONTRACT_SOURCE_FILE
             source = json.loads(source_path.read_text(encoding="utf-8"))
@@ -109,6 +112,8 @@ class CurrentSkillContractParityTests(unittest.TestCase):
                         Path(CONTRACT_SOURCE_FILE).name,
                         Path(COMPILED_CONTRACT_FILE).name,
                         Path(CHECK_MANIFEST_FILE).name,
+                        "surface-inventory.json",
+                        "surface-semantic-map.json",
                     },
                     {path.name for path in authority.iterdir()},
                 )

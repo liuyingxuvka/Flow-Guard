@@ -51,7 +51,9 @@ progress output reuse for model and test regressions.
   completion evidence
 
 ### Requirement: Aggregate local model regression runner
-FlowGuard SHALL provide a tracked command that discovers present `.flowguard/**/run_checks.py` files, runs them, and reports every runner's status before returning a failing exit code for any failed runner.
+FlowGuard SHALL provide a tracked command that discovers present
+`.flowguard/verification/owners/**/run_checks.py` files, runs them, and reports
+every runner's status before returning a failing exit code for any failed runner.
 
 #### Scenario: One local runner fails
 - **WHEN** the aggregate model regression command encounters a runner with non-zero exit status

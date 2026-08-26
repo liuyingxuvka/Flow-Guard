@@ -145,12 +145,12 @@
     "claim_boundary": "flowguard-code-structure-recommendation owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
     "integration_mode": "native-integrated",
+    "model_deepening_check_id": "check:flowguard-code-structure-recommendation:native-authority",
     "native_check_ids": [
       "check:flowguard-code-structure-recommendation:plane-boundary",
       "check:flowguard-code-structure-recommendation:native-authority",
       "check:flowguard-code-structure-recommendation:evidence-closure"
     ],
-    "model_deepening_check_id": "check:flowguard-code-structure-recommendation:native-authority",
     "native_owner_id": "code_structure_recommendation",
     "native_route_ids": [
       "route:code_structure_recommendation"
@@ -177,6 +177,15 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard-code-structure-recommendation:plane-boundary",
+        "check:flowguard-code-structure-recommendation:native-authority",
+        "check:flowguard-code-structure-recommendation:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard-code-structure-recommendation:native-authority",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard-code-structure-recommendation"
   },
   "implementation_paths": [

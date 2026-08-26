@@ -485,10 +485,20 @@ def _load_model_module(root: Path, entry: ModelRegressionEntry, instance: ModelI
         raise SelfPathQualityError(f"model source cannot be loaded: {entry.model_id}")
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
-    added_root = False
-    if str(root) not in sys.path:
-        sys.path.insert(0, str(root))
-        added_root = True
+    # ``model.py`` is loaded through a synthetic module name rather than as a
+    # normal script.  That means Python does not add the model's containing
+    # directory to ``sys.path`` (whereas the native model runner does).  A
+    # number of executable model entrypoints deliberately keep their provider
+    # implementation in a sibling module and import it by its local module
+    # name.  Expose both the repository root and the entrypoint directory for
+    # the duration of the load so the projection sees the same source surface
+    # as the native runner, while still restoring the caller's import path.
+    added_paths: list[str] = []
+    for import_root in (model_path.parent, root):
+        import_root_text = str(import_root)
+        if import_root_text not in sys.path:
+            sys.path.insert(0, import_root_text)
+            added_paths.append(import_root_text)
     try:
         spec.loader.exec_module(module)
     except Exception as exc:
@@ -496,9 +506,9 @@ def _load_model_module(root: Path, entry: ModelRegressionEntry, instance: ModelI
             f"model provider import failed for {entry.model_id}: {type(exc).__name__}: {exc}"
         ) from exc
     finally:
-        if added_root:
+        for import_root_text in added_paths:
             try:
-                sys.path.remove(str(root))
+                sys.path.remove(import_root_text)
             except ValueError:
                 pass
     return module

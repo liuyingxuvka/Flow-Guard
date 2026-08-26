@@ -91,10 +91,12 @@ class ModelRevisionOwnerEvidenceTests(unittest.TestCase):
             )
         entries = []
         for model_id in model_ids:
-            model_dir = target_root / ".flowguard" / model_id
+            model_dir = target_root / ".flowguard" / "models" / "owners" / model_id
+            runner_dir = target_root / ".flowguard" / "verification" / "owners" / model_id
             model_dir.mkdir(parents=True, exist_ok=True)
+            runner_dir.mkdir(parents=True, exist_ok=True)
             model_path = model_dir / "model.py"
-            runner_path = model_dir / "run_checks.py"
+            runner_path = runner_dir / "run_checks.py"
             model_path.write_text(f"VALUE = {value}\n", encoding="utf-8")
             runner_path.write_text(
                 f"print('{model_id} checks pass')\n",
@@ -122,18 +124,18 @@ class ModelRevisionOwnerEvidenceTests(unittest.TestCase):
             entries.append(
                 {
                     "model_id": model_id,
-                    "model_path": f".flowguard/{model_id}/model.py",
+                    "model_path": f".flowguard/models/owners/{model_id}/model.py",
                     "runner": [
                         "{python}",
-                        f".flowguard/{model_id}/run_checks.py",
+                        f".flowguard/verification/owners/{model_id}/run_checks.py",
                     ],
                     "tier": "fast",
                     "timeout_seconds": 5,
                     "shard_safe": True,
                     "mutation_policy": "none",
                     "input_globs": [
-                        f".flowguard/{model_id}/model.py",
-                        f".flowguard/{model_id}/run_checks.py",
+                        f".flowguard/models/owners/{model_id}/model.py",
+                        f".flowguard/verification/owners/{model_id}/run_checks.py",
                     ],
                     "intent_source_inputs": ["docs/current-design.md"],
                     "expected_artifacts": [],
@@ -151,7 +153,7 @@ class ModelRevisionOwnerEvidenceTests(unittest.TestCase):
             "models": entries,
         }
         (
-            target_root / ".flowguard" / "model-regression-manifest.json"
+            target_root / ".flowguard" / "models" / "regression-manifest.json"
         ).write_text(
             json.dumps(manifest),
             encoding="utf-8",
@@ -174,7 +176,9 @@ class ModelRevisionOwnerEvidenceTests(unittest.TestCase):
             ],
             "claim_boundary": "Only this isolated owner-evidence fixture.",
         }
-        (target_root / NATIVE_OWNER_BINDINGS_RELATIVE_PATH).write_text(
+        bindings_path = target_root / NATIVE_OWNER_BINDINGS_RELATIVE_PATH
+        bindings_path.parent.mkdir(parents=True, exist_ok=True)
+        bindings_path.write_text(
             json.dumps(bindings), encoding="utf-8"
         )
 
@@ -223,7 +227,8 @@ class ModelRevisionOwnerEvidenceTests(unittest.TestCase):
                     file_fingerprint(
                         self.root
                         / ".flowguard"
-                        / "model-regression-manifest.json"
+                        / "models"
+                        / "regression-manifest.json"
                     ),
                 ),
             ),
@@ -513,10 +518,13 @@ class ModelRevisionOwnerEvidenceTests(unittest.TestCase):
             )
 
             self._write_models(2, root=root)
-            retired_dir = root / ".flowguard" / historical_model_id
-            for path in retired_dir.iterdir():
-                path.unlink()
-            retired_dir.rmdir()
+            for retired_dir in (
+                root / ".flowguard" / "models" / "owners" / historical_model_id,
+                root / ".flowguard" / "verification" / "owners" / historical_model_id,
+            ):
+                for path in retired_dir.iterdir():
+                    path.unlink()
+                retired_dir.rmdir()
             parent = run_manifest_regressions(
                 root,
                 tier="full",
@@ -839,6 +847,32 @@ class ModelRevisionOwnerEvidenceTests(unittest.TestCase):
                 )
 
         self.assertFalse(output.exists())
+
+    def test_blocks_aggregate_bundle_inside_canonical_receipt_store(self) -> None:
+        parent = self._current_parent()
+        receipt_root = (
+            self.root / ".flowguard" / "evidence" / "model-owner-receipts"
+        )
+        output = receipt_root / "proofs" / "owner-evidence.json"
+        receipt_root.mkdir(parents=True, exist_ok=True)
+        before = tuple(sorted(receipt_root.rglob("*.json")))
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "native owner evidence bundle must be outside the canonical receipt store",
+        ):
+            produce_model_revision_owner_evidence(
+                self.root,
+                model_parent_receipt=parent.parent_receipt_path,
+                snapshot_id="candidate:bundle-inside-receipt-store",
+                output_path=output,
+                receipt_root=receipt_root,
+            )
+
+        # The guard runs before the frozen observation and before any child
+        # receipt publication, so the canonical store remains uncontaminated.
+        self.assertFalse(output.exists())
+        self.assertEqual(before, tuple(sorted(receipt_root.rglob("*.json"))))
 
     def test_current_candidate_route_universe_has_explicit_inventory_bindings(
         self,

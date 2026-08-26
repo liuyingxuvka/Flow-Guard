@@ -1,0 +1,1543 @@
+[flowguard_layout]
+schema = "flowguard.project_layout.v3"
+version = 3
+authority = "current"
+canonical_root = ".flowguard"
+project_identity = "https://github.com/liuyingxuvka/FlowGuard"
+project_identity_fingerprint = "sha256:679b44c3f8a1524c9ad0b94bf53f88d53207fda549edc5f4819a8be07685c9ef"
+model_authority_pointer = ".flowguard/project.toml#model_authority"
+model_authority_fingerprint = "sha256:2950d534f3aadc12c93c30724040d25507287e8103f607d10bdd1c722f647fc5"
+non_authority_roots = ["evidence", "history"]
+
+[roots]
+behavior = "behavior"  # current_effective_intent_and_behavior_contracts
+models = "models"  # current_executable_model_authority
+structure = "structure"  # surface_ownership_and_code_binding_maps
+verification = "verification"  # test_and_check_definitions
+evidence = "evidence"  # immutable_execution_evidence
+history = "history"  # explicit_historical_context
+
+[role_authority]
+behavior = "current"
+models = "current"
+structure = "current"
+verification = "current"
+evidence = "non_authority"
+history = "non_authority"
+
+[inventory]
+schema = "flowguard.project_layout_shape.v1"
+mode = "exact"
+fingerprint = "sha256:dafded9b7dca93e7efb985bf03f79f6651f0a27b6a0d73d393cd1415aacb1ea8"
+member_count = 302
+role_fingerprints = {behavior = "sha256:e09ce2edfc5f3f05628275dd4370c4b5b6613718a48ddb18d5a97ea14a975382", evidence = "sha256:72120b541d7e9c4c917b986f5b4a70ea045358de5f80e2f5cdf3e24009c3215a", history = "sha256:5d4f5f98a6f27cf1daf19c629bf0ebad0419dbd32d1cb36cae0aec63a826d23f", models = "sha256:c8988d4308fa28689ba00277fc8c6bd1d5891eb94d78176155c95f380304000b", structure = "sha256:985afe258d406c488f07ee89d27e0aa9bb82a0c5d1cbd207b517d81b0a3d23f9", verification = "sha256:185ed6cb8482d4039957b3c1829d8b913ed8e26e30ac4abda32d082b63201ffc"}
+
+[[inventory.members]]
+path = "behavior"
+role = "behavior"
+kind = "directory"
+
+[[inventory.members]]
+path = "behavior/inventory"
+role = "behavior"
+kind = "directory"
+
+[[inventory.members]]
+path = "behavior/inventory/behavior_inventory_evidence.json"
+role = "behavior"
+kind = "file"
+
+[[inventory.members]]
+path = "behavior/inventory/behavior_inventory_evidence.stdout.json"
+role = "behavior"
+kind = "file"
+
+[[inventory.members]]
+path = "behavior/inventory/ledger.json"
+role = "behavior"
+kind = "file"
+
+[[inventory.members]]
+path = "evidence"
+role = "evidence"
+kind = "directory"
+
+[[inventory.members]]
+path = "history"
+role = "history"
+kind = "directory"
+
+[[inventory.members]]
+path = "models"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/activations"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/activations/403af9e9f72f67a7ce30cd916f55cf895526a1847358e34a6acaa5d02a9699ad.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/authority/activations/d0c9bb71422fbc2b91e65fe3793e61d9d9b5893ce71677eb6d09a4511fab25a1.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/authority/bootstraps"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/current-authority-repair-20260818-r4"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/current-authority-repair-20260818-r4/revisions"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/current-authority-repair-20260818-r4/snapshots"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/current-direct-repair-20260824"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/current-direct-repair-20260824/revisions"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/current-direct-repair-20260824/snapshots"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/diagnostic-v06814"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/diagnostic-v06814/revisions"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/diagnostic-v06814/snapshots"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/flowguard-dna-no-fallback-20260819"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/flowguard-dna-no-fallback-20260819/revisions"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/flowguard-dna-no-fallback-20260819/snapshots"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/flowguard-dna-no-fallback-no-path-migration-20260819"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/flowguard-dna-no-fallback-no-path-migration-20260819/revisions"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/flowguard-dna-no-fallback-no-path-migration-20260819/snapshots"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/flowguard-dna-no-fallback-strict-current-20260819"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/flowguard-dna-no-fallback-strict-current-20260819/revisions"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/flowguard-dna-no-fallback-strict-current-20260819/snapshots"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/flowguard-dna-upgrade-20260819"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/flowguard-dna-upgrade-20260819/revisions"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/flowguard-dna-upgrade-20260819/snapshots"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/revisions"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/revisions/4d25201331a302c52628120f6174478f444afc344e1ad4562f0dcd417e23e7be.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/authority/revisions/6cbcb37ca9a92f3c664fc1241434cf8f8f85d2597d37d89ab485ea24dc1ba007.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/authority/snapshots"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/authority/snapshots/36aca0a93c42800d7abc84054f1f39524b4b37bf8313911e585e0f45e468836a.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/authority/snapshots/5ca7f053631c2e40c3ba5989960654e8ccff8f017b5bde24e287cc6c140465be.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/authority/snapshots/7a7f4f238f2e5d09f262f8240fda433296ee7d9d457379cf526a81edd34a7418.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/adversarial_scenario_synthesis"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/adversarial_scenario_synthesis/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/ai_entry_surface_reduction"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/ai_entry_surface_reduction/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/ai_route_handoffs"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/ai_route_handoffs/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/architecture_reduction"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/architecture_reduction/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/authoritative_model_system"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/authoritative_model_system/affected_authority_inventory.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/authoritative_model_system/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/authoritative_model_system/semantic_model_mesh.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/authoritative_model_system/semantic_self_model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/authoritative_model_system/software_blueprint_definition.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/behavior_commitment_ledger"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/behavior_commitment_ledger/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/bounded_system_composition_benchmark"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/bounded_system_composition_benchmark/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/code_boundary_conformance"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/code_boundary_conformance/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/codex_skill_satellites"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/codex_skill_satellites/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/compositional_verification_kernel"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/compositional_verification_kernel/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/contract_source_audit"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/contract_source_audit/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/default_replacement_field_lifecycle"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/default_replacement_field_lifecycle/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/development_process_flow"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/development_process_flow/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/development_process_strategy"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/development_process_strategy/active_change_baseline.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/development_process_strategy/architecture_reduction.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/development_process_strategy/code_structure.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/development_process_strategy/contract_exhaustion.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/development_process_strategy/field_lifecycle.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/development_process_strategy/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/development_process_strategy/preflight.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/existing_model_preflight"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/existing_model_preflight/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/field_prompt_reduction"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/field_prompt_reduction/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/flowguard_closure_contract"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/flowguard_closure_contract/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/guard_closure_contract"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/guard_closure_contract/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/guidance_compression"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/guidance_compression/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/harden_ui_content_visibility_validation"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/harden_ui_content_visibility_validation/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/harden_ui_real_surface_validation"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/harden_ui_real_surface_validation/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/hierarchical_model_mesh"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/hierarchical_model_mesh/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/implementation_blueprint"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/implementation_blueprint/__init__.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/implementation_blueprint/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/maintenance_obligation_memory"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/maintenance_obligation_memory/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/mesh_target_split_derivation"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/mesh_target_split_derivation/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/minimum_valuable_model_entry"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/minimum_valuable_model_entry/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/model_impact_freshness_gate"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/model_impact_freshness_gate/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/model_maturation_loop"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/model_maturation_loop/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/model_mesh_closure_model"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/model_mesh_closure_model/__init__.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/model_mesh_closure_model/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/model_miss_review"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/model_miss_review/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/model_test_code_alignment"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/model_test_code_alignment/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/model_topology_hazard_review"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/model_topology_hazard_review/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/model_visibility"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/model_visibility/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/plan_detailing_compiler"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/plan_detailing_compiler/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/primary_path_authority"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/primary_path_authority/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/project_adoption_version_gate"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/project_adoption_version_gate/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/runtime_gateway_adoption"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/runtime_gateway_adoption/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/runtime_path_evidence"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/runtime_path_evidence/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/self_maintenance_mesh"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/self_maintenance_mesh/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/skill_kernel_modularization"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/skill_kernel_modularization/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/state_closure_gate"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/state_closure_gate/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/structure_refactor_mesh"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/structure_refactor_mesh/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/task_coverage_demand"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/task_coverage_demand/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/task_local_prediction_replay"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/task_local_prediction_replay/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/template_public_release"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/template_public_release/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/test_evidence_mesh"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/test_evidence_mesh/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/ui_flow_structure_skill"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/ui_flow_structure_skill/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/ui_human_operability_gate"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/ui_human_operability_gate/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/user_facing_model_diagrams"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/user_facing_model_diagrams/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/validation_evidence_gates"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/validation_evidence_gates/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/owners/work_context"
+role = "models"
+kind = "directory"
+
+[[inventory.members]]
+path = "models/owners/work_context/model.py"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "models/regression-manifest.json"
+role = "models"
+kind = "file"
+
+[[inventory.members]]
+path = "structure"
+role = "structure"
+kind = "directory"
+
+[[inventory.members]]
+path = "structure/owner-bindings.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces"
+role = "structure"
+kind = "directory"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/current-authoring-context.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/current-authority-join.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/current-behavior-ledger-join.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/current-decisions.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/current-discovery.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/current-map-skeleton.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/current-shard-plan.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/current-surface-decisions.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/direct-current-20260825-shard-plan.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/direct-current-discovery-20260825.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/direct-current-implementation-surface-0000.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/direct-current-implementation-surface-0001.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/direct-current-implementation-surface-0002.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/direct-current-implementation-surface-0003.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/direct-current-implementation-surface-0004.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/direct-current-implementation-surface-0005.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/direct-current-map-skeleton-20260825.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/generation172-implementation-surface-0000.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/generation172-implementation-surface-0001.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/generation172-implementation-surface-0002.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/generation172-implementation-surface-0003.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/generation172-implementation-surface-0004.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/generation172-implementation-surface-0005.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/implementation-surface-0000.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/implementation-surface-0001.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/implementation-surface-0002.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/implementation-surface-0003.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/implementation-surface-0004.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/implementation-surface-0005.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/implementation-surface-map.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "structure/reverse-surfaces/predecessor-map-direct-current-20260825.json"
+role = "structure"
+kind = "file"
+
+[[inventory.members]]
+path = "verification"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/adversarial_scenario_synthesis"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/adversarial_scenario_synthesis/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/ai_entry_surface_reduction"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/ai_entry_surface_reduction/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/ai_route_handoffs"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/ai_route_handoffs/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/architecture_reduction"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/architecture_reduction/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/authoritative_model_system"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/authoritative_model_system/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/behavior_commitment_ledger"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/behavior_commitment_ledger/result.json"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/behavior_commitment_ledger/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/bounded_system_composition_benchmark"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/bounded_system_composition_benchmark/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/code_boundary_conformance"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/code_boundary_conformance/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/codex_skill_satellites"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/codex_skill_satellites/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/compositional_verification_kernel"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/compositional_verification_kernel/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/contract_source_audit"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/contract_source_audit/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/default_replacement_field_lifecycle"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/default_replacement_field_lifecycle/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/development_process_flow"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/development_process_flow/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/development_process_strategy"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/development_process_strategy/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/existing_model_preflight"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/existing_model_preflight/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/field_prompt_reduction"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/field_prompt_reduction/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/flowguard_closure_contract"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/flowguard_closure_contract/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/guard_closure_contract"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/guard_closure_contract/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/guidance_compression"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/guidance_compression/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/harden_ui_content_visibility_validation"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/harden_ui_content_visibility_validation/result.json"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/harden_ui_content_visibility_validation/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/harden_ui_real_surface_validation"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/harden_ui_real_surface_validation/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/hierarchical_model_mesh"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/hierarchical_model_mesh/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/implementation_blueprint"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/implementation_blueprint/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/maintenance_obligation_memory"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/maintenance_obligation_memory/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/mesh_target_split_derivation"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/mesh_target_split_derivation/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/minimum_valuable_model_entry"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/minimum_valuable_model_entry/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/model_impact_freshness_gate"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/model_impact_freshness_gate/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/model_maturation_loop"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/model_maturation_loop/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/model_mesh_closure_model"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/model_mesh_closure_model/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/model_miss_review"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/model_miss_review/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/model_test_code_alignment"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/model_test_code_alignment/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/model_topology_hazard_review"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/model_topology_hazard_review/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/model_visibility"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/model_visibility/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/plan_detailing_compiler"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/plan_detailing_compiler/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/primary_path_authority"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/primary_path_authority/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/project_adoption_version_gate"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/project_adoption_version_gate/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/runtime_gateway_adoption"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/runtime_gateway_adoption/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/runtime_path_evidence"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/runtime_path_evidence/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/self_maintenance_mesh"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/self_maintenance_mesh/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/skill_kernel_modularization"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/skill_kernel_modularization/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/state_closure_gate"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/state_closure_gate/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/structure_refactor_mesh"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/structure_refactor_mesh/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/task_coverage_demand"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/task_coverage_demand/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/task_local_prediction_replay"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/task_local_prediction_replay/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/template_public_release"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/template_public_release/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/test_evidence_mesh"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/test_evidence_mesh/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/ui_flow_structure_skill"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/ui_flow_structure_skill/result.json"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/ui_flow_structure_skill/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/ui_human_operability_gate"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/ui_human_operability_gate/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/user_facing_model_diagrams"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/user_facing_model_diagrams/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/validation_evidence_gates"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/validation_evidence_gates/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/owners/work_context"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/owners/work_context/run_checks.py"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/skill-suite-static"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/skill-suite-static/skill-suite-static"
+role = "verification"
+kind = "directory"
+
+[[inventory.members]]
+path = "verification/skill-suite-static/skill-suite-static/evidence-run.json"
+role = "verification"
+kind = "file"
+
+[[inventory.members]]
+path = "verification/skill-suite-static/skill-suite-static/result.json"
+role = "verification"
+kind = "file"

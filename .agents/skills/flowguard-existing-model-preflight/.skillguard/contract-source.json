@@ -16,7 +16,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/existing_model_preflight/model.py"
+          "path": ".flowguard/models/owners/existing_model_preflight/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -53,7 +53,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/existing_model_preflight/model.py"
+          "path": ".flowguard/models/owners/existing_model_preflight/model.py"
         },
         {
           "kind": "path",
@@ -109,7 +109,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/existing_model_preflight/model.py"
+          "path": ".flowguard/models/owners/existing_model_preflight/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -163,12 +163,12 @@
     "claim_boundary": "flowguard-existing-model-preflight owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
     "integration_mode": "native-integrated",
+    "model_deepening_check_id": "check:flowguard-existing-model-preflight:native-authority",
     "native_check_ids": [
       "check:flowguard-existing-model-preflight:plane-boundary",
       "check:flowguard-existing-model-preflight:native-authority",
       "check:flowguard-existing-model-preflight:evidence-closure"
     ],
-    "model_deepening_check_id": "check:flowguard-existing-model-preflight:native-authority",
     "native_owner_id": "existing_model_preflight",
     "native_route_ids": [
       "route:existing_model_preflight"
@@ -195,11 +195,21 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard-existing-model-preflight:plane-boundary",
+        "check:flowguard-existing-model-preflight:native-authority",
+        "check:flowguard-existing-model-preflight:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard-existing-model-preflight:native-authority",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard-existing-model-preflight"
   },
   "implementation_paths": [
     ".agents/skills/flowguard-existing-model-preflight",
-    ".flowguard/existing_model_preflight",
+    ".flowguard/models/owners/existing_model_preflight",
+    ".flowguard/verification/owners/existing_model_preflight",
     "flowguard/existing_model_preflight.py",
     "flowguard/behavior_commitment_lookup.py",
     "flowguard/skill_contract_model.py",
@@ -232,7 +242,7 @@
     "flowguard-ui-flow-structure"
   ],
   "model_id": "flowguard.existing_model_preflight.skill_contract.v2",
-  "model_path": ".flowguard/existing_model_preflight/model.py",
+  "model_path": ".flowguard/models/owners/existing_model_preflight/model.py",
   "native_check_bindings": [
     {
       "authority": "target-native",

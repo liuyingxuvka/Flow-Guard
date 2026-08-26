@@ -685,8 +685,8 @@ def compact_reduction_projection(
         "omitted_candidate_metadata_disposition_count": (
             omitted_candidate_metadata_dispositions
         ),
-        # Current-name compatibility: this field has always counted only the
-        # candidate metadata projection, never typed necessity authority.
+        # Current-name projection: this field counts only the candidate
+        # metadata projection, never typed necessity authority.
         "candidate_counts_by_disposition": dict(
             bounded_candidate_metadata_dispositions
         ),

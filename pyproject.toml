@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flowguard"
-version = "0.68.15"
+version = "0.68.16"
 description = "Model-first workflow checks for AI agents and process preflights."
 requires-python = ">=3.11"
 dependencies = []
@@ -13,7 +13,11 @@ dependencies = []
 flowguard = "flowguard.__main__:main"
 
 [tool.setuptools.packages.find]
-include = ["flowguard*"]
+# The documented ``flowguard`` compatibility commands (including
+# ``scenario-review``) delegate to the maintained executable examples.  Keep
+# those example packages in the wheel so a clean console consumer has the
+# same command surface as a source checkout.
+include = ["flowguard*", "examples*"]
 
 [tool.setuptools.package-data]
 flowguard = ["consumer-suite-authority.json", "prompt_bundle_manifest.json"]

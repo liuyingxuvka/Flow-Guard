@@ -34,6 +34,7 @@ def _accepted_revision(
     root: Path,
     *,
     full_current_path_quality: bool = False,
+    include_no_declared_intent: bool = True,
 ) -> ModelRevisionSet:
     if full_current_path_quality:
         base = _snapshot(("alpha",), snapshot_id="observed-a")
@@ -124,13 +125,19 @@ def _accepted_revision(
         removed_ids=diff.removed_ids,
         fingerprint_changed_ids=diff.fingerprint_changed_ids,
         current_effective_intent_view=view,
-        no_declared_intent_rationale_id="no-intent:v5-fixture",
+        no_declared_intent_rationale_id=(
+            "no-intent:v5-fixture" if include_no_declared_intent else ""
+        ),
         no_declared_intent_evidence_fingerprints=(
-            ("fixture_scope", candidate.fingerprint),
+            (("fixture_scope", candidate.fingerprint),)
+            if include_no_declared_intent
+            else ()
         ),
         no_declared_intent_rationale=(
             "This isolated revision has no additional product intent beyond "
             "testing its direct-current cumulative intent envelope."
+            if include_no_declared_intent
+            else ""
         ),
         required_evidence_refs=required,
         required_path_quality_model_ids=tuple(
@@ -160,6 +167,17 @@ def test_v5_revision_round_trip_embeds_one_current_effective_view() -> None:
         assert restored.current_effective_intent_view.complete
         assert restored.intent_acceptance_ready
         assert restored.path_quality_acceptance_ready
+
+
+def test_bootstrap_declared_intent_accepts_without_no_intent_rationale() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        revision = _accepted_revision(
+            Path(directory),
+            include_no_declared_intent=False,
+        )
+
+        assert revision.intent_acceptance_ready
+        assert revision.current_effective_intent_view.bootstrap_receipt is not None
 
 
 def test_v5_accepts_full_current_path_quality_superset_for_one_added_model() -> None:

@@ -164,7 +164,7 @@ _CANONICAL_VALIDATION_OWNER_RELATIVE = Path(
     ".flowguard/evidence/validation-owners"
 )
 _BEHAVIOR_LEDGER_RELATIVE = Path(
-    ".flowguard/behavior_commitment_ledger/ledger.json"
+    ".flowguard/behavior/inventory/ledger.json"
 )
 
 

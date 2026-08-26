@@ -145,12 +145,12 @@
     "claim_boundary": "flowguard-contract-exhaustion-mesh owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
     "integration_mode": "native-integrated",
+    "model_deepening_check_id": "check:flowguard-contract-exhaustion-mesh:native-authority",
     "native_check_ids": [
       "check:flowguard-contract-exhaustion-mesh:plane-boundary",
       "check:flowguard-contract-exhaustion-mesh:native-authority",
       "check:flowguard-contract-exhaustion-mesh:evidence-closure"
     ],
-    "model_deepening_check_id": "check:flowguard-contract-exhaustion-mesh:native-authority",
     "native_owner_id": "contract_exhaustion_mesh",
     "native_route_ids": [
       "route:contract_exhaustion_mesh"
@@ -177,6 +177,15 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard-contract-exhaustion-mesh:plane-boundary",
+        "check:flowguard-contract-exhaustion-mesh:native-authority",
+        "check:flowguard-contract-exhaustion-mesh:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard-contract-exhaustion-mesh:native-authority",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard-contract-exhaustion-mesh"
   },
   "implementation_paths": [

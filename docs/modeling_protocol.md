@@ -25,10 +25,11 @@ Before changing files, separate three situations:
   adoption evidence appear stale. Update those artifacts before making claims
   from them.
 - `artifact_schema_upgrade`: a repository has an older FlowGuard adoption
-  record or old FlowGuard artifacts/tests/guidance. Run `project-upgrade` or
-  `artifact-upgrade` to move deterministic cases into the current shape; block
-  ambiguous behavior-bearing scripts instead of preserving old runtime
-  compatibility.
+  record or old FlowGuard artifacts/tests/guidance. Audit the old shape and
+  stop. Do not run a migration, compatibility reader, or automatic rewrite.
+  The maintaining agent must directly rewrite the current model/artifact,
+  then rerun current checks and receipts; block ambiguous or stale data
+  instead of preserving an old runtime path.
 - `layered_boundary_proof`: parent model confidence depends on child models and
   leaf real-code boundary evidence. Join parent coverage, child disjointness,
   child reattachment, and leaf boundary-matrix rows before claiming the parent

@@ -1774,10 +1774,38 @@ class ModelRevisionSet:
 
     @property
     def intent_review(self) -> ModelIntentReview:
+        # A revision-local contribution supersedes the contribution that is
+        # active in the base effective view.  The transition's predecessor is
+        # not necessarily that active id: after an earlier supersession it is
+        # the transition replacement.  Treat both the active view ids and the
+        # historical predecessor ids as external lineage.  Otherwise every
+        # normal second refresh is reported as a missing supersession target.
+        revision_local_ids = {
+            item.contribution_id for item in self.intent_contributions
+        }
         known_external_contribution_ids = tuple(
-            item.prior_contribution_id
-            for item in self.current_effective_intent_view.transitions
-            if item.action == "supersede"
+            sorted(
+                {
+                    *(
+                        item.contribution_id
+                        for item in self.current_effective_intent_view.active_contributions
+                        if item.contribution_id not in revision_local_ids
+                    ),
+                    *(
+                        item.prior_contribution_id
+                        for item in self.current_effective_intent_view.transitions
+                        if item.action == "supersede"
+                        and item.prior_contribution_id not in revision_local_ids
+                    ),
+                    *(
+                        replacement_id
+                        for item in self.current_effective_intent_view.transitions
+                        if item.action == "supersede"
+                        for replacement_id in item.replacement_contribution_ids
+                        if replacement_id not in revision_local_ids
+                    ),
+                }
+            )
         )
         return review_model_intent_inventory(
             self.intent_contributions,
@@ -1798,9 +1826,17 @@ class ModelRevisionSet:
         current_view = self.current_effective_intent_view
         current_bootstrap_intent_complete = bool(
             current_view
+            and current_view.bootstrap_receipt is not None
             and current_view.active_contributions
+            and not current_view.transitions
+        )
+        retained_current_intent_complete = bool(
+            current_view
             and current_view.transitions
-            and all(item.action == "retain" for item in current_view.transitions)
+            and all(
+                item.action == "retain"
+                for item in current_view.transitions
+            )
         )
         return (
             self.current_effective_intent_view.complete
@@ -1808,6 +1844,7 @@ class ModelRevisionSet:
             and bool(
                 self.intent_contributions
                 or current_bootstrap_intent_complete
+                or retained_current_intent_complete
                 or no_intent_complete
             )
         )

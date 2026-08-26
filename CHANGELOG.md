@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.68.16 - 2026-08-26
+
+- Added direct-current reverse implementation-surface discovery with exact
+  lexical/import identity, bidirectional model-to-surface closure, and
+  full-versus-merged call-graph conservation.
+- Reorganized current FlowGuard artifacts into explicit behavior, models,
+  structure, verification, evidence, and history roles while keeping runtime
+  evidence out of the source-only release boundary.
+- Preserved fail-closed currentness: stale or former artifacts require a
+  direct latest-schema rewrite and never become a compatibility or fallback
+  authority.
+
 ## v0.68.15 - 2026-08-13
 
 - Remove product-specific Planning Tool and KhaosBrain owner mappings from the

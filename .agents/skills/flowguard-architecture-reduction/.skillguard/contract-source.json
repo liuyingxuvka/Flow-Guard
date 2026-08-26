@@ -16,7 +16,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/architecture_reduction/model.py"
+          "path": ".flowguard/models/owners/architecture_reduction/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -59,7 +59,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/architecture_reduction/model.py"
+          "path": ".flowguard/models/owners/architecture_reduction/model.py"
         },
         {
           "kind": "path",
@@ -163,7 +163,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/architecture_reduction/model.py"
+          "path": ".flowguard/models/owners/architecture_reduction/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -217,12 +217,12 @@
     "claim_boundary": "flowguard-architecture-reduction owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
     "integration_mode": "native-integrated",
+    "model_deepening_check_id": "check:flowguard-architecture-reduction:native-authority",
     "native_check_ids": [
       "check:flowguard-architecture-reduction:plane-boundary",
       "check:flowguard-architecture-reduction:native-authority",
       "check:flowguard-architecture-reduction:evidence-closure"
     ],
-    "model_deepening_check_id": "check:flowguard-architecture-reduction:native-authority",
     "native_owner_id": "architecture_reduction",
     "native_route_ids": [
       "route:architecture_reduction"
@@ -249,11 +249,21 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard-architecture-reduction:plane-boundary",
+        "check:flowguard-architecture-reduction:native-authority",
+        "check:flowguard-architecture-reduction:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard-architecture-reduction:native-authority",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard-architecture-reduction"
   },
   "implementation_paths": [
     ".agents/skills/flowguard-architecture-reduction",
-    ".flowguard/architecture_reduction",
+    ".flowguard/models/owners/architecture_reduction",
+    ".flowguard/verification/owners/architecture_reduction",
     "flowguard/architecture_reduction.py",
     "flowguard/skill_contract_model.py",
     "flowguard/self_reduction_inventory.py",
@@ -297,7 +307,7 @@
     "flowguard-ui-flow-structure"
   ],
   "model_id": "flowguard.architecture_reduction.skill_contract.v2",
-  "model_path": ".flowguard/architecture_reduction/model.py",
+  "model_path": ".flowguard/models/owners/architecture_reduction/model.py",
   "native_check_bindings": [
     {
       "authority": "target-native",

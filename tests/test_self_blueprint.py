@@ -240,7 +240,7 @@ def _composite_contract_row(
         },
         "source_identity": {
             "purpose_source_id": (
-                ".flowguard/model-regression-manifest.json"
+                ".flowguard/models/regression-manifest.json"
                 f"#model:{owner_id}:purpose-declaration"
             ),
             "purpose_source_owner_id": f"model-purpose-declaration:{owner_id}",
@@ -1756,7 +1756,7 @@ def test_self_supporting_surfaces_bind_to_one_deterministic_model_behavior(tmp_p
 def test_exact_module_owner_and_native_checker_identity_are_preserved():
     entries = {
         "work_context": {
-            "runner": ["{python}", ".flowguard/work_context/run_checks.py"],
+            "runner": ["{python}", ".flowguard/verification/owners/work_context/run_checks.py"],
             "purpose_closure": {
                 "evidence_check_ids": ["check:model-regression:work_context"],
                 "runner_sha256": "sha256:" + "1" * 64,
@@ -1771,7 +1771,7 @@ def test_exact_module_owner_and_native_checker_identity_are_preserved():
     ) == "work_context"
     artifact = _native_evidence_artifacts(entries)[0]
     assert artifact.evidence_id == "check:model-regression:work_context"
-    assert artifact.artifact_path == ".flowguard/work_context/run_checks.py"
+    assert artifact.artifact_path == ".flowguard/verification/owners/work_context/run_checks.py"
     assert artifact.artifact_fingerprint == "sha256:" + "1" * 64
 
 

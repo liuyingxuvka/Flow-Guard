@@ -237,15 +237,21 @@ class TemplatePackSelectionTests(unittest.TestCase):
 
         self.assertEqual("no_match", receipt.disposition)
 
-    def test_zero_match_uses_declared_base_only_as_fallback(self):
+    def test_zero_match_does_not_fallback_to_declared_base(self):
         specialized = specialized_pack("specialized", "special", expected="special")
         manifest = sealed_manifest(base_pack(), specialized)
-        fallback = select_template_packs(manifest, {"kind": "other"})
+        blocked = select_template_packs(manifest, {"kind": "other"})
+        explicit_base = select_template_packs(
+            manifest,
+            {"kind": "other", "explicit_base_template_id": "base"},
+        )
         matched = select_template_packs(manifest, {"kind": "special"})
 
-        self.assertEqual("base_selected", fallback.disposition)
-        self.assertEqual((), fallback.matched_template_ids)
-        self.assertEqual(("base",), fallback.selected_template_ids)
+        self.assertEqual("no_match", blocked.disposition)
+        self.assertEqual((), blocked.matched_template_ids)
+        self.assertEqual((), blocked.selected_template_ids)
+        self.assertEqual("base_selected", explicit_base.disposition)
+        self.assertEqual(("base",), explicit_base.selected_template_ids)
         self.assertEqual("selected", matched.disposition)
         self.assertEqual(("specialized",), matched.selected_template_ids)
         self.assertNotIn("base", matched.matched_template_ids)

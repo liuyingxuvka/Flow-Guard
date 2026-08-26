@@ -122,6 +122,15 @@ def _report(*, ok: bool = True) -> SimpleNamespace:
     )
 
 
+def _report_with_execution(*, status: str, fingerprint: str) -> SimpleNamespace:
+    report = _report()
+    report.readiness_ledger = SimpleNamespace(
+        executed_evidence_status=status,
+        execution_evidence_fingerprint=fingerprint,
+    )
+    return report
+
+
 def test_candidate_semantic_mesh_cannot_claim_qualified_dna() -> None:
     result = qualify_target_system_dna(
         _report(),
@@ -152,7 +161,94 @@ def test_fully_current_bindings_are_explicitly_qualified() -> None:
         code_binding_fingerprint="fp:code",
         test_binding_status="current",
         test_binding_fingerprint="fp:test",
+        execution_status="passed",
+        execution_evidence_fingerprint="fp:execution",
     )
     assert result.status == "qualified"
+    assert result.static_ready
+    assert result.runtime_qualified
     assert result.qualified
     assert result.reasons == ()
+
+
+def test_canonical_readiness_ledger_controls_default_execution_layer() -> None:
+    result = qualify_target_system_dna(
+        _report_with_execution(status="passed", fingerprint="fp:ledger-execution"),
+        qualification_id="qualification:ledger-execution",
+        semantic_status="current",
+        semantic_evidence_fingerprint="fp:semantic",
+        semantic_binding_current=True,
+        code_binding_status="current",
+        code_binding_fingerprint="fp:code",
+        test_binding_status="current",
+        test_binding_fingerprint="fp:test",
+    )
+
+    assert result.status == "qualified"
+    assert result.execution_status == "passed"
+    assert result.execution_evidence_fingerprint == "fp:ledger-execution"
+
+
+def test_current_static_bindings_are_only_static_ready_until_execution_runs() -> None:
+    result = qualify_target_system_dna(
+        _report(),
+        qualification_id="qualification:static-only",
+        semantic_status="current",
+        semantic_evidence_fingerprint="fp:semantic",
+        semantic_binding_current=True,
+        code_binding_status="current",
+        code_binding_fingerprint="fp:code",
+        test_binding_status="current",
+        test_binding_fingerprint="fp:test",
+    )
+
+    assert result.status == "static_ready"
+    assert result.static_ready
+    assert not result.runtime_qualified
+    assert not result.qualified
+    assert result.execution_status == "not_run"
+    assert "execution:not_run" in result.reasons
+    assert TargetSystemDnaQualification.from_dict(result.to_dict()) == result
+
+
+@pytest.mark.parametrize("execution_status", ["failed", "stale", "blocked", "not_applicable"])
+def test_non_pass_execution_status_cannot_promote_static_bindings(
+    execution_status: str,
+) -> None:
+    result = qualify_target_system_dna(
+        _report(),
+        qualification_id=f"qualification:{execution_status}",
+        semantic_status="current",
+        semantic_evidence_fingerprint="fp:semantic",
+        semantic_binding_current=True,
+        code_binding_status="current",
+        code_binding_fingerprint="fp:code",
+        test_binding_status="current",
+        test_binding_fingerprint="fp:test",
+        execution_status=execution_status,
+        execution_evidence_fingerprint="fp:execution",
+    )
+
+    assert result.status == "static_ready"
+    assert not result.qualified
+    assert result.execution_status == execution_status
+
+
+def test_passed_execution_without_evidence_fingerprint_is_missing() -> None:
+    result = qualify_target_system_dna(
+        _report(),
+        qualification_id="qualification:missing-execution-evidence",
+        semantic_status="current",
+        semantic_evidence_fingerprint="fp:semantic",
+        semantic_binding_current=True,
+        code_binding_status="current",
+        code_binding_fingerprint="fp:code",
+        test_binding_status="current",
+        test_binding_fingerprint="fp:test",
+        execution_status="passed",
+    )
+
+    assert result.status == "static_ready"
+    assert not result.qualified
+    assert result.execution_status == "missing"
+    assert "execution:evidence_fingerprint_missing" in result.reasons

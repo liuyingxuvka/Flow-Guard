@@ -24,7 +24,7 @@ sets with every FlowGuard-reserved skill directory and file in both directions.
 A missing, extra, renamed, shadowed, or content-drifted member or file MUST fail
 validation. Unrelated co-located skills remain outside the FlowGuard claim.
 
-#### Scenario: Undeclared reserved skill directory exists
+#### Scenario: Undeclared skill directory exists
 - **WHEN** a FlowGuard-reserved `SKILL.md` directory exists but is absent from
   the package authority
 - **THEN** validation fails with an extra-discovered-member diagnostic
@@ -49,26 +49,11 @@ set, exact file projection, projection role, and deterministic tree identity.
 - **WHEN** any current suite or installation verifier executes
 - **THEN** its member and file set is obtained from the package-owned authority
 
+#### Scenario: Legacy verifier is run
+- **WHEN** a retained suite marker or currentness verifier executes
+- **THEN** its consumer member and file set and pass/fail decision are obtained
+  from the package-owned authority
+
 #### Scenario: Private hard-coded list drifts
 - **WHEN** a repository check finds a second unapproved literal suite list
 - **THEN** validation fails and identifies the duplicate inventory owner
-
-## ADDED Requirements
-
-### Requirement: Retired public entries have zero residual authority
-Internal helpers for plan detailing and agent workflow rehearsal SHALL remain
-owned by DevelopmentProcessFlow and SHALL NOT exist as installed public skill
-ids, direct public routes, aliases, wrappers, fallbacks, consumer members, or
-independent success implementations.
-
-#### Scenario: Retired helper exists as an installed skill
-- **WHEN** an installed or shadow root contains a public
-  `flowguard-plan-detailing-compiler` or
-  `flowguard-agent-workflow-rehearsal` skill
-- **THEN** suite validation fails with retired-public-authority evidence
-
-#### Scenario: Internal helper remains available through its owner
-- **WHEN** DevelopmentProcessFlow invokes plan-detailing or agent-workflow
-  internal mode
-- **THEN** the helper executes only under that public owner's current route and
-  does not become an independent public success path

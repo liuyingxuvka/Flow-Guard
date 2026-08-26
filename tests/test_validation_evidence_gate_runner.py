@@ -7,8 +7,21 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODEL_DIR = ROOT / ".flowguard" / "validation_evidence_gates"
-RUNNER = MODEL_DIR / "run_checks.py"
+MODEL_DIR = (
+    ROOT
+    / ".flowguard"
+    / "models"
+    / "owners"
+    / "validation_evidence_gates"
+)
+RUNNER = (
+    ROOT
+    / ".flowguard"
+    / "verification"
+    / "owners"
+    / "validation_evidence_gates"
+    / "run_checks.py"
+)
 RESULT_SCHEMA_V2 = "flowguard.validation-evidence-kernel-model-result.v2"
 MAX_COMPACT_RESULT_BYTES = 256 * 1024
 FORBIDDEN_RAW_TRACE_KEYS = {
