@@ -11,8 +11,8 @@ from examples.latest_schema_upgrade_policy.model import (
     BROKEN_UNSUPPORTED_REGISTERED_ENVELOPE_REWRITE,
     BROKEN_UNKNOWN_REWRITE,
     CURRENT_ARTIFACT,
-    LEGACY_BCL_ARTIFACT_UPGRADED,
-    OLDER_PROJECT_TRIGGERS_SCAN,
+    LEGACY_BCL_ARTIFACT_REJECTED,
+    OLDER_PROJECT_REQUIRES_DIRECT_REWRITE,
     RECORDS_ONLY_SCOPED,
     TARGET_OWNED_JSON_PRESERVED,
     UNSUPPORTED_REGISTERED_ENVELOPE_BLOCKED,
@@ -36,9 +36,9 @@ class LatestSchemaUpgradePolicyTests(unittest.TestCase):
     def test_supported_policy_paths_pass(self):
         for case in (
             CURRENT_ARTIFACT,
-            LEGACY_BCL_ARTIFACT_UPGRADED,
+            LEGACY_BCL_ARTIFACT_REJECTED,
             UNSUPPORTED_REGISTERED_ENVELOPE_BLOCKED,
-            OLDER_PROJECT_TRIGGERS_SCAN,
+            OLDER_PROJECT_REQUIRES_DIRECT_REWRITE,
             UNKNOWN_SCRIPT_BLOCKED,
             RECORDS_ONLY_SCOPED,
             TARGET_OWNED_JSON_PRESERVED,
@@ -65,7 +65,7 @@ class LatestSchemaUpgradePolicyTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(0, completed.returncode, completed.stdout + completed.stderr)
-        self.assertIn("latest-schema upgrade policy", completed.stdout)
+        self.assertIn("direct-current rewrite policy", completed.stdout)
         self.assertIn("expected violations observed: 7", completed.stdout)
 
 

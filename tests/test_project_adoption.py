@@ -368,12 +368,17 @@ class ProjectAdoptionTests(unittest.TestCase):
             ):
                 report = upgrade_project(root)
 
-            self.assertTrue(report.ok, report.format_text())
-            self.assertIsNotNone(report.artifact_upgrade_report)
-            self.assertEqual(1, report.artifact_upgrade_report.upgraded_count)
-            self.assertEqual(flowguard.SCHEMA_VERSION, json.loads(old_report.read_text(encoding="utf-8"))["schema_version"])
-            manifest_text = manifest.read_text(encoding="utf-8")
-            self.assertIn(f'adopted_package_version = "{installed_flowguard_package_version()}"', manifest_text)
+            self.assertFalse(report.ok, report.format_text())
+            self.assertIn("project_layout_invalid", {item.category for item in report.findings})
+            self.assertIsNone(report.artifact_upgrade_report)
+            self.assertEqual(
+                json.dumps(_legacy_behavior_ledger()),
+                old_report.read_text(encoding="utf-8"),
+            )
+            self.assertEqual(
+                current_project_manifest_text(package_version="0.1.0"),
+                manifest.read_text(encoding="utf-8"),
+            )
 
     def test_project_upgrade_records_only_scopes_artifact_scan(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -395,10 +400,15 @@ class ProjectAdoptionTests(unittest.TestCase):
             ):
                 report = upgrade_project(root, records_only=True)
 
-            self.assertTrue(report.ok, report.format_text())
+            self.assertFalse(report.ok, report.format_text())
             self.assertIsNone(report.artifact_upgrade_report)
             categories = {finding.category for finding in report.findings}
-            self.assertIn("artifact_upgrade_scan_scoped_out", categories)
+            self.assertIn("project_layout_invalid", categories)
+            self.assertNotIn(
+                "artifact_upgrade_scan_scoped_out",
+                categories,
+                "a stale layout blocks before records-only scanning can be claimed",
+            )
             self.assertEqual(old_report_before, old_report.read_bytes())
 
     def test_audit_reports_stable_codes_for_missing_locked_rules(self):
@@ -548,17 +558,17 @@ class ProjectAdoptionTests(unittest.TestCase):
             ):
                 report = upgrade_project(root, dry_run=True)
 
-            self.assertTrue(report.ok, report.format_text())
+            self.assertFalse(report.ok, report.format_text())
             self.assertTrue(report.dry_run)
             self.assertEqual(before, _tree_snapshot(root))
             self.assertEqual((), report.written_files)
             self.assertIn(str(root / "AGENTS.md"), report.proposed_files)
             self.assertIn(str(root / FLOWGUARD_PROJECT_LOG), report.proposed_files)
-            self.assertIsNotNone(report.artifact_upgrade_report)
-            self.assertFalse(report.artifact_upgrade_report.apply)
+            self.assertIn("project_layout_invalid", {item.category for item in report.findings})
+            self.assertIsNone(report.artifact_upgrade_report)
             self.assertFalse((root / FLOWGUARD_PROJECT_LOG).exists())
 
-    def test_blocked_dry_run_still_previews_artifact_upgrade_without_mutation(self):
+    def test_blocked_dry_run_stops_before_artifact_upgrade_without_mutation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "AGENTS.md").write_text(
@@ -586,8 +596,8 @@ class ProjectAdoptionTests(unittest.TestCase):
 
             self.assertFalse(report.ok)
             self.assertIn("suite_inventory_unresolved", {item.category for item in report.findings})
-            self.assertIsNotNone(report.artifact_upgrade_report)
-            self.assertFalse(report.artifact_upgrade_report.apply)
+            self.assertIn("project_layout_invalid", {item.category for item in report.findings})
+            self.assertIsNone(report.artifact_upgrade_report)
             self.assertEqual(before, _tree_snapshot(root))
             self.assertEqual((), report.written_files)
 
@@ -936,17 +946,16 @@ class ProjectAdoptionTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(
-                0,
+                1,
                 ownership_upgrade.returncode,
                 ownership_upgrade.stdout + ownership_upgrade.stderr,
             )
             ownership_payload = json.loads(ownership_upgrade.stdout)
-            self.assertTrue(ownership_payload["ok"], ownership_payload)
-            artifact_report = ownership_payload["artifact_upgrade_report"]
-            self.assertEqual(1, artifact_report["upgraded_count"])
-            self.assertEqual(
-                [".flowguard/behavior_commitment_ledger/ledger.json"],
-                artifact_report["changed_files"],
+            self.assertFalse(ownership_payload["ok"], ownership_payload)
+            self.assertIsNone(ownership_payload["artifact_upgrade_report"])
+            self.assertIn(
+                "project_layout_invalid",
+                {finding["category"] for finding in ownership_payload["findings"]},
             )
             target_fixture_after = target_fixture.read_bytes()
             self.assertEqual(target_fixture_before, target_fixture_after)
@@ -954,16 +963,10 @@ class ProjectAdoptionTests(unittest.TestCase):
                 target_fixture_hash,
                 hashlib.sha256(target_fixture_after).hexdigest(),
             )
-            migrated_ledger = json.loads(
-                registered_artifact.read_text(encoding="utf-8")
-            )
             self.assertEqual(
-                "flowguard_behavior_commitment_ledger",
-                migrated_ledger["artifact_type"],
+                json.dumps(_legacy_behavior_ledger()),
+                registered_artifact.read_text(encoding="utf-8"),
             )
-            migrated_row = migrated_ledger["ledger"]["commitments"][0]
-            self.assertNotIn("dependency_commitment_ids", migrated_row)
-            self.assertEqual([], migrated_row["relations"])
 
             packaged_authority = Path(probe_payload["authority_file"])
             authority_bytes = packaged_authority.read_bytes()

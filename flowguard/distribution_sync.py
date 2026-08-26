@@ -408,6 +408,61 @@ def inventory_skill_tree(
     )
 
 
+class _InventoryObservationCache:
+    """Reuse one inventory observation within a single parity invocation.
+
+    The cache is intentionally invocation-local and keyed by the resolved
+    physical skill root, the complete member set, and the exact exclusion
+    policy.  It does not persist anything and never uses
+    timestamps, sizes, or a stale observation to replace a fresh read.  A
+    caller that asks for a different policy therefore receives a separate
+    exact inventory, while repeated references to the same physical tree and
+    policy do not reread and rehash every file.
+    """
+
+    def __init__(self) -> None:
+        self._observations: dict[
+            tuple[str, tuple[str, ...], tuple[ExclusionRule, ...]],
+            SkillTreeInventory,
+        ] = {}
+
+    @staticmethod
+    def _resolved_skill_root(root: str | Path) -> Path:
+        root_path = Path(root).expanduser().resolve()
+        nested = root_path / CANONICAL_SKILL_ROOT
+        return (nested.resolve() if nested.is_dir() else root_path).resolve()
+
+    def inventory(
+        self,
+        root: str | Path,
+        *,
+        member_ids: Sequence[str],
+        exclusion_rules: Sequence[ExclusionRule],
+        allow_missing_root: bool = False,
+    ) -> SkillTreeInventory:
+        ids = tuple(_safe_relative(str(item)) for item in member_ids)
+        rules = tuple(exclusion_rules)
+        skill_root = self._resolved_skill_root(root)
+        if not skill_root.is_dir() and not allow_missing_root:
+            raise FileNotFoundError(f"skill tree does not exist: {skill_root}")
+        key = (
+            os.path.normcase(os.path.normpath(str(skill_root))),
+            ids,
+            rules,
+        )
+        cached = self._observations.get(key)
+        if cached is not None:
+            return cached
+        observed = inventory_skill_tree(
+            root,
+            member_ids=ids,
+            exclusion_rules=rules,
+            allow_missing_root=allow_missing_root,
+        )
+        self._observations[key] = observed
+        return observed
+
+
 def _wire_hash(value: bytes) -> str:
     return "sha256:" + hashlib.sha256(value).hexdigest()
 
@@ -449,14 +504,22 @@ def _consumer_source_inventory(
     *,
     member_ids: Sequence[str],
     exclusion_rules: Sequence[ExclusionRule],
+    observation_cache: _InventoryObservationCache | None = None,
 ) -> tuple[SkillTreeInventory, dict[str, bytes]]:
     """Project an author tree into the exact clean consumer file inventory."""
 
-    base = inventory_skill_tree(
-        root,
-        member_ids=member_ids,
-        exclusion_rules=exclusion_rules,
-    )
+    if observation_cache is None:
+        base = inventory_skill_tree(
+            root,
+            member_ids=member_ids,
+            exclusion_rules=exclusion_rules,
+        )
+    else:
+        base = observation_cache.inventory(
+            root,
+            member_ids=member_ids,
+            exclusion_rules=exclusion_rules,
+        )
     generated: dict[str, bytes] = {}
     files = list(base.files)
     base_paths = {item.relative_path for item in base.files}
@@ -877,7 +940,8 @@ def _consumer_release_findings(
         relative = f"{member_id}/{CONSUMER_RELEASE_MANIFEST}"
         path = root / Path(*PurePosixPath(relative).parts)
         try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
+            manifest_raw = path.read_bytes()
+            payload = json.loads(manifest_raw.decode("utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             findings.append(
                 DistributionFinding(
@@ -925,6 +989,17 @@ def _consumer_release_findings(
             _canonical_json(expected_payload).encode("utf-8")
         )
         expected_payload["manifest_hash"] = expected_manifest_hash
+        expected_manifest_bytes = (
+            _canonical_json(expected_payload) + "\n"
+        ).encode("utf-8")
+        if manifest_raw != expected_manifest_bytes:
+            findings.append(
+                DistributionFinding(
+                    "consumer_release_noncanonical",
+                    "consumer release manifest bytes must be compact canonical JSON followed by exactly one LF newline",
+                    relative,
+                )
+            )
         if payload != expected_payload:
             findings.append(
                 DistributionFinding(
@@ -1046,7 +1121,8 @@ def compare_configured_skill_trees(
     if root_roles[reference_name] != PARITY_ROLE_AUTHOR_SOURCE:
         raise ValueError("the canonical parity reference must be an explicit author_source root")
     ids = tuple(member_ids) if member_ids is not None else discover_member_ids(roots[reference_name])
-    reference_author = inventory_skill_tree(
+    observation_cache = _InventoryObservationCache()
+    reference_author = observation_cache.inventory(
         roots[reference_name],
         member_ids=ids,
         exclusion_rules=author_exclusion_rules,
@@ -1055,13 +1131,14 @@ def compare_configured_skill_trees(
         roots[reference_name],
         member_ids=ids,
         exclusion_rules=exclusion_rules,
+        observation_cache=observation_cache,
     )
     inventories: dict[str, SkillTreeInventory] = {reference_name: reference_author}
     comparisons: dict[str, TreeParity] = {}
     for name, root in roots.items():
         if name == reference_name:
             continue
-        inventory = inventory_skill_tree(
+        inventory = observation_cache.inventory(
             root,
             member_ids=ids,
             exclusion_rules=(

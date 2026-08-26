@@ -291,7 +291,12 @@ The ledger SHALL support task terms, path patterns, tool ids, error signatures, 
 - **AND** the commitment id and primary owner model SHALL remain unchanged
 
 ### Requirement: Canonical project ledger is machine-readable
-Project templates SHALL store behavior commitments in one canonical `.flowguard/behavior_commitment_ledger/ledger.json` artifact and SHALL treat generated check results as evidence rather than source data.
+Project templates SHALL store behavior commitments in one canonical
+`.flowguard/behavior/inventory/ledger.json` artifact and SHALL treat generated
+check results as evidence rather than source data. The behavior ledger model
+and native runner are separate current owners under
+`.flowguard/models/owners/behavior_commitment_ledger/model.py` and
+`.flowguard/verification/owners/behavior_commitment_ledger/run_checks.py`.
 
 #### Scenario: Project model loads canonical ledger
 - **WHEN** the generated project BCL model is imported

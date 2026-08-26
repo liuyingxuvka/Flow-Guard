@@ -90,7 +90,10 @@ class MaintenanceObligationTests(unittest.TestCase):
         env = os.environ.copy()
         env["PYTHONPATH"] = str(ROOT) + os.pathsep + env.get("PYTHONPATH", "")
         result = subprocess.run(
-            [sys.executable, ".flowguard/maintenance_obligation_memory/run_checks.py"],
+            [
+                sys.executable,
+                ".flowguard/verification/owners/maintenance_obligation_memory/run_checks.py",
+            ],
             cwd=ROOT,
             env=env,
             text=True,

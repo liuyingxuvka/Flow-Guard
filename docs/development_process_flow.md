@@ -199,8 +199,8 @@ python -m flowguard development-process-flow-template --output .
 
 The template writes:
 
-- `.flowguard/development_process_flow/model.py`
-- `.flowguard/development_process_flow/run_checks.py`
+- `.flowguard/models/owners/development_process_flow/model.py`
+- `.flowguard/verification/owners/development_process_flow/run_checks.py`
 - `docs/flowguard_development_process_flow.md`
 
 The generated model includes one green lifecycle and one broken lifecycle where

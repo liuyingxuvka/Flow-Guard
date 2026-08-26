@@ -75,12 +75,21 @@ class ModelRegressionManifestTests(unittest.TestCase):
             ) as publish_current_rebuild:
                 report = self.current_parent_fixture(root)
 
-            complete_observations = tuple(
-                call
-                for call in resolve_manifest.call_args_list
-                if len(call.args) > 1 and call.args[1] == ("**/*", "*")
+            self.assertEqual(2, len(resolve_manifest.call_args_list))
+            expected_observation_patterns = (
+                ".flowguard/models/owners/alpha/*.py",
+                ".flowguard/verification/owners/alpha/*.py",
+                ".flowguard/models/regression-manifest.json",
+                "flowguard/model_regressions.py",
+                "flowguard/evidence_receipts.py",
+                "flowguard/validation_ownership.py",
             )
-            self.assertEqual(2, len(complete_observations))
+            self.assertTrue(
+                all(
+                    call.args[1] == expected_observation_patterns
+                    for call in resolve_manifest.call_args_list
+                )
+            )
             self.assertEqual(0, publish_current_rebuild.call_count)
             diagnostics = report.to_dict()["validation_observation"]
             self.assertEqual(2, diagnostics["complete_observation_count"])
@@ -95,10 +104,12 @@ class ModelRegressionManifestTests(unittest.TestCase):
     def test_text_source_identity_is_stable_across_line_endings(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            model_dir = root / ".flowguard" / "sample"
+            model_dir = root / ".flowguard" / "models" / "owners" / "sample"
+            runner_dir = root / ".flowguard" / "verification" / "owners" / "sample"
             model_dir.mkdir(parents=True)
+            runner_dir.mkdir(parents=True)
             model_path = model_dir / "model.py"
-            runner_path = model_dir / "run_checks.py"
+            runner_path = runner_dir / "run_checks.py"
             model_path.write_bytes(b"first\r\nsecond\r\n")
             runner_path.write_bytes(b"run\r\n")
             entry = ModelRegressionEntry.from_dict(self.entry("sample", root))
@@ -125,7 +136,7 @@ class ModelRegressionManifestTests(unittest.TestCase):
         )
         self.assertGreater(len(audit.registered_model_ids), 0)
         discovered = {
-            path.relative_to(root / ".flowguard").as_posix()
+            path.relative_to(root / ".flowguard" / "models" / "owners").as_posix()
             for path in discover_model_directories(root)
         }
         required_public = {
@@ -140,10 +151,12 @@ class ModelRegressionManifestTests(unittest.TestCase):
     def test_manifest_rejects_noncanonical_logical_model_regression_evidence_identity(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            model_dir = root / ".flowguard" / "sample"
+            model_dir = root / ".flowguard" / "models" / "owners" / "sample"
+            runner_dir = root / ".flowguard" / "verification" / "owners" / "sample"
             model_dir.mkdir(parents=True)
+            runner_dir.mkdir(parents=True)
             model_dir.joinpath("model.py").write_text("VALUE = 1\n", encoding="utf-8")
-            model_dir.joinpath("run_checks.py").write_text(
+            runner_dir.joinpath("run_checks.py").write_text(
                 "raise SystemExit(0)\n",
                 encoding="utf-8",
             )
@@ -163,9 +176,9 @@ class ModelRegressionManifestTests(unittest.TestCase):
                 claim_boundary="This fixture proves only exact current model-regression evidence identity.",
                 evidence_check_ids=("check:model-regression:sample-alias",),
                 model_sha256=file_fingerprint(model_dir / "model.py"),
-                runner_sha256=file_fingerprint(model_dir / "run_checks.py"),
+                runner_sha256=file_fingerprint(runner_dir / "run_checks.py"),
             ).to_dict()
-            manifest_path = root / ".flowguard" / "model-regression-manifest.json"
+            manifest_path = root / ".flowguard" / "models" / "regression-manifest.json"
             manifest_path.write_text(
                 json.dumps(
                     {
@@ -240,16 +253,18 @@ class ModelRegressionManifestTests(unittest.TestCase):
     def test_exact_intent_source_input_is_owned_and_fingerprinted(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            model_dir = root / ".flowguard" / "sample"
+            model_dir = root / ".flowguard" / "models" / "owners" / "sample"
+            runner_dir = root / ".flowguard" / "verification" / "owners" / "sample"
             model_dir.mkdir(parents=True)
+            runner_dir.mkdir(parents=True)
             model_dir.joinpath("model.py").write_text("VALUE = 1\n", encoding="utf-8")
-            model_dir.joinpath("run_checks.py").write_text("print('ok')\n", encoding="utf-8")
+            runner_dir.joinpath("run_checks.py").write_text("print('ok')\n", encoding="utf-8")
             source = root / "docs" / "intent.md"
             source.parent.mkdir()
             source.write_text("One exact intent.\n", encoding="utf-8")
             row = self.entry("sample", root)
             row["intent_source_inputs"] = ["docs/intent.md"]
-            manifest_path = root / ".flowguard" / "model-regression-manifest.json"
+            manifest_path = root / ".flowguard" / "models" / "regression-manifest.json"
             manifest_path.write_text(
                 json.dumps(
                     {
@@ -274,13 +289,15 @@ class ModelRegressionManifestTests(unittest.TestCase):
     def test_intent_source_input_rejects_globs(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            model_dir = root / ".flowguard" / "sample"
+            model_dir = root / ".flowguard" / "models" / "owners" / "sample"
+            runner_dir = root / ".flowguard" / "verification" / "owners" / "sample"
             model_dir.mkdir(parents=True)
+            runner_dir.mkdir(parents=True)
             model_dir.joinpath("model.py").write_text("VALUE = 1\n", encoding="utf-8")
-            model_dir.joinpath("run_checks.py").write_text("print('ok')\n", encoding="utf-8")
+            runner_dir.joinpath("run_checks.py").write_text("print('ok')\n", encoding="utf-8")
             row = self.entry("sample", root)
             row["intent_source_inputs"] = ["docs/*.md"]
-            path = root / ".flowguard" / "model-regression-manifest.json"
+            path = root / ".flowguard" / "models" / "regression-manifest.json"
             path.write_text(
                 json.dumps(
                     {
@@ -512,7 +529,7 @@ class ModelRegressionManifestTests(unittest.TestCase):
             first = self.current_parent_fixture(root)
             first_path = Path(first.parent_receipt_path)
             first_bytes = first_path.read_bytes()
-            (root / ".flowguard" / "alpha" / "support.py").write_text(
+            (root / ".flowguard" / "models" / "owners" / "alpha" / "support.py").write_text(
                 "VALUE = 2\n",
                 encoding="utf-8",
             )
@@ -636,7 +653,7 @@ class ModelRegressionManifestTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self.current_parent_fixture(root)
-            manifest_path = root / ".flowguard" / "model-regression-manifest.json"
+            manifest_path = root / ".flowguard" / "models" / "regression-manifest.json"
             manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
             manifest_path.write_text(
                 json.dumps(manifest_payload, indent=2) + "\n",
@@ -709,7 +726,7 @@ class ModelRegressionManifestTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self.current_parent_fixture(root)
-            (root / ".flowguard" / "alpha" / "support.py").write_text(
+            (root / ".flowguard" / "models" / "owners" / "alpha" / "support.py").write_text(
                 "VALUE = 2\n",
                 encoding="utf-8",
             )
@@ -781,7 +798,7 @@ class ModelRegressionManifestTests(unittest.TestCase):
                     "-c",
                     (
                         "import runpy; "
-                        "model = runpy.run_path('.flowguard/harden_ui_content_visibility_validation/model.py'); "
+                        "model = runpy.run_path('.flowguard/models/owners/harden_ui_content_visibility_validation/model.py'); "
                         "print(model['CORE_PYTEST_ARGS'][-1])"
                     ),
                 ],
@@ -797,7 +814,7 @@ class ModelRegressionManifestTests(unittest.TestCase):
     def test_unregistered_and_extra_records_are_both_visible(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            present = root / ".flowguard" / "present"
+            present = root / ".flowguard" / "models" / "owners" / "present"
             present.mkdir(parents=True)
             present.joinpath("model.py").write_text("if __name__ == '__main__': pass\n", encoding="utf-8")
             payload = {
@@ -807,7 +824,7 @@ class ModelRegressionManifestTests(unittest.TestCase):
                 "shared_input_groups": [],
                 "models": [self.entry("extra", root)],
             }
-            manifest_path = root / ".flowguard" / "model-regression-manifest.json"
+            manifest_path = root / ".flowguard" / "models" / "regression-manifest.json"
             manifest_path.write_text(json.dumps(payload), encoding="utf-8")
             audit = audit_manifest(root, ModelRegressionManifest.load(root))
             self.assertFalse(audit.ok)
@@ -817,13 +834,13 @@ class ModelRegressionManifestTests(unittest.TestCase):
     def test_absent_optional_local_record_is_explicit_but_not_a_public_blocker(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / ".flowguard").mkdir()
+            (root / ".flowguard" / "models").mkdir(parents=True)
             entry = {
                 **self.entry("local_only", root),
                 "distribution_policy": "optional_local",
                 "absence_reason": "This checkout-local model is executed only when its adoption record is present.",
             }
-            (root / ".flowguard" / "model-regression-manifest.json").write_text(
+            (root / ".flowguard" / "models" / "regression-manifest.json").write_text(
                 json.dumps(
                     {
                         "schema_version": MANIFEST_SCHEMA,
@@ -841,8 +858,10 @@ class ModelRegressionManifestTests(unittest.TestCase):
     def test_invalid_runner_and_unjustified_exclusion_fail_audit(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            model_dir = root / ".flowguard" / "sample"
+            model_dir = root / ".flowguard" / "models" / "owners" / "sample"
+            runner_dir = root / ".flowguard" / "verification" / "owners" / "sample"
             model_dir.mkdir(parents=True)
+            runner_dir.mkdir(parents=True)
             model_dir.joinpath("model.py").write_text("print('model')\n", encoding="utf-8")
             payload = {
                 "schema_version": MANIFEST_SCHEMA,
@@ -851,7 +870,7 @@ class ModelRegressionManifestTests(unittest.TestCase):
                 "shared_input_groups": [],
                 "models": [{**self.entry("sample", root), "runner": [], "exclusion_reason": "short"}],
             }
-            (root / ".flowguard" / "model-regression-manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+            (root / ".flowguard" / "models" / "regression-manifest.json").write_text(json.dumps(payload), encoding="utf-8")
             audit = audit_manifest(root, ModelRegressionManifest.load(root))
             self.assertFalse(audit.ok)
             self.assertTrue(any("exclusion reason" in item for item in audit.errors))
@@ -859,10 +878,12 @@ class ModelRegressionManifestTests(unittest.TestCase):
     def test_new_governed_source_without_owner_blocks_before_execution(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            model_dir = root / ".flowguard" / "owned"
+            model_dir = root / ".flowguard" / "models" / "owners" / "owned"
+            runner_dir = root / ".flowguard" / "verification" / "owners" / "owned"
             model_dir.mkdir(parents=True)
+            runner_dir.mkdir(parents=True)
             model_dir.joinpath("model.py").write_text("VALUE = 1\n", encoding="utf-8")
-            model_dir.joinpath("run_checks.py").write_text("print('ok')\n", encoding="utf-8")
+            runner_dir.joinpath("run_checks.py").write_text("print('ok')\n", encoding="utf-8")
             model_dir.joinpath("unmapped.py").write_text("VALUE = 2\n", encoding="utf-8")
             payload = {
                 "schema_version": MANIFEST_SCHEMA,
@@ -871,7 +892,7 @@ class ModelRegressionManifestTests(unittest.TestCase):
                 "shared_input_groups": [],
                 "models": [self.entry("owned", root)],
             }
-            path = root / ".flowguard" / "model-regression-manifest.json"
+            path = root / ".flowguard" / "models" / "regression-manifest.json"
             path.write_text(json.dumps(payload), encoding="utf-8")
 
             impact = compile_model_impact_map(
@@ -893,10 +914,12 @@ class ModelRegressionManifestTests(unittest.TestCase):
             shared.joinpath("engine.py").write_text("VALUE = 1\n", encoding="utf-8")
             models = []
             for model_id in ("alpha", "beta"):
-                model_dir = root / ".flowguard" / model_id
+                model_dir = root / ".flowguard" / "models" / "owners" / model_id
+                runner_dir = root / ".flowguard" / "verification" / "owners" / model_id
                 model_dir.mkdir(parents=True)
+                runner_dir.mkdir(parents=True)
                 model_dir.joinpath("model.py").write_text("VALUE = 1\n", encoding="utf-8")
-                model_dir.joinpath("run_checks.py").write_text("print('ok')\n", encoding="utf-8")
+                runner_dir.joinpath("run_checks.py").write_text("print('ok')\n", encoding="utf-8")
                 models.append(self.entry(model_id, root))
             payload = {
                 "schema_version": MANIFEST_SCHEMA,
@@ -914,7 +937,7 @@ class ModelRegressionManifestTests(unittest.TestCase):
                 ],
                 "models": models,
             }
-            path = root / ".flowguard" / "model-regression-manifest.json"
+            path = root / ".flowguard" / "models" / "regression-manifest.json"
             path.write_text(json.dumps(payload), encoding="utf-8")
 
             impact = compile_model_impact_map(
@@ -928,8 +951,8 @@ class ModelRegressionManifestTests(unittest.TestCase):
     def test_old_or_unknown_manifest_shape_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / ".flowguard").mkdir()
-            path = root / ".flowguard" / "model-regression-manifest.json"
+            (root / ".flowguard" / "models").mkdir(parents=True)
+            path = root / ".flowguard" / "models" / "regression-manifest.json"
             path.write_text(
                 json.dumps(
                     {
@@ -959,13 +982,15 @@ class ModelRegressionManifestTests(unittest.TestCase):
                 ModelRegressionManifest.load(root)
 
     def current_parent_fixture(self, root: Path):
-        model_dir = root / ".flowguard" / "alpha"
+        model_dir = root / ".flowguard" / "models" / "owners" / "alpha"
+        runner_dir = root / ".flowguard" / "verification" / "owners" / "alpha"
         model_dir.mkdir(parents=True)
+        runner_dir.mkdir(parents=True)
         model_dir.joinpath("model.py").write_text(
             "VALUE = 1\n",
             encoding="utf-8",
         )
-        model_dir.joinpath("run_checks.py").write_text(
+        runner_dir.joinpath("run_checks.py").write_text(
             "raise SystemExit(0)\n",
             encoding="utf-8",
         )
@@ -974,8 +999,11 @@ class ModelRegressionManifestTests(unittest.TestCase):
             encoding="utf-8",
         )
         entry = self.entry("alpha", root)
-        entry["input_globs"] = [".flowguard/alpha/*.py"]
-        manifest_path = root / ".flowguard" / "model-regression-manifest.json"
+        entry["input_globs"] = [
+            ".flowguard/models/owners/alpha/*.py",
+            ".flowguard/verification/owners/alpha/*.py",
+        ]
+        manifest_path = root / ".flowguard" / "models" / "regression-manifest.json"
         manifest_path.write_text(
             json.dumps(
                 {
@@ -1015,8 +1043,8 @@ class ModelRegressionManifestTests(unittest.TestCase):
 
     @staticmethod
     def entry(model_id: str, root: Path) -> dict[str, object]:
-        model_path = root / ".flowguard" / model_id / "model.py"
-        runner_path = root / ".flowguard" / model_id / "run_checks.py"
+        model_path = root / ".flowguard" / "models" / "owners" / model_id / "model.py"
+        runner_path = root / ".flowguard" / "verification" / "owners" / model_id / "run_checks.py"
         zero = "sha256:" + "0" * 64
         purpose = build_model_purpose_closure(
             model_instance_id=f"regression:{model_id}:current",
@@ -1037,13 +1065,13 @@ class ModelRegressionManifestTests(unittest.TestCase):
         )
         return {
             "model_id": model_id,
-            "model_path": f".flowguard/{model_id}/model.py",
-            "runner": ["{python}", f".flowguard/{model_id}/run_checks.py"],
+            "model_path": f".flowguard/models/owners/{model_id}/model.py",
+            "runner": ["{python}", f".flowguard/verification/owners/{model_id}/run_checks.py"],
             "tier": "full",
             "timeout_seconds": 10,
             "shard_safe": True,
             "mutation_policy": "none",
-            "input_globs": [f".flowguard/{model_id}/model.py"],
+            "input_globs": [f".flowguard/models/owners/{model_id}/model.py"],
             "expected_artifacts": [],
             "exclusion_reason": "",
             "purpose_closure": purpose.to_dict(),

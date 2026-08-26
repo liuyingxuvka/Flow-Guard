@@ -46,7 +46,7 @@ from flowguard.source_identity import CANONICAL_TEXT_SUFFIXES  # noqa: E402
 
 ARTIFACT_TYPE = "flowguard_self_blueprint_definition_compile"
 RESULT_SCHEMA = "flowguard.self_blueprint_definition_compile_result.v1"
-MANIFEST_PATH = ".flowguard/model-regression-manifest.json"
+MANIFEST_PATH = ".flowguard/models/regression-manifest.json"
 _MANIFEST_FIELDS = {
     "schema_version",
     "models",
@@ -319,8 +319,8 @@ def _validate_definition(
 
 
 def _entry_source_paths(root: Path, entry: ModelRegressionEntry) -> tuple[Path, Path]:
-    expected_model = f".flowguard/{entry.model_id}/model.py"
-    expected_runner = f".flowguard/{entry.model_id}/run_checks.py"
+    expected_model = f".flowguard/models/owners/{entry.model_id}/model.py"
+    expected_runner = f".flowguard/verification/owners/{entry.model_id}/run_checks.py"
     if entry.model_path != expected_model:
         raise SelfBlueprintDefinitionCompilerError(
             f"model owner does not use its direct-current model.py path: {entry.model_id}"

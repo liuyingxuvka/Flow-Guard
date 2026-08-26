@@ -342,7 +342,7 @@ def _replace_authority_section_cas(
 
 def _snapshot_path(root: Path, snapshot: ModelSystemSnapshot) -> str:
     digest = snapshot.fingerprint.split(":", 1)[1]
-    return f".flowguard/model-mesh/snapshots/{digest}.json"
+    return f".flowguard/models/authority/snapshots/{digest}.json"
 
 
 def _write_immutable_json(
@@ -352,7 +352,7 @@ def _write_immutable_json(
     payload: Mapping[str, Any],
 ) -> Path:
     digest = fingerprint.split(":", 1)[1]
-    path = root / ".flowguard" / "model-mesh" / category / f"{digest}.json"
+    path = root / ".flowguard" / "models" / "authority" / category / f"{digest}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(
         payload,
@@ -383,7 +383,8 @@ def _artifact_path(root: Path, category: str, fingerprint: str) -> Path:
     return (
         root
         / ".flowguard"
-        / "model-mesh"
+        / "models"
+        / "authority"
         / category
         / f"{fingerprint.split(':', 1)[1]}.json"
     )
@@ -534,7 +535,13 @@ def _bootstrap_head_from_path(
 ) -> ModelAuthorityHead:
     fingerprint = f"sha256:{path.stem}"
     payload = _read_content_addressed_payload(
-        path.parents[3],
+        # ``path`` is rooted at ``<project>/.flowguard/models/authority/bootstraps``;
+        # the project root is four parents above the content-addressed file.
+        # Passing ``.flowguard`` here makes every generation-one predecessor
+        # invisible after the first activation and falsely blocks all lineage
+        # replay.  Resolve the same project root used by every other authority
+        # artifact loader.
+        path.parents[4],
         "bootstraps",
         fingerprint,
     )
@@ -577,7 +584,7 @@ def _candidate_heads_for_generation(
     system_id: str,
     generation: int,
 ) -> tuple[ModelAuthorityHead, ...]:
-    mesh_root = root / ".flowguard" / "model-mesh"
+    mesh_root = root / ".flowguard" / "models" / "authority"
     candidates: list[ModelAuthorityHead] = []
     for path in (mesh_root / "activations").glob("*.json"):
         fingerprint = f"sha256:{path.stem}"
@@ -655,7 +662,7 @@ def _find_exact_predecessor_head(
     if generation == 1:
         candidates: list[ModelAuthorityHead] = []
         for path in (
-            root / ".flowguard" / "model-mesh" / "bootstraps"
+            root / ".flowguard" / "models" / "authority" / "bootstraps"
         ).glob("*.json"):
             try:
                 candidate = _bootstrap_head_from_path(
@@ -688,8 +695,6 @@ def _load_accepted_revision_set(
     root: Path,
     head: ModelAuthorityHead,
     snapshot: ModelSystemSnapshot,
-    *,
-    allow_legacy_path_quality_upgrade: bool = False,
 ) -> ModelRevisionSet | None:
     """Load the exact accepted revision behind a non-bootstrap authority head.
 
@@ -707,11 +712,11 @@ def _load_accepted_revision_set(
     path = (
         root
         / ".flowguard"
-        / "model-mesh"
+        / "models"
+        / "authority"
         / "revisions"
         / f"{digest}.json"
     )
-    upgrade_source = False
     try:
         payload = json.loads(
             path.read_text(encoding="utf-8"),
@@ -722,29 +727,10 @@ def _load_accepted_revision_set(
         )
         revision_set = ModelRevisionSet.from_dict(payload)
     except (OSError, json.JSONDecodeError, ModelAuthorityError, ValueError) as exc:
-        if not allow_legacy_path_quality_upgrade:
-            raise ModelAuthorityError(
-                f"accepted revision-set artifact is invalid: {exc}"
-            ) from exc
-        # This import is deliberately lazy.  The builder already owns the
-        # one upgrade-only conversion and imports this store for normal
-        # current reads; keeping the bridge lazy avoids a module cycle and
-        # prevents the retired schema from becoming a runtime reader.
-        from .model_revision_builder import (
-            _migrate_legacy_path_quality_revision_for_build,
-        )
-
-        revision_set = _migrate_legacy_path_quality_revision_for_build(
-            root,
-            head,
-            snapshot,
-        )
-        if revision_set is None:
-            raise ModelAuthorityError(
-                f"accepted revision-set artifact is invalid: {exc}"
-            ) from exc
-        upgrade_source = True
-    if revision_set.fingerprint != fingerprint and not upgrade_source:
+        raise ModelAuthorityError(
+            f"accepted revision-set artifact is invalid: {exc}"
+        ) from exc
+    if revision_set.fingerprint != fingerprint:
         raise ModelAuthorityError(
             "accepted revision-set artifact does not match the authority head"
         )
@@ -779,7 +765,8 @@ def _accepted_revision_schema(
     path = (
         root
         / ".flowguard"
-        / "model-mesh"
+        / "models"
+        / "authority"
         / "revisions"
         / f"{digest}.json"
     )
@@ -803,8 +790,6 @@ def _validate_current_typed_transition(
     head: ModelAuthorityHead,
     snapshot: ModelSystemSnapshot,
     revision_set: ModelRevisionSet,
-    *,
-    allow_legacy_path_quality_upgrade: bool = False,
 ) -> CurrentModelAuthorityState:
     fingerprint = head.activation_receipt_fingerprint
     activation_path = _artifact_path(root, "activations", fingerprint)
@@ -841,7 +826,6 @@ def _validate_current_typed_transition(
             snapshot,
             revision_set,
             reverify_sources=False,
-            allow_legacy_path_quality_upgrade=allow_legacy_path_quality_upgrade,
         )
         expected_head, expected_receipt = validate_activation_plan(
             predecessor,
@@ -893,7 +877,6 @@ def _validate_current_typed_transition(
         snapshot,
         revision_set,
         reverify_sources=False,
-        allow_legacy_path_quality_upgrade=allow_legacy_path_quality_upgrade,
     )
     expected_receipt = validate_operational_rollback(
         predecessor,
@@ -948,7 +931,6 @@ def load_current_model_authority_state(
     snapshot: ModelSystemSnapshot | None = None,
     allow_legacy_bootstrap_source: bool = False,
     reverify_current_sources: bool = False,
-    allow_legacy_path_quality_upgrade: bool = False,
 ) -> CurrentModelAuthorityState:
     """Resolve one authority head through its exact immutable producer.
 
@@ -980,56 +962,10 @@ def load_current_model_authority_state(
             transition_kind="legacy_bootstrap_source",
         )
 
-    legacy_path_quality_upgrade = False
-    if allow_legacy_path_quality_upgrade:
-        digest = head.accepted_revision_set_fingerprint.split(":", 1)[1]
-        revision_path = (
-            root_path
-            / ".flowguard"
-            / "model-mesh"
-            / "revisions"
-            / f"{digest}.json"
-        )
-        try:
-            revision_payload = json.loads(
-                revision_path.read_text(encoding="utf-8"),
-                object_pairs_hook=_reject_duplicate_json_keys,
-            )
-        except (OSError, json.JSONDecodeError, ModelAuthorityError):
-            revision_payload = None
-        if isinstance(revision_payload, Mapping):
-            path_rows = (
-                *(
-                    revision_payload.get("path_quality_subjects", ())
-                    if isinstance(
-                        revision_payload.get("path_quality_subjects", ()),
-                        list,
-                    )
-                    else ()
-                ),
-                *(
-                    revision_payload.get("path_quality_results", ())
-                    if isinstance(
-                        revision_payload.get("path_quality_results", ()),
-                        list,
-                    )
-                    else ()
-                ),
-            )
-            legacy_path_quality_upgrade = bool(
-                path_rows
-                and all(
-                    isinstance(item, Mapping)
-                    and item.get("schema_version")
-                    == "flowguard.model-path-quality.v1"
-                    for item in path_rows
-                )
-            )
     revision_set = _load_accepted_revision_set(
         root_path,
         head,
         snapshot,
-        allow_legacy_path_quality_upgrade=allow_legacy_path_quality_upgrade,
     )
     if revision_set is None:
         raise ModelAuthorityError(
@@ -1057,31 +993,12 @@ def load_current_model_authority_state(
                 "current effective intent source identities are stale",
                 finding_code="current_intent_source_stale",
             )
-    if legacy_path_quality_upgrade:
-        # The retired revision is an explicit upgrade input, not a current
-        # schema.  Its content-addressed bytes and head pointer were checked
-        # by the migration helper; the new activation will immediately
-        # replace this source with a current-format revision.  Do not pretend
-        # that the migrated fingerprint was the historical receipt identity.
-        state = CurrentModelAuthorityState(
-            head=head,
-            snapshot=snapshot,
-            accepted_revision=revision_set,
-            transition_kind="legacy_path_quality_upgrade",
-            verified_source_identities=verified_sources,
-        )
-    else:
-        state = _validate_current_typed_transition(
-            root_path,
-            head,
-            snapshot,
-            revision_set,
-            # A current v5 head may have an immutable predecessor whose
-            # path-quality rows were produced by the retired v1 producer.
-            # Only the explicit audit/upgrade caller may normalize that
-            # predecessor in memory; ordinary current reads remain strict.
-            allow_legacy_path_quality_upgrade=allow_legacy_path_quality_upgrade,
-        )
+    state = _validate_current_typed_transition(
+        root_path,
+        head,
+        snapshot,
+        revision_set,
+    )
     return replace(
         state,
         verified_source_identities=verified_sources,
@@ -1094,7 +1011,6 @@ def load_current_accepted_revision_set(
     *,
     head: ModelAuthorityHead | None = None,
     snapshot: ModelSystemSnapshot | None = None,
-    allow_legacy_path_quality_upgrade: bool = False,
 ) -> ModelRevisionSet | None:
     """Load the sole current v5 revision; legacy current schemas fail visibly."""
 
@@ -1107,7 +1023,6 @@ def load_current_accepted_revision_set(
         root_path,
         head=head,
         snapshot=snapshot,
-        allow_legacy_path_quality_upgrade=allow_legacy_path_quality_upgrade,
     )
     return state.accepted_revision
 
@@ -1216,11 +1131,6 @@ def audit_model_authority(
                 head=head,
                 snapshot=snapshot,
                 allow_legacy_bootstrap_source=True,
-                # The audit replays the immutable predecessor chain.  Permit
-                # the versioned direct-to-current path-quality upgrader for
-                # retired historical rows, while normal runtime loading keeps
-                # the current-only reader boundary.
-                allow_legacy_path_quality_upgrade=True,
                 reverify_current_sources=True,
             )
         except CurrentIntentSourceAuthorityError as exc:
@@ -1293,7 +1203,7 @@ def audit_model_authority(
 
         model_inventory = inspect_manifest_model_inventory(root_path)
         manifest_path = (
-            root_path / ".flowguard" / "model-regression-manifest.json"
+            root_path / ".flowguard" / "models" / "regression-manifest.json"
         )
         if accepted_revision is not None and manifest_path.is_file():
             live_manifest = ModelRegressionManifest.load(root_path)
@@ -1589,6 +1499,86 @@ def _copy_rebuild_artifact(
     return target
 
 
+def _collect_rebuild_reachable_artifacts(
+    staging_root: Path,
+    head: ModelAuthorityHead,
+    snapshot: ModelSystemSnapshot,
+) -> set[tuple[str, str]]:
+    """Collect the complete immutable predecessor chain for a rebuild.
+
+    A current authority may be several generations past its bootstrap.  The
+    old rebuild implementation copied only the current head, its immediate
+    snapshot, and treated that predecessor's accepted revision as a bootstrap
+    artifact.  That is only correct for a generation-two package.  For a
+    generation-three-or-later package the predecessor is itself established
+    by a revision and a transition receipt, and the chain must be walked until
+    the real generation-one bootstrap is reached.
+
+    The traversal reuses the normal current-authority loader for each exact
+    head, so it does not infer ancestry from filenames or copy unrelated mesh
+    objects.  Rollback transitions retain their contract and receipt as well.
+    """
+
+    reachable: set[tuple[str, str]] = set()
+    seen_heads: set[str] = set()
+    current_head = head
+    current_snapshot = snapshot
+    while True:
+        if current_head.fingerprint in seen_heads:
+            raise ModelAuthorityError(
+                "staging rebuild package contains a cyclic authority ancestry"
+            )
+        seen_heads.add(current_head.fingerprint)
+        reachable.add(("snapshots", current_head.snapshot_fingerprint))
+
+        if current_head.generation == 1:
+            reachable.add(
+                ("bootstraps", current_head.accepted_revision_set_fingerprint)
+            )
+            break
+
+        reachable.add(
+            ("revisions", current_head.accepted_revision_set_fingerprint)
+        )
+        transition_fingerprint = current_head.activation_receipt_fingerprint
+        activation_path = _artifact_path(
+            staging_root, "activations", transition_fingerprint
+        )
+        rollback_path = _artifact_path(
+            staging_root, "rollbacks", transition_fingerprint
+        )
+        if activation_path.is_file() and not rollback_path.is_file():
+            reachable.add(("activations", transition_fingerprint))
+        elif rollback_path.is_file() and not activation_path.is_file():
+            reachable.add(("rollbacks", transition_fingerprint))
+            rollback = _load_rollback_receipt(
+                staging_root, transition_fingerprint
+            )
+            reachable.add(("rollback-contracts", rollback.contract_fingerprint))
+        else:
+            raise ModelAuthorityError(
+                "staging authority transition is missing or ambiguous at "
+                f"generation {current_head.generation}"
+            )
+
+        state = load_current_model_authority_state(
+            staging_root,
+            head=current_head,
+            snapshot=current_snapshot,
+        )
+        predecessor = state.predecessor_head
+        if predecessor is None:
+            raise ModelAuthorityError(
+                "staging rebuild package has no exact predecessor at "
+                f"generation {current_head.generation}"
+            )
+        current_head = predecessor
+        current_snapshot = _load_snapshot_by_fingerprint(
+            staging_root, predecessor.snapshot_fingerprint
+        )
+    return reachable
+
+
 def rebuild_model_authority(
     root: str | Path,
     *,
@@ -1653,13 +1643,11 @@ def rebuild_model_authority(
     activation = stage_state.activation_receipt
     if activation is None:
         raise ModelAuthorityError("staging rebuild package has no activation receipt")
-    reachable = {
-        ("snapshots", stage_head.snapshot_fingerprint),
-        ("snapshots", predecessor.snapshot_fingerprint),
-        ("revisions", stage_head.accepted_revision_set_fingerprint),
-        ("activations", stage_head.activation_receipt_fingerprint),
-        ("bootstraps", predecessor.accepted_revision_set_fingerprint),
-    }
+    reachable = _collect_rebuild_reachable_artifacts(
+        staging_path,
+        stage_head,
+        stage_snapshot,
+    )
     section_text = render_model_authority_section(
         stage_head,
         snapshot_path=_snapshot_path(root_path, stage_snapshot),
@@ -1708,7 +1696,7 @@ def rebuild_model_authority(
             )
             raise
 
-        mesh_root = root_path / ".flowguard" / "model-mesh"
+        mesh_root = root_path / ".flowguard" / "models" / "authority"
         residual: list[str] = []
         if mesh_root.exists():
             for path in mesh_root.rglob("*.json"):
@@ -1748,7 +1736,6 @@ def _validate_revision_intent_activation(
     *,
     reverify_sources: bool = True,
     current_state: CurrentModelAuthorityState | None = None,
-    allow_legacy_path_quality_upgrade: bool = False,
 ) -> None:
     """Require an exact reproducible intent lineage before pointer movement."""
 
@@ -1785,7 +1772,7 @@ def _validate_revision_intent_activation(
                 audit_intent_source_input_bindings,
             )
 
-            manifest_path = root / ".flowguard" / "model-regression-manifest.json"
+            manifest_path = root / ".flowguard" / "models" / "regression-manifest.json"
             if not manifest_path.is_file():
                 return
             live_manifest = ModelRegressionManifest.load(root)
@@ -1864,7 +1851,6 @@ def _validate_revision_intent_activation(
             root,
             current_head,
             base_snapshot,
-            allow_legacy_path_quality_upgrade=allow_legacy_path_quality_upgrade,
         )
     )
     if current_revision is None:
@@ -1921,10 +1907,6 @@ def activate_model_revision_set(
                 revision_set.current_effective_intent_view.bootstrap_receipt
                 is not None
             ),
-            # A one-time activation may consume the exact retired nested
-            # path-quality projection through the explicit upgrade bridge.
-            # Ordinary reads remain strict and do not enable this flag.
-            allow_legacy_path_quality_upgrade=True,
             # A refining revision is allowed to replace a source whose stored
             # fingerprint is stale precisely because that source changed.
             # Rechecking the complete base inventory here would reject every

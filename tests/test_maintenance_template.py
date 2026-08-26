@@ -27,7 +27,7 @@ class MaintenanceWorkflowTemplateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             write_template_files(root, maintenance_workflow_template_files())
-            template_dir = root / ".flowguard" / "maintenance_workflow"
+            template_dir = root / ".flowguard" / "verification" / "owners" / "maintenance_workflow"
             env = os.environ.copy()
             env["PYTHONPATH"] = str(ROOT) + os.pathsep + env.get("PYTHONPATH", "")
 
@@ -69,7 +69,7 @@ class MaintenanceWorkflowTemplateTests(unittest.TestCase):
         data = json.loads(printed.stdout)
         self.assertEqual("maintenance_workflow", data["template"])
         self.assertIn(
-            ".flowguard/maintenance_workflow/model.py",
+            ".flowguard/models/owners/maintenance_workflow/model.py",
             {item["path"] for item in data["files"]},
         )
 
@@ -85,7 +85,7 @@ class MaintenanceWorkflowTemplateTests(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stderr)
             write_report = json.loads(result.stdout)
             self.assertEqual("flowguard_template_write", write_report["artifact_type"])
-            self.assertTrue((Path(directory) / ".flowguard" / "maintenance_workflow" / "model.py").exists())
+            self.assertTrue((Path(directory) / ".flowguard" / "models" / "owners" / "maintenance_workflow" / "model.py").exists())
             self.assertTrue((Path(directory) / "docs" / "flowguard_maintenance_workflow.md").exists())
 
     def test_template_write_refuses_overwrite_by_default(self):

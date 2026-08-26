@@ -8,11 +8,14 @@ Created with FlowGuard: https://github.com/liuyingxuvka/FlowGuard
 Purpose: Review a development lifecycle as a sibling process route, tracking artifact versions and validation evidence freshness before done or release claims.
 Guards against: stale validation after code/test/model/requirement/UI observed inventory/UI functional capability coverage/UI functional chain/UI source-baseline interaction/UI done-claim/payload-schema/field-lifecycle/contract-exhaustion interaction group, shard, or receipt changes, oversized direct model evidence, slow or broad direct validation evidence, progress-only evidence, hidden skips, missing V-style validation pairs, peer writes, and release overclaims.
 Use before editing: Update this development process flow when changing development ordering, UI click-through, observed-inventory, functional capability coverage, functional-chain, source-baseline interaction, done-claim, payload-pack validation gates, ContractExhaustionMesh generated cases/shards/receipts, release readiness, or evidence freshness policy.
-Run: python .flowguard/development_process_flow/run_checks.py
+Run: python .flowguard/verification/owners/development_process_flow/run_checks.py
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
+from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from flowguard import (
@@ -114,6 +117,20 @@ def resolved_path_quality(model_id, model_fingerprint):
 
 def proof_artifact(artifact_id: str, *covered: str) -> ProofArtifactRef:
     result_path = f"tmp/{artifact_id.replace(':', '_')}.json"
+    result_bytes = json.dumps(
+        {
+            "artifact_id": artifact_id,
+            "covered_obligation_ids": list(covered),
+            "result_status": PROCESS_EVIDENCE_PASSED,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    result_file = Path(result_path)
+    result_file.parent.mkdir(parents=True, exist_ok=True)
+    result_file.write_bytes(result_bytes)
+    result_fingerprint = "sha256:" + hashlib.sha256(result_bytes).hexdigest()
     return ProofArtifactRef(
         artifact_id,
         producer_route="test_mesh_maintenance",
@@ -124,8 +141,9 @@ def proof_artifact(artifact_id: str, *covered: str) -> ProofArtifactRef:
         started_at="2026-08-02T00:00:00+00:00",
         finished_at="2026-08-02T00:00:01+00:00",
         subject_id="model:checkout",
-        subject_fingerprint="sha256:checkout",
-        artifact_fingerprints={result_path: "sha256:template"},
+        subject_fingerprint=fingerprint_value({"subject_id": "model:checkout"}),
+        artifact_fingerprints={"result": result_fingerprint},
+        result_fingerprint=result_fingerprint,
         covered_obligation_ids=covered,
     )
 
@@ -182,14 +200,14 @@ def implementation_admission():
     snapshot = snapshot_bytes(
         "artifact:checkout-model",
         b"checkout-model",
-        path_token="<WORKSPACE>/.flowguard/checkout/model.py",
+        path_token="<WORKSPACE>/.flowguard/models/owners/checkout/model.py",
         obligation_ids=("obligation:checkout-maturation",),
     )
     environment = {"python_version": "template"}
     publication = ModelMaturationReceiptPublication(
         producer_id="flowguard.model_maturation",
         producer_version="template",
-        command=("python", ".flowguard/checkout/run_checks.py"),
+        command=("python", ".flowguard/verification/owners/checkout/run_checks.py"),
         started_at="2026-01-01T00:00:00+00:00",
         finished_at="2026-01-01T00:00:01+00:00",
         environment_metadata=environment,

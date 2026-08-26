@@ -50,8 +50,8 @@ python -m flowguard plan-detailing-template --output .
 
 The template writes:
 
-- `.flowguard/plan_detailing/model.py`
-- `.flowguard/plan_detailing/run_checks.py`
+- `.flowguard/models/owners/plan_detailing/model.py`
+- `.flowguard/verification/owners/plan_detailing/run_checks.py`
 - `docs/flowguard_plan_detailing.md`
 
 The generated model includes one complete plan and broken variants for missing

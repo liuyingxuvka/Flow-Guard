@@ -21,7 +21,7 @@
 
 | Public release | Schema | Runtime | License |
 | --- | --- | --- | --- |
-| `v0.68.15` | `1.0` | Python standard library only | MIT |
+| `v0.68.16` | `1.0` | Python standard library only | MIT |
 
 [中文说明](./README.zh-CN.md) · [Quick Start](#quick-start) · [Concept](./docs/concept.md) · [Documentation](#documentation-map)
 
@@ -51,7 +51,7 @@ That map is the software's **FlowGuard DNA**.
 The DNA says what the maintained model contains. **Current** says which exact
 version of that DNA is accepted now.
 
-The v0.68.15 candidate self-model contains an exact inventory of 51 current
+The v0.68.16 candidate self-model contains an exact inventory of 51 current
 owners. Fourteen historical, task-local, or completed construction routes were removed from current
 authority after their still-useful protections were reattached: Model Angle
 Deliberation, Maintenance Scan Router, standalone Model Similarity
@@ -714,6 +714,14 @@ Model regressions use three tiers:
 
 Only a current, terminal full-tier pass can contribute to a release claim.
 
+The everyday FlowGuard execution profiles are a separate routing depth from
+these model-regression tiers: `light` checks cheap currentness and layout,
+`affected` closes an exact changed-member set, and `full` closes the declared
+whole-system owner set. A specialist route does not silently become a full
+scan. See [FlowGuard execution profiles and reusable branch seeds](./docs/flowguard_execution_profiles.md)
+for the profile boundary, compact layout, read-light storage audit, and exact
+template-seed policy.
+
 For normal use, the simulator audits the manifest and delegates each selected
 model to its native runner:
 
@@ -802,7 +810,7 @@ python -m flowguard risk-template-search "completion evidence"
 
 Run `python -m flowguard --help` for the full current command list.
 
-FlowGuard v0.68.15 is source-only: the immutable Git tag is the release
+FlowGuard v0.68.16 is source-only: the immutable Git tag is the release
 authority. A release must not contain a wheel, source distribution, or GitHub
 Release asset.
 
@@ -811,8 +819,8 @@ three separate identities:
 
 ```powershell
 python scripts/verify_flowguard_release.py --root . --phase local-candidate --parent-receipt <parent-receipt-id> --receipt-root .flowguard/evidence/validation-owners --json
-python scripts/verify_flowguard_release.py --root . --phase tag --tag v0.68.15 --parent-receipt <parent-receipt-id> --receipt-root .flowguard/evidence/validation-owners --json
-python scripts/verify_flowguard_release.py --root . --phase published --tag v0.68.15 --parent-receipt <parent-receipt-id> --receipt-root .flowguard/evidence/validation-owners --repository liuyingxuvka/FlowGuard --json
+python scripts/verify_flowguard_release.py --root . --phase tag --tag v0.68.16 --parent-receipt <parent-receipt-id> --receipt-root .flowguard/evidence/validation-owners --json
+python scripts/verify_flowguard_release.py --root . --phase published --tag v0.68.16 --parent-receipt <parent-receipt-id> --receipt-root .flowguard/evidence/validation-owners --repository liuyingxuvka/FlowGuard --json
 ```
 
 ## Relationship To The Guard Family
@@ -872,6 +880,7 @@ python scripts/verify_flowguard_release.py --root . --phase published --tag v0.6
 | [`docs/risk_evidence_ledger.md`](./docs/risk_evidence_ledger.md) | risk-to-model-to-code-to-evidence confidence boundary |
 | [`docs/flowguard_closure_contract.md`](./docs/flowguard_closure_contract.md) | closure contract for complete FlowGuard use |
 | [`docs/validation_and_distribution.md`](./docs/validation_and_distribution.md) | validation tiers, evidence layers, monitoring, skill distribution, and release lifecycle |
+| [`docs/flowguard_execution_profiles.md`](./docs/flowguard_execution_profiles.md) | light/affected/full execution profiles, compact layout, storage audit, and reusable branch seeds |
 | [`docs/github_release_checklist.md`](./docs/github_release_checklist.md) | source-only GitHub release checklist |
 
 ## Repository Layout

@@ -36,7 +36,7 @@ the recorder's `format_progress_lines()` so the line says which FlowGuard
 model is being compared:
 
 ```text
-flowguard.runtime_path model=checkout.leaf model_path=.flowguard/checkout_leaf/model.py node=validate_order run=run:1 status=passed obligation=accept_valid_order business_path=submit_order
+flowguard.runtime_path model=checkout.leaf model_path=.flowguard/models/owners/checkout_leaf/model.py node=validate_order run=run:1 status=passed obligation=accept_valid_order business_path=submit_order
 ```
 
 That line is intentionally readable without the model already loaded. A human

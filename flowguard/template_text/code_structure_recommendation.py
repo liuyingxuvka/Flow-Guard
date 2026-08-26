@@ -8,7 +8,7 @@ Created with FlowGuard: https://github.com/liuyingxuvka/FlowGuard
 Purpose: Recommend an implementation structure from a FlowGuard functional model before production code is written.
 Guards against: monolithic implementation plans, unclear state ownership, mixed side effects, missing facades, and test boundaries that do not map back to the model.
 Use before editing: Ask for this recommendation when a model-first feature needs a code architecture plan before implementation.
-Run: python .flowguard/code_structure_recommendation/run_checks.py
+Run: python .flowguard/verification/owners/code_structure_recommendation/run_checks.py
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ def recommendation() -> CodeStructureRecommendation:
     return CodeStructureRecommendation(
         "checkout-target-structure",
         source_model_id="checkout-functional-model",
-        source_model_path=".flowguard/checkout/model.py",
+        source_model_path=".flowguard/models/owners/checkout/model.py",
         parent_module_id="checkout",
         target_modules=(
             TargetModuleRecommendation(

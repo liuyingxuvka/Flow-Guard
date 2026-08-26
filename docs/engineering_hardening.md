@@ -35,6 +35,13 @@ python -m flowguard schema-version
 The CLI is intentionally small. It should not hide expected-vs-observed
 statuses, `needs_human_review`, or known limitations.
 
+The documented model-backed wrappers are also available from a clean,
+non-editable wheel: the wheel carries the maintained `examples` packages used
+by these commands. A consumer check must execute at least one command such as
+`scenario-review`; a successful `--help` or package import is only an entry
+point smoke check and does not prove that the command's runtime dependencies
+are installed.
+
 ## Templates
 
 `flowguard.templates.project_template_files()` returns starter files for a

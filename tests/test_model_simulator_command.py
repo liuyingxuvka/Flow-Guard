@@ -67,10 +67,14 @@ class ModelSimulatorCommandTests(unittest.TestCase):
             self.assertLess(len(json.dumps(payload, sort_keys=True)), 2000)
             full = json.loads(Path(payload["result_path"]).read_text(encoding="utf-8"))
             self.assertEqual(["architecture_reduction"], full["selected_model_ids"])
-            # Model simulation now executes the canonical per-model
-            # ``model.py`` entrypoint directly; retired wrapper paths are no
-            # longer part of the simulator contract.
-            self.assertIn("model.py", " ".join(full["results"][0]["command"]))
+            # Model simulation executes the canonical current per-model
+            # runner under the verification owner root; retired flat paths
+            # are no longer part of the simulator contract.
+            command_text = " ".join(full["results"][0]["command"])
+            self.assertIn(
+                ".flowguard/verification/owners/architecture_reduction/run_checks.py",
+                command_text,
+            )
             self.assertEqual("gzip", full["results"][0]["stdout"]["compression"])
             self.assertEqual("", full["results"][0]["stdout"]["diagnostic_tail"])
             self.assertTrue((output / "evidence-run.json").is_file())

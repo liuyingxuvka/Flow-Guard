@@ -43,11 +43,12 @@ class SelfBlueprintDefinitionCompilerTests(unittest.TestCase):
         entries = []
         contract_rows = []
         for owner in owners:
-            model_relative = f".flowguard/{owner}/model.py"
-            runner_relative = f".flowguard/{owner}/run_checks.py"
+            model_relative = f".flowguard/models/owners/{owner}/model.py"
+            runner_relative = f".flowguard/verification/owners/{owner}/run_checks.py"
             model_path = root / model_relative
             runner_path = root / runner_relative
             model_path.parent.mkdir(parents=True, exist_ok=True)
+            runner_path.parent.mkdir(parents=True, exist_ok=True)
             model_path.write_text(f"MODEL_ID = {owner!r}\n", encoding="utf-8")
             runner_path.write_text("print('ok')\n", encoding="utf-8")
             purpose = build_model_purpose_closure(
@@ -93,7 +94,7 @@ class SelfBlueprintDefinitionCompilerTests(unittest.TestCase):
             )
             source_identity = {
                 "purpose_source_id": (
-                    ".flowguard/model-regression-manifest.json"
+                    ".flowguard/models/regression-manifest.json"
                     f"#model:{owner}:purpose-declaration"
                 ),
                 "purpose_source_owner_id": f"model-purpose-declaration:{owner}",
@@ -121,13 +122,16 @@ class SelfBlueprintDefinitionCompilerTests(unittest.TestCase):
             )
 
         manifest = {
-            "governed_input_globs": [".flowguard/**/*.py"],
+            "governed_input_globs": [
+                ".flowguard/models/owners/**/*.py",
+                ".flowguard/verification/owners/**/*.py",
+            ],
             "snapshot_only_input_globs": [],
             "shared_input_groups": [],
             "models": entries,
             "schema_version": MANIFEST_SCHEMA,
         }
-        manifest_path = root / ".flowguard" / "model-regression-manifest.json"
+        manifest_path = root / ".flowguard" / "models" / "regression-manifest.json"
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(
             json.dumps(manifest, indent=2) + "\n",
@@ -161,6 +165,8 @@ class SelfBlueprintDefinitionCompilerTests(unittest.TestCase):
         definition_path = (
             root
             / ".flowguard"
+            / "models"
+            / "owners"
             / "authoritative_model_system"
             / "software_blueprint_definition.json"
         )
@@ -270,7 +276,9 @@ class SelfBlueprintDefinitionCompilerTests(unittest.TestCase):
                 self._authored_projection(after),
             )
             manifest = json.loads(
-                (root / ".flowguard" / "model-regression-manifest.json").read_text(
+                (
+                    root / ".flowguard" / "models" / "regression-manifest.json"
+                ).read_text(
                     encoding="utf-8"
                 )
             )
@@ -302,8 +310,8 @@ class SelfBlueprintDefinitionCompilerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             definition_path = self._fixture(root, owners=("alpha", "beta"))
-            manifest_path = root / ".flowguard" / "model-regression-manifest.json"
-            model_path = root / ".flowguard" / "alpha" / "model.py"
+            manifest_path = root / ".flowguard" / "models" / "regression-manifest.json"
+            model_path = root / ".flowguard" / "models" / "owners" / "alpha" / "model.py"
             model_path.write_text("MODEL_ID = 'alpha-current'\n", encoding="utf-8")
             manifest_before = json.loads(manifest_path.read_text(encoding="utf-8"))
             definition_before = json.loads(
@@ -381,7 +389,9 @@ class SelfBlueprintDefinitionCompilerTests(unittest.TestCase):
                 elif case == "foreign":
                     row = copy.deepcopy(payload["composite_behavior_contracts"][0])
                     row["owner_id"] = "foreign"
-                    row["surface_key"] = ".flowguard/foreign/model.py#<module>"
+                    row["surface_key"] = (
+                        ".flowguard/models/owners/foreign/model.py#<module>"
+                    )
                     payload["composite_behavior_contracts"].append(row)
                 else:
                     payload["composite_behavior_contracts"].append(
@@ -406,7 +416,7 @@ class SelfBlueprintDefinitionCompilerTests(unittest.TestCase):
             root = Path(directory)
             definition_path = self._fixture(root, stale_identity=True)
             original_definition = definition_path.read_bytes()
-            model_path = root / ".flowguard" / "alpha" / "model.py"
+            model_path = root / ".flowguard" / "models" / "owners" / "alpha" / "model.py"
             original_atomic_write = COMPILER._atomic_write
             calls = 0
 
@@ -435,9 +445,9 @@ class SelfBlueprintDefinitionCompilerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             definition_path = self._fixture(root)
-            manifest_path = root / ".flowguard" / "model-regression-manifest.json"
-            model_path = root / ".flowguard" / "alpha" / "model.py"
-            runner_path = root / ".flowguard" / "alpha" / "run_checks.py"
+            manifest_path = root / ".flowguard" / "models" / "regression-manifest.json"
+            model_path = root / ".flowguard" / "models" / "owners" / "alpha" / "model.py"
+            runner_path = root / ".flowguard" / "verification" / "owners" / "alpha" / "run_checks.py"
             model_path.write_text("MODEL_ID = 'alpha-current'\n", encoding="utf-8")
             original_manifest = manifest_path.read_bytes()
             original_definition = definition_path.read_bytes()

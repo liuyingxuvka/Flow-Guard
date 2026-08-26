@@ -16,7 +16,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/test_evidence_mesh/model.py"
+          "path": ".flowguard/models/owners/test_evidence_mesh/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -51,7 +51,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/test_evidence_mesh/model.py"
+          "path": ".flowguard/models/owners/test_evidence_mesh/model.py"
         },
         {
           "kind": "path",
@@ -91,7 +91,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/test_evidence_mesh/model.py"
+          "path": ".flowguard/models/owners/test_evidence_mesh/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -145,12 +145,12 @@
     "claim_boundary": "flowguard-test-mesh owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
     "integration_mode": "native-integrated",
+    "model_deepening_check_id": "check:flowguard-test-mesh:native-authority",
     "native_check_ids": [
       "check:flowguard-test-mesh:plane-boundary",
       "check:flowguard-test-mesh:native-authority",
       "check:flowguard-test-mesh:evidence-closure"
     ],
-    "model_deepening_check_id": "check:flowguard-test-mesh:native-authority",
     "native_owner_id": "test_mesh_maintenance",
     "native_route_ids": [
       "route:test_mesh_maintenance"
@@ -177,11 +177,21 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard-test-mesh:plane-boundary",
+        "check:flowguard-test-mesh:native-authority",
+        "check:flowguard-test-mesh:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard-test-mesh:native-authority",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard-test-mesh"
   },
   "implementation_paths": [
     ".agents/skills/flowguard-test-mesh",
-    ".flowguard/test_evidence_mesh",
+    ".flowguard/models/owners/test_evidence_mesh",
+    ".flowguard/verification/owners/test_evidence_mesh",
     "flowguard/testmesh.py",
     "flowguard/skill_contract_model.py",
     "tests/test_test_mesh.py"
@@ -209,7 +219,7 @@
     "flowguard-ui-flow-structure"
   ],
   "model_id": "flowguard.test_mesh_maintenance.skill_contract.v2",
-  "model_path": ".flowguard/test_evidence_mesh/model.py",
+  "model_path": ".flowguard/models/owners/test_evidence_mesh/model.py",
   "native_check_bindings": [
     {
       "authority": "target-native",

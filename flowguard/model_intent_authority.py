@@ -2151,7 +2151,7 @@ def _bootstrap_source_audit(
     head: ModelAuthorityHead,
     snapshot: ModelSystemSnapshot,
 ) -> _BootstrapSourceAudit:
-    mesh_root = root / ".flowguard" / "model-mesh"
+    mesh_root = root / ".flowguard" / "models" / "authority"
     if (
         snapshot.fingerprint != head.snapshot_fingerprint
         or snapshot.system_id != head.system_id

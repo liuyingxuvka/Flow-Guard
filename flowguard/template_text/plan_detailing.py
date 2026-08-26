@@ -28,7 +28,7 @@ any non-trivial work that starts from a vague idea, short plan, or AI-generated
 workflow outline.
 
 Run:
-python .flowguard/plan_detailing/run_checks.py
+python .flowguard/verification/owners/plan_detailing/run_checks.py
 """
 
 from __future__ import annotations

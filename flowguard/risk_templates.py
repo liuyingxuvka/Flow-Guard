@@ -5,12 +5,13 @@ from __future__ import annotations
 import json
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
 from .core import FrozenMetadata, freeze_metadata
 from .export import to_jsonable
+from .template_packs import HardPredicate, TemplateSeed, validate_template_seed
 
 
 TEMPLATE_LIBRARY_ENV_VAR = "FLOWGUARD_TEMPLATE_LIBRARY_ROOT"
@@ -477,6 +478,39 @@ class RiskTemplateHarvestReport:
             lines.append(f"path: {self.path}")
         for finding in self.findings:
             lines.append(f"- {finding}")
+        return "\n".join(lines)
+
+
+@dataclass(frozen=True)
+class TemplateSeedHarvestReport:
+    """Candidate-only seed emission or explicit promotion review result."""
+
+    ok: bool
+    status: str
+    findings: tuple[str, ...] = ()
+    seed: TemplateSeed | None = None
+    path: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ok": self.ok,
+            "status": self.status,
+            "findings": list(self.findings),
+            "seed": self.seed.to_dict() if self.seed is not None else None,
+            "path": self.path,
+        }
+
+    def format_text(self) -> str:
+        lines = [
+            "=== flowguard template seed harvest ===",
+            f"status: {self.status}",
+            f"ok: {self.ok}",
+        ]
+        if self.seed is not None:
+            lines.append(f"seed: {self.seed.template_id}")
+        if self.path:
+            lines.append(f"path: {self.path}")
+        lines.extend(f"- {finding}" for finding in self.findings)
         return "\n".join(lines)
 
 
@@ -1039,6 +1073,170 @@ def harvest_risk_template_candidate(
     return RiskTemplateHarvestReport(True, "written", (), template=template, path=str(path))
 
 
+def _template_seed_root(root: str | Path | None = None) -> Path:
+    if root is not None:
+        return Path(root).expanduser()
+    return default_local_template_library_root() / "seeds"
+
+
+def write_local_template_seed(
+    seed: TemplateSeed,
+    root: str | Path | None = None,
+    *,
+    overwrite: bool = False,
+) -> Path:
+    """Write one explicitly reviewed current-schema seed record.
+
+    This is a persistence helper only.  It never changes a candidate into a
+    promoted seed and it never makes a local record eligible for selection by
+    itself.
+    """
+
+    validation = validate_template_seed(seed)
+    if not validation.ok:
+        raise ValueError("template seed is not current-valid: " + ", ".join(validation.findings))
+    target_root = _template_seed_root(root)
+    target_root.mkdir(parents=True, exist_ok=True)
+    target = target_root / f"{_slug(seed.template_id)}.json"
+    if target.exists() and not overwrite:
+        raise FileExistsError(f"template seed already exists: {target}")
+    target.write_text(
+        json.dumps(seed.to_dict(), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return target
+
+
+def load_local_template_seeds(root: str | Path | None = None) -> tuple[TemplateSeed, ...]:
+    """Load only current-schema local seed records, failing closed on errors."""
+
+    target_root = _template_seed_root(root)
+    if not target_root.exists():
+        return ()
+    seeds: list[TemplateSeed] = []
+    seen_ids: set[str] = set()
+    for path in sorted(target_root.glob("*.json")):
+        try:
+            seed = TemplateSeed.from_dict(json.loads(path.read_text(encoding="utf-8")))
+        except Exception as exc:
+            raise ValueError(f"invalid current template seed: {path}: {exc}") from exc
+        validation = validate_template_seed(seed)
+        if not validation.ok:
+            raise ValueError(f"invalid current template seed: {path}: {', '.join(validation.findings)}")
+        if seed.template_id in seen_ids:
+            raise ValueError(f"duplicate current template seed id: {seed.template_id}")
+        seen_ids.add(seed.template_id)
+        seeds.append(seed)
+    return tuple(seeds)
+
+
+def harvest_template_seed_candidate(
+    *,
+    template_id: str,
+    version: str,
+    route_ids: Iterable[str] | str,
+    layers: Mapping[str, Any],
+    predicates: Sequence[HardPredicate | Mapping[str, Any]],
+    protected_error_classes: Iterable[str] | str,
+    required_states: Iterable[str] | str,
+    required_side_effects: Iterable[str] | str,
+    completion_evidence: Iterable[str] | str,
+    positive_cases: Iterable[str] | str,
+    known_bad_cases: Iterable[str] | str,
+    false_friend_cases: Iterable[str] | str,
+    target_fields: Iterable[str] | str,
+    source_proof_refs: Iterable[str] | str,
+    non_applicable_disposition: str = "proved_or_blocked",
+    privacy_disposition: str = "portable_public",
+    local_root: str | Path | None = None,
+    write: bool = False,
+    overwrite: bool = False,
+) -> TemplateSeedHarvestReport:
+    """Emit a candidate seed from explicit author-supplied branch evidence.
+
+    The risk-template search path may recommend a pattern, but this function
+    deliberately requires every seed field from the target author.  It never
+    infers predicates, branch cases, or proof references from search results.
+    """
+
+    seed = TemplateSeed(
+        template_id=template_id,
+        version=version,
+        route_ids=_normalize_text_items(route_ids),
+        layers=layers,
+        predicates=tuple(predicates),
+        protected_error_classes=_normalize_text_items(protected_error_classes),
+        required_states=_normalize_text_items(required_states),
+        required_side_effects=_normalize_text_items(required_side_effects),
+        completion_evidence=_normalize_text_items(completion_evidence),
+        positive_cases=_normalize_text_items(positive_cases),
+        known_bad_cases=_normalize_text_items(known_bad_cases),
+        false_friend_cases=_normalize_text_items(false_friend_cases),
+        target_fields=_normalize_text_items(target_fields),
+        non_applicable_disposition=non_applicable_disposition,
+        source_proof_refs=_normalize_text_items(source_proof_refs),
+        privacy_disposition=privacy_disposition,
+        promotion_status="candidate",
+        closure_disposition="pending",
+    )
+    validation = validate_template_seed(seed)
+    if not validation.ok:
+        return TemplateSeedHarvestReport(False, "blocked", validation.findings, seed=seed)
+    if not write:
+        return TemplateSeedHarvestReport(True, "candidate_ready", (), seed=seed)
+    try:
+        path = write_local_template_seed(seed, root=local_root, overwrite=overwrite)
+    except Exception as exc:
+        return TemplateSeedHarvestReport(
+            False,
+            "blocked",
+            (f"write_failed: {type(exc).__name__}: {exc}",),
+            seed=seed,
+        )
+    return TemplateSeedHarvestReport(True, "candidate_written", (), seed=seed, path=str(path))
+
+
+def promote_template_seed(
+    seed: TemplateSeed,
+    *,
+    review_status: str,
+    privacy_review_ref: str,
+    proof_complete: bool,
+    promotion_proof_refs: Iterable[str] | str = (),
+) -> TemplateSeedHarvestReport:
+    """Promote one candidate only after explicit privacy/proof review."""
+
+    findings: list[str] = []
+    if str(review_status).strip().lower() != "passed":
+        findings.append("promotion_review_not_passed")
+    if not str(privacy_review_ref).strip():
+        findings.append("missing_privacy_review_ref")
+    if not proof_complete:
+        findings.append("proof_not_complete")
+    if seed.promotion_status != "candidate":
+        findings.append("seed_not_candidate")
+    if seed.closure_disposition != "pending":
+        findings.append("seed_closure_already_closed")
+    if seed.privacy_disposition != "portable_public":
+        findings.append("private_seed_not_promotable")
+    current = validate_template_seed(seed)
+    if not current.ok:
+        findings.extend(current.findings)
+    if findings:
+        return TemplateSeedHarvestReport(False, "blocked", tuple(sorted(set(findings))), seed=seed)
+    promoted = replace(
+        seed,
+        promotion_status="promoted",
+        source_proof_refs=_normalize_text_items(
+            (*seed.source_proof_refs, privacy_review_ref, *(_normalize_text_items(promotion_proof_refs)))
+        ),
+    )
+    validation = validate_template_seed(promoted)
+    if not validation.ok:
+        return TemplateSeedHarvestReport(False, "blocked", validation.findings, seed=promoted)
+    return TemplateSeedHarvestReport(True, "promoted", (), seed=promoted)
+
+
 __all__ = [
     "KNOWN_BAD_PROOF_CAUGHT_STATUSES",
     "KNOWN_BAD_PROOF_NOT_CURRENT_STATUSES",
@@ -1053,6 +1251,7 @@ __all__ = [
     "RiskTemplateHarvestReport",
     "RiskTemplateMatch",
     "RiskTemplateSearchReport",
+    "TemplateSeedHarvestReport",
     "TEMPLATE_LIBRARY_ENV_VAR",
     "TEMPLATE_HARVEST_DISPOSITIONS",
     "TEMPLATE_HARVEST_WITH_TEMPLATE_ID",
@@ -1061,12 +1260,16 @@ __all__ = [
     "builtin_risk_templates",
     "default_local_template_library_root",
     "harvest_risk_template_candidate",
+    "harvest_template_seed_candidate",
+    "load_local_template_seeds",
     "load_local_risk_templates",
     "merge_risk_templates",
     "review_template_harvest_closure",
     "review_known_bad_proofs",
     "review_minimum_model_contract",
     "review_template_reuse",
+    "promote_template_seed",
     "search_risk_templates",
     "write_local_risk_template",
+    "write_local_template_seed",
 ]

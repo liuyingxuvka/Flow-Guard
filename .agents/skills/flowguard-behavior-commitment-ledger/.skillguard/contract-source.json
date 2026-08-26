@@ -16,11 +16,11 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/behavior_commitment_ledger/ledger.json"
+          "path": ".flowguard/behavior/inventory/ledger.json"
         },
         {
           "kind": "path",
-          "path": ".flowguard/behavior_commitment_ledger/model.py"
+          "path": ".flowguard/models/owners/behavior_commitment_ledger/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -31,7 +31,7 @@
     },
     {
       "args": [
-        ".flowguard/behavior_commitment_ledger/run_checks.py"
+        ".flowguard/verification/owners/behavior_commitment_ledger/run_checks.py"
       ],
       "check_id": "check:flowguard-behavior-commitment-ledger:native-authority",
       "command": "python",
@@ -52,15 +52,15 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/behavior_commitment_ledger/ledger.json"
+          "path": ".flowguard/behavior/inventory/ledger.json"
         },
         {
           "kind": "path",
-          "path": ".flowguard/behavior_commitment_ledger/model.py"
+          "path": ".flowguard/models/owners/behavior_commitment_ledger/model.py"
         },
         {
           "kind": "path",
-          "path": ".flowguard/behavior_commitment_ledger/run_checks.py"
+          "path": ".flowguard/verification/owners/behavior_commitment_ledger/run_checks.py"
         },
         {
           "kind": "role",
@@ -96,7 +96,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/behavior_commitment_ledger/model.py"
+          "path": ".flowguard/models/owners/behavior_commitment_ledger/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -150,12 +150,12 @@
     "claim_boundary": "flowguard-behavior-commitment-ledger owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
     "integration_mode": "native-integrated",
+    "model_deepening_check_id": "check:flowguard-behavior-commitment-ledger:native-authority",
     "native_check_ids": [
       "check:flowguard-behavior-commitment-ledger:plane-boundary",
       "check:flowguard-behavior-commitment-ledger:native-authority",
       "check:flowguard-behavior-commitment-ledger:evidence-closure"
     ],
-    "model_deepening_check_id": "check:flowguard-behavior-commitment-ledger:native-authority",
     "native_owner_id": "behavior_commitment_ledger",
     "native_route_ids": [
       "route:behavior_commitment_ledger"
@@ -182,11 +182,22 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard-behavior-commitment-ledger:plane-boundary",
+        "check:flowguard-behavior-commitment-ledger:native-authority",
+        "check:flowguard-behavior-commitment-ledger:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard-behavior-commitment-ledger:native-authority",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard-behavior-commitment-ledger"
   },
   "implementation_paths": [
     ".agents/skills/flowguard-behavior-commitment-ledger",
-    ".flowguard/behavior_commitment_ledger",
+    ".flowguard/behavior/inventory/ledger.json",
+    ".flowguard/models/owners/behavior_commitment_ledger",
+    ".flowguard/verification/owners/behavior_commitment_ledger",
     "flowguard/behavior_commitment.py",
     "flowguard/behavior_commitment_lookup.py",
     "flowguard/skill_contract_model.py",
@@ -216,7 +227,7 @@
     "flowguard-ui-flow-structure"
   ],
   "model_id": "flowguard.behavior_commitment_ledger.skill_contract.v2",
-  "model_path": ".flowguard/behavior_commitment_ledger/model.py",
+  "model_path": ".flowguard/models/owners/behavior_commitment_ledger/model.py",
   "native_check_bindings": [
     {
       "authority": "target-native",

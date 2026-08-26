@@ -218,7 +218,10 @@ class StateClosureTests(unittest.TestCase):
 
     def test_self_model_checks_pass(self):
         result = subprocess.run(
-            [sys.executable, ".flowguard/state_closure_gate/run_checks.py"],
+            [
+                sys.executable,
+                ".flowguard/verification/owners/state_closure_gate/run_checks.py",
+            ],
             cwd=ROOT,
             text=True,
             capture_output=True,

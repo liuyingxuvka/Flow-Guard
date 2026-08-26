@@ -20,10 +20,13 @@ from .evidence_receipts import (
     receipt_path,
 )
 from .validation_ownership import (
+    _owner_observation_patterns,
+    _validation_input_manifest_from_observation,
+    ValidationOwnerContract,
     manifest_fingerprint,
     model_authority_release_paths,
     release_tree_manifest,
-    validation_input_manifest,
+    resolve_input_manifest,
     verify_parent_receipt,
 )
 
@@ -351,8 +354,30 @@ def _load_parent_binding(
         parent.metadata.get("release_tree_manifest_fingerprint", "")
     )
     try:
+        proof_relative = str(parent.metadata.get("proof_relpath", ""))
+        proof_path = (receipt_root / proof_relative).resolve()
+        if (
+            not proof_relative
+            or not proof_path.is_file()
+            or not (receipt_root == proof_path.parent or receipt_root in proof_path.parents)
+        ):
+            raise ValueError("parent proof is missing")
+        proof = json.loads(proof_path.read_text(encoding="utf-8"))
+        contracts = tuple(
+            ValidationOwnerContract.from_dict(item)
+            for item in proof.get("contracts", ())
+            if isinstance(item, Mapping)
+        )
+        if not contracts:
+            raise ValueError("parent proof has no owner contracts")
+        current_validation_manifest = _validation_input_manifest_from_observation(
+            resolve_input_manifest(
+                root,
+                _owner_observation_patterns(contracts),
+            )
+        )
         current_validation_fingerprint = manifest_fingerprint(
-            validation_input_manifest(root)
+            current_validation_manifest
         )
         current_release_tree_fingerprint = manifest_fingerprint(
             release_tree_manifest(root)

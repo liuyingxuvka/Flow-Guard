@@ -14,11 +14,13 @@ from flowguard.templates import (
     behavior_commitment_ledger_template_files,
     closure_contract_template_files,
     code_structure_recommendation_template_files,
+    contract_exhaustion_template_files,
     development_process_flow_template_files,
     existing_model_preflight_template_files,
     field_lifecycle_template_files,
     layered_boundary_proof_template_files,
     maintenance_workflow_template_files,
+    model_mesh_template_files,
     model_miss_review_full_template_files,
     model_miss_review_template_files,
     model_test_alignment_full_template_files,
@@ -31,6 +33,7 @@ from flowguard.templates import (
     risk_intent_template_files,
     risk_template_library_template_files,
     runtime_path_evidence_template_files,
+    reverse_surface_closure_template_files,
     work_context_template_files,
     structure_mesh_template_files,
     test_mesh_template_files as mesh_template_files_factory,
@@ -64,6 +67,9 @@ PUBLIC_TEMPLATE_FACTORIES = (
     development_process_flow_template_files,
     workflow_step_contracts_template_files,
     mesh_template_files_factory,
+    model_mesh_template_files,
+    contract_exhaustion_template_files,
+    reverse_surface_closure_template_files,
     structure_mesh_template_files,
     topology_hazard_template_files,
     work_context_template_files,
@@ -94,6 +100,9 @@ TEMPLATE_CLI_COMMANDS = {
     "development-process-flow-template": "development_process_flow",
     "workflow-step-contracts-template": "workflow_step_contracts",
     "test-mesh-template": "test_mesh",
+    "model-mesh-template": "model_mesh",
+    "contract-exhaustion-template": "contract_exhaustion",
+    "reverse-surface-closure-template": "reverse_surface_closure",
     "structure-mesh-template": "structure_mesh",
     "topology-hazard-template": "model_topology_hazard_review",
 }
@@ -200,7 +209,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_risk_intent_template_executes(self):
         output = self.run_written_template(
             risk_intent_template_files(),
-            (".flowguard", "risk_intent_check_plan"),
+            (".flowguard", "verification", "owners", "risk_intent_check_plan"),
         )
         self.assertIn("flowguard summary", output)
         self.assertIn("risk_intent", output)
@@ -208,7 +217,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_risk_template_library_template_executes(self):
         output = self.run_written_template(
             risk_template_library_template_files(),
-            (".flowguard", "risk_template_library"),
+            (".flowguard", "verification", "owners", "risk_template_library"),
         )
         self.assertIn("flowguard risk template search", output)
         self.assertIn("completion_requires_evidence", output)
@@ -219,7 +228,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_plan_detailing_template_executes(self):
         output = self.run_written_template(
             plan_detailing_template_files(),
-            (".flowguard", "plan_detailing"),
+            (".flowguard", "verification", "owners", "plan_detailing"),
         )
         self.assertIn("flowguard plan-detailing template", output)
         self.assertIn("flowguard plan detailing review", output)
@@ -242,7 +251,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_behavior_commitment_ledger_template_executes(self):
         output = self.run_written_template(
             behavior_commitment_ledger_template_files(),
-            (".flowguard", "behavior_commitment_ledger"),
+            (".flowguard", "verification", "owners", "behavior_commitment_ledger"),
         )
         self.assertIn("flowguard behavior commitment ledger", output)
         self.assertIn("full_inventory_registered: yes", output)
@@ -252,22 +261,22 @@ class PublicTemplateTests(unittest.TestCase):
         files = behavior_commitment_ledger_template_files()
         by_path = {file.path: file.content for file in files}
 
-        self.assertIn(".flowguard/behavior_commitment_ledger/ledger.json", by_path)
-        payload = json.loads(by_path[".flowguard/behavior_commitment_ledger/ledger.json"])
+        self.assertIn(".flowguard/behavior/inventory/ledger.json", by_path)
+        payload = json.loads(by_path[".flowguard/behavior/inventory/ledger.json"])
         canonical = behavior_commitment_ledger_from_mapping(payload)
         self.assertEqual(payload, behavior_commitment_ledger_to_mapping(canonical))
         commitment = payload["ledger"]["commitments"][0]
         self.assertEqual("product_runtime", commitment["behavior_plane"])
         self.assertEqual("end_user", commitment["actor_kind"])
         self.assertEqual("intent:run-primary-workflow", commitment["business_intent_id"])
-        model_text = by_path[".flowguard/behavior_commitment_ledger/model.py"]
+        model_text = by_path[".flowguard/models/owners/behavior_commitment_ledger/model.py"]
         self.assertIn("load_behavior_commitment_ledger", model_text)
         self.assertNotIn("BehaviorCommitment(", model_text)
 
     def test_primary_path_authority_template_executes(self):
         output = self.run_written_template(
             primary_path_authority_template_files(),
-            (".flowguard", "primary_path_authority"),
+            (".flowguard", "verification", "owners", "primary_path_authority"),
         )
         self.assertIn("Primary Path Authority checks passed", output)
         self.assertIn("primary_path_authority_green", output)
@@ -275,7 +284,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_model_miss_review_template_executes(self):
         output = self.run_written_template(
             model_miss_review_template_files(),
-            (".flowguard", "model_miss_review"),
+            (".flowguard", "verification", "owners", "model_miss_review"),
         )
         self.assertIn("correct_model_miss_review: PASS", output)
         self.assertIn("expected violations observed: 7", output)
@@ -335,7 +344,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_model_test_alignment_template_executes(self):
         output = self.run_written_template(
             model_test_alignment_template_files(),
-            (".flowguard", "model_test_alignment"),
+            (".flowguard", "verification", "owners", "model_test_alignment"),
         )
         self.assertIn("flowguard model-test alignment", output)
         self.assertIn("missing_required_test_kind", output)
@@ -396,19 +405,19 @@ class PublicTemplateTests(unittest.TestCase):
     def test_runtime_path_evidence_template_executes_and_prints_model_target(self):
         output = self.run_written_template(
             runtime_path_evidence_template_files(),
-            (".flowguard", "runtime_path_evidence"),
+            (".flowguard", "verification", "owners", "runtime_path_evidence"),
         )
 
         self.assertIn("flowguard runtime path evidence", output)
         self.assertIn("flowguard.runtime_path", output)
         self.assertIn("model=checkout.leaf", output)
-        self.assertIn("model_path=.flowguard/checkout_leaf/model.py", output)
+        self.assertIn("model_path=.flowguard/models/owners/checkout_leaf/model.py", output)
         self.assertIn("runtime_node_missing_observation", output)
 
     def test_test_mesh_template_executes(self):
         output = self.run_written_template(
             mesh_template_files_factory(),
-            (".flowguard", "test_mesh"),
+            (".flowguard", "verification", "owners", "test_mesh"),
         )
         self.assertIn("flowguard test mesh", output)
         self.assertIn("release_obligations", output)
@@ -431,10 +440,72 @@ class PublicTemplateTests(unittest.TestCase):
         self.assertIn("ModelMesh closure projection cells", combined)
         self.assertIn("required_leaf_cell_ids", combined)
 
+    def test_model_mesh_template_executes_and_exposes_negative_fixture(self):
+        output = self.run_written_template(
+            model_mesh_template_files(),
+            (".flowguard", "verification", "owners", "model_mesh"),
+        )
+        self.assertIn("flowguard mesh closure review", output)
+        self.assertIn("decision:", output)
+        self.assertIn("missing", output.lower())
+        self.assertIn("model-mesh negative-case matrix: PASS", output)
+
+    def test_model_mesh_template_teaches_ownership_and_reattachment(self):
+        combined = "\n".join(file.content for file in model_mesh_template_files())
+        for text in (
+            "parent/child topology",
+            "one owner per child",
+            "changed-child boundary",
+            "stale/not-run child evidence",
+            "parent receipt never proves a child",
+        ):
+            self.assertIn(text, combined)
+
+    def test_contract_exhaustion_template_executes_and_exposes_negative_fixture(self):
+        output = self.run_written_template(
+            contract_exhaustion_template_files(),
+            (".flowguard", "verification", "owners", "contract_exhaustion"),
+        )
+        self.assertIn("flowguard contract exhaustion mesh", output)
+        self.assertIn("decision:", output)
+        self.assertIn("missing", output.lower())
+        self.assertIn("contract-exhaustion negative-case matrix: PASS", output)
+
+    def test_contract_exhaustion_template_teaches_finite_oracle_boundary(self):
+        combined = "\n".join(file.content for file in contract_exhaustion_template_files())
+        for text in (
+            "finite dimension",
+            "complete member universe",
+            "stable case ID",
+            "oracle",
+            "Do not hide a rejected\ncase",
+        ):
+            self.assertIn(text, combined)
+
+    def test_reverse_surface_template_executes_and_exposes_unclosed_fixture(self):
+        output = self.run_written_template(
+            reverse_surface_closure_template_files(),
+            (".flowguard", "verification", "owners", "reverse_surface_closure"),
+        )
+        self.assertIn("reverse-surface authoring contract: PASS", output)
+        self.assertIn("reverse-surface incomplete fixture: BLOCKED", output)
+
+    def test_reverse_surface_template_teaches_two_way_and_ui_closure(self):
+        combined = "\n".join(file.content for file in reverse_surface_closure_template_files())
+        for text in (
+            "independent implementation",
+            "both join directions",
+            "owner/test/receipt/authority joins",
+            "UI-like action joins",
+            "finite dynamic dispatch",
+            "blocked_gap",
+        ):
+            self.assertIn(text, combined)
+
     def test_code_structure_recommendation_template_executes(self):
         output = self.run_written_template(
             code_structure_recommendation_template_files(),
-            (".flowguard", "code_structure_recommendation"),
+            (".flowguard", "verification", "owners", "code_structure_recommendation"),
         )
         self.assertIn("flowguard code structure recommendation", output)
         self.assertIn("missing_source_model", output)
@@ -442,7 +513,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_ui_flow_structure_template_executes(self):
         output = self.run_written_template(
             ui_flow_structure_template_files(),
-            (".flowguard", "ui_flow_structure"),
+            (".flowguard", "verification", "owners", "ui_flow_structure"),
         )
         self.assertIn("flowguard UI interaction model", output)
         self.assertIn("flowguard UI journey coverage", output)
@@ -472,7 +543,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_ui_flow_structure_full_template_executes_content_visibility_cases(self):
         output = self.run_written_template(
             ui_flow_structure_full_template_files(),
-            (".flowguard", "ui_flow_structure"),
+            (".flowguard", "verification", "owners", "ui_flow_structure"),
         )
 
         self.assertIn("flowguard UI content visibility review", output)
@@ -546,7 +617,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_structure_mesh_template_executes(self):
         output = self.run_written_template(
             structure_mesh_template_files(),
-            (".flowguard", "structure_mesh"),
+            (".flowguard", "verification", "owners", "structure_mesh"),
         )
         self.assertIn("flowguard structure mesh", output)
         self.assertIn("release_obligations", output)
@@ -555,7 +626,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_topology_hazard_template_executes(self):
         output = self.run_written_template(
             topology_hazard_template_files(),
-            (".flowguard", "model_topology_hazard_review"),
+            (".flowguard", "verification", "owners", "model_topology_hazard_review"),
         )
         self.assertIn("flowguard topology hazard review", output)
         self.assertIn("topology_hazard_blocked", output)
@@ -564,7 +635,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_development_process_flow_template_executes(self):
         output = self.run_written_template(
             development_process_flow_template_files(),
-            (".flowguard", "development_process_flow"),
+            (".flowguard", "verification", "owners", "development_process_flow"),
         )
         self.assertIn("flowguard development process flow", output)
         self.assertIn("release_claim_with_stale_evidence", output)
@@ -590,7 +661,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_workflow_step_contracts_template_executes(self):
         output = self.run_written_template(
             workflow_step_contracts_template_files(),
-            (".flowguard", "workflow_step_contracts"),
+            (".flowguard", "verification", "owners", "workflow_step_contracts"),
         )
         self.assertIn("flowguard workflow step contracts", output)
         self.assertIn("missing_claim_receipt", output)
@@ -613,7 +684,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_existing_model_preflight_template_executes(self):
         output = self.run_written_template(
             existing_model_preflight_template_files(),
-            (".flowguard", "existing_model_preflight"),
+            (".flowguard", "verification", "owners", "existing_model_preflight"),
         )
         self.assertIn("flowguard existing model preflight", output)
         self.assertIn("duplicate_boundary_risk_unresolved", output)
@@ -621,7 +692,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_field_lifecycle_template_executes(self):
         output = self.run_written_template(
             field_lifecycle_template_files(),
-            (".flowguard", "field_lifecycle"),
+            (".flowguard", "verification", "owners", "field_lifecycle"),
         )
         self.assertIn("flowguard field lifecycle mesh", output)
         self.assertIn("projected_model_obligations: 2", output)
@@ -648,7 +719,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_risk_evidence_ledger_template_executes(self):
         output = self.run_written_template(
             risk_evidence_ledger_template_files(),
-            (".flowguard", "risk_evidence_ledger"),
+            (".flowguard", "verification", "owners", "risk_evidence_ledger"),
         )
         self.assertIn("flowguard risk evidence ledger", output)
         self.assertIn("internal_path_only_evidence", output)
@@ -660,7 +731,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_layered_boundary_proof_template_executes(self):
         output = self.run_written_template(
             layered_boundary_proof_template_files(),
-            (".flowguard", "layered_boundary_proof"),
+            (".flowguard", "verification", "owners", "layered_boundary_proof"),
         )
         self.assertIn("flowguard layered boundary proof", output)
         self.assertIn("parent_coverage_gap", output)
@@ -679,7 +750,7 @@ class PublicTemplateTests(unittest.TestCase):
     def test_closure_contract_template_executes(self):
         output = self.run_written_template(
             closure_contract_template_files(),
-            (".flowguard", "closure_contract"),
+            (".flowguard", "verification", "owners", "closure_contract"),
         )
         self.assertIn("flowguard closure contract", output)
         self.assertIn("flowguard_closure_full_confidence", output)

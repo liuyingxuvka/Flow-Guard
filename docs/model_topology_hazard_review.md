@@ -53,5 +53,5 @@ Use the starter template:
 
 ```powershell
 python -m flowguard topology-hazard-template --output .
-python .flowguard/model_topology_hazard_review/run_checks.py
+python .flowguard/verification/owners/model_topology_hazard_review/run_checks.py
 ```

@@ -16,7 +16,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/default_replacement_field_lifecycle/model.py"
+          "path": ".flowguard/models/owners/default_replacement_field_lifecycle/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -51,7 +51,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/default_replacement_field_lifecycle/model.py"
+          "path": ".flowguard/models/owners/default_replacement_field_lifecycle/model.py"
         },
         {
           "kind": "path",
@@ -91,7 +91,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/default_replacement_field_lifecycle/model.py"
+          "path": ".flowguard/models/owners/default_replacement_field_lifecycle/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -145,12 +145,12 @@
     "claim_boundary": "flowguard-field-lifecycle-mesh owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
     "integration_mode": "native-integrated",
+    "model_deepening_check_id": "check:flowguard-field-lifecycle-mesh:native-authority",
     "native_check_ids": [
       "check:flowguard-field-lifecycle-mesh:plane-boundary",
       "check:flowguard-field-lifecycle-mesh:native-authority",
       "check:flowguard-field-lifecycle-mesh:evidence-closure"
     ],
-    "model_deepening_check_id": "check:flowguard-field-lifecycle-mesh:native-authority",
     "native_owner_id": "field_lifecycle_mesh",
     "native_route_ids": [
       "route:field_lifecycle_mesh"
@@ -177,11 +177,21 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard-field-lifecycle-mesh:plane-boundary",
+        "check:flowguard-field-lifecycle-mesh:native-authority",
+        "check:flowguard-field-lifecycle-mesh:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard-field-lifecycle-mesh:native-authority",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard-field-lifecycle-mesh"
   },
   "implementation_paths": [
     ".agents/skills/flowguard-field-lifecycle-mesh",
-    ".flowguard/default_replacement_field_lifecycle",
+    ".flowguard/models/owners/default_replacement_field_lifecycle",
+    ".flowguard/verification/owners/default_replacement_field_lifecycle",
     "flowguard/field_lifecycle.py",
     "flowguard/skill_contract_model.py",
     "tests/test_field_lifecycle.py"
@@ -209,7 +219,7 @@
     "flowguard-ui-flow-structure"
   ],
   "model_id": "flowguard.field_lifecycle_mesh.skill_contract.v2",
-  "model_path": ".flowguard/default_replacement_field_lifecycle/model.py",
+  "model_path": ".flowguard/models/owners/default_replacement_field_lifecycle/model.py",
   "native_check_bindings": [
     {
       "authority": "target-native",

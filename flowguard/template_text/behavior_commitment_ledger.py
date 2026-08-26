@@ -99,13 +99,15 @@ BEHAVIOR_COMMITMENT_LEDGER_LEDGER_TEMPLATE = r'''{
     ],
     "ledger_id": "project-behavior-ledger",
     "metadata": {
-      "canonical_authority": ".flowguard/behavior_commitment_ledger/ledger.json",
+      "canonical_authority": ".flowguard/behavior/inventory/ledger.json",
       "python_adapter_role": "thin_loader_only"
     },
     "owner": "project-maintainer",
     "project_boundary": "example project external behavior",
     "rationale": "baseline ledger records external behavior promises before implementation paths",
     "require_complete_source_inventory": true,
+    "independent_behavior_inventory": null,
+    "require_complete_behavior_inventory": false,
     "require_current_evidence": true,
     "require_risk_gates_for_broad_claim": true,
     "source_inventory_evidence_ids": ["discovery:template-source-inventory-v1"],
@@ -196,7 +198,7 @@ Guards against: duplicate authorities, mixed execution planes, stale evidence,
 and Python-embedded inventory drifting from the machine-readable ledger.
 Use before editing: non-trivial product behavior, UI/API/CLI changes, release,
 archive, publish, or any broad external-behavior coverage claim.
-Run: python run_checks.py
+Run: python .flowguard/verification/owners/behavior_commitment_ledger/run_checks.py
 """
 
 from pathlib import Path
@@ -204,7 +206,9 @@ from pathlib import Path
 from flowguard import load_behavior_commitment_ledger
 
 
-LEDGER_PATH = Path(__file__).with_name("ledger.json")
+# The ledger is a behavior-plane authority, not a second file beside the
+# model.  Resolve the one current v2 location explicitly.
+LEDGER_PATH = Path(__file__).resolve().parents[4] / ".flowguard" / "behavior" / "inventory" / "ledger.json"
 
 
 def build_behavior_commitment_ledger():

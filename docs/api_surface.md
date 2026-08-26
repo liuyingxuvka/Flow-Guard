@@ -137,6 +137,67 @@ existing ModelMesh, preflight, behavior-commitment, field-lifecycle,
 model-test-alignment, TestMesh, and DevelopmentProcessFlow ownership; this API
 does not create another modeling route.
 
+## Whole-Target DNA Completion Gate
+
+`DNA_COMPLETION_GATE_API` is the outer claim projection for a product-level
+DNA statement. It is intentionally stricter than the provider-neutral
+blueprint qualifier. `DnaCompletionAssessment` names the seventeen current
+layers: static blueprint, semantic model, intent inventory, observed
+implementation surface, bidirectional traceability, behavior binding, code
+binding, static test binding, runtime test execution, contract universe, real
+UI surface, external consumer, fault matrix, platform/provider, installation,
+observed-miss backfeed, and release identity.
+
+Each `DnaCompletionLayerEvidence` row must name its native owner, exact input
+fingerprint, terminal evidence id/fingerprint, evidence kind, and claim
+boundary. `review_dna_completion()` preserves `not_run`, stale, skipped,
+not-applicable, self-reported, and unverified rows as blockers. The gate does
+not run pytest, browsers, installers, external consumers, or platform/fault
+experiments; those native owners must produce the evidence it consumes.
+Static blueprint readiness or a passing parent summary therefore cannot by
+itself produce `dna_complete`. A scoped assessment can be current for its
+declared boundary, but only the complete broad layer set can license the
+aggregate DNA claim.
+
+`scripts/assemble_dna_completion_assessment.py` is a read-only evidence
+assembler for the outer gate. It reads native inventory, consumer, and test
+artifacts, preserves every missing/stale/not-run layer, and intentionally
+returns a non-zero process status while a broad assessment is blocked. It
+does not execute tests, launch a UI, install a package, or manufacture proof.
+
+`FAULT_MATRIX_EVIDENCE_API` is the read-only leaf reconciler for the fault
+lane. It requires an independently generated finite case denominator,
+root-cause and user-visible outcome fields, terminal and recovery results, and
+content-addressed producer receipts for executed rows. A matrix count,
+synthetic fault profile, caller-supplied hash prefix, or summary status cannot
+authorize a fault claim. The CLI equivalent is
+`python -m flowguard fault-matrix-review --matrix <artifact.json>`.
+
+## Independent Behavior Discovery Owner
+
+`scripts/discover_behavior_inventory.py` is the native discovery boundary for
+an explicit behavior denominator. It consumes a versioned manifest whose
+expected ids, semantic rows, source references, and claim boundary are
+authored by the discovery owner. It computes current source-file fingerprints,
+materializes the existing `BehaviorInventory` schema, and runs
+`review_independent_behavior_inventory()`.
+
+The command never scans BCL rows, tests, model files, or package exports to
+guess behavior. It rejects test/BCL source paths, missing or unexpected ids,
+and source anchors that do not match the declared file. Its output is a
+fingerprinted discovery evidence artifact; a passing scoped inventory is not a
+whole-product behavior denominator and does not turn on the canonical BCL
+`require_complete_behavior_inventory` flag by itself.
+
+Example:
+
+```powershell
+python scripts/discover_behavior_inventory.py `
+  --root . `
+  --manifest docs/flowguard_behavior_inventory_manifest.json `
+  --output .flowguard/behavior/inventory/behavior_inventory_evidence.json
+```
+
 ## Understanding Readiness Projection
 
 `UNDERSTANDING_READINESS_API` is a read-only projection inside the existing
@@ -247,9 +308,11 @@ checks:
 These APIs should stay small and semantically stable. New helpers should not
 change the meaning of `FunctionBlock` or `Workflow`, and obsolete
 compatibility-only aliases should not remain in the first-read surface.
-FlowGuard is latest-schema-first: old artifacts may be detected and upgraded at
-project/tool boundaries, but normal route logic should consume current-schema
-artifacts and current route-first APIs only.
+FlowGuard is current-schema-only: old artifacts may be detected at project/tool
+boundaries, but they are rejected rather than upgraded, migrated, or accepted
+through a compatibility reader. The maintaining agent must directly rewrite
+the current model/source and then regenerate current tests and receipts before
+normal route logic can consume the artifact.
 
 Formal runs emit minimal progress visibility by default through the internal
 finite runner: a start line and bounded progress lines on `stderr`, counted by
@@ -772,16 +835,15 @@ Reporting helpers help an AI agent explain what was checked and what was not:
 - thin adoption logging commands such as `adoption-start` and
   `adoption-finish`
 - artifact/project upgrade helpers such as `ArtifactUpgradeReport`,
-  `review_artifact_upgrades()`, and `artifact-upgrade` for detecting old
-  FlowGuard artifacts, applying deterministic current-schema upgrades, and
-  reporting blocked/manual-review cases without adding runtime compatibility
-  branches
+  `review_artifact_upgrades()`, and the audit-only `artifact-upgrade` command
+  for detecting old FlowGuard artifacts and reporting a direct-current-rewrite
+  blocker. They never apply migrations or add runtime compatibility branches.
 - project adoption/version helpers such as `audit_project_adoption()`,
   `adopt_project()`, and `upgrade_project()` for writing the managed
   FlowGuard `AGENTS.md` block, `.flowguard/project.toml`, and adoption records
-  in target repositories. Project upgrade scans older adopted repositories for
-  deterministic artifact/model/test/guidance upgrades unless records-only mode
-  is explicitly requested. These helpers record FlowGuard's GitHub repository
+  in target repositories. Project upgrade audits older adopted repositories and
+  stops on stale artifacts; the maintainer must rewrite current
+  artifact/model/test/guidance directly. These helpers record FlowGuard's GitHub repository
   and package/schema versions; they do not replace executable model checks.
 - schema, JSON artifact helpers, and explicit Mermaid source exporters for
   user-facing model explanations when a compact diagram helps clarify major
@@ -1026,6 +1088,23 @@ fingerprints. Aggregate full-suite evidence remains a parent reference; it
 cannot manufacture a missing child test binding. Ordinary work consumes only
 the compact blueprint identity and affected neighborhood unless whole-software
 scope was explicitly requested.
+`reconcile_pytest_execution()` is the separate runtime companion: a native
+pytest adapter supplies exact collected and deselected node ids plus terminal
+report rows, and the result preserves concrete parameterized leaves,
+selected/executed/reused/not-run state, outcome reasons, and independently
+recomputed parent counts. A parent summary or process exit code cannot create
+or hide a runtime leaf. The helper does not launch pytest; process supervision,
+receipt publication, and environment/toolchain identity remain with the native
+execution owner.
+`reconcile_contract_exhaustion_execution()` is the corresponding finite-case
+boundary for ContractExhaustionMesh. It consumes one current generated-case
+report and its finite coverage-universe identity, then reconciles native
+executed/reused rows with required, selected, explicitly-not-selected,
+not-run, oracle-status, reason, and observed-result fingerprints. Unknown,
+missing, conflicting, or aggregate-only rows remain blockers; synthetic
+`ContractFaultProfile` rows never count as live execution evidence. This
+adapter is also non-executing: the target runner, receipt verifier, and
+environment owner remain outside the reconciliation module.
 
 `review_behavior_blueprint()` checks one primary owner for every declared
 behavior block, all ten behavior dimensions, portable bindings, placeholder-

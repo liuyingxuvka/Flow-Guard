@@ -57,7 +57,7 @@ MODEL_REVISION_OWNER_EVIDENCE_REPORT_SCHEMA = (
     "flowguard.model_revision_owner_evidence_report.v1"
 )
 NATIVE_OWNER_BINDINGS_SCHEMA = "flowguard.native_owner_model_bindings.v1"
-NATIVE_OWNER_BINDINGS_RELATIVE_PATH = ".flowguard/native-owner-bindings.json"
+NATIVE_OWNER_BINDINGS_RELATIVE_PATH = ".flowguard/structure/owner-bindings.json"
 
 
 @dataclass(frozen=True)
@@ -1304,6 +1304,22 @@ def produce_model_revision_owner_evidence(
         raise ModelAuthorityError("candidate snapshot id is required")
     if destination.is_dir():
         raise ModelAuthorityError("native owner evidence output must be a file")
+    # The bundle is an aggregate consumed by the revision/bootstrap routes,
+    # whereas ``receipt_store`` is a canonical directory of *individual*
+    # EvidenceReceipt JSON files.  Publishing the aggregate anywhere below
+    # that directory would make the next canonical scan interpret the bundle
+    # as a receipt and fail closed on its ``contracts``/``receipts`` fields.
+    # Reject the entire subtree up front, before any child receipts can be
+    # published, so a bad destination cannot partially contaminate evidence.
+    try:
+        destination.relative_to(receipt_store)
+    except ValueError:
+        pass
+    else:
+        raise ModelAuthorityError(
+            "native owner evidence bundle must be outside the canonical "
+            "receipt store"
+        )
 
     manifest_path = root_path / ".flowguard" / "project.toml"
     with project_manifest_lock(manifest_path):

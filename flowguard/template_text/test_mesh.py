@@ -8,7 +8,7 @@ Created with FlowGuard: https://github.com/liuyingxuvka/FlowGuard
 Purpose: Review whether a parent test gate can trust child suites/scripts as owned validation regions.
 Guards against: flat test splits, stale child suites, hidden skips, progress-only background runs, duplicate ownership, missing transition, ModelMesh closure, or artifact-payload matrix evidence, and release checks blocking routine confidence.
 Use before editing: Update this TestMesh when changing validation layout, test partitions, transition or artifact payload matrices, child test scripts, slow regression gates, or background evidence contracts.
-Run: python .flowguard/test_mesh/run_checks.py
+Run: python .flowguard/verification/owners/test_mesh/run_checks.py
 """
 
 from __future__ import annotations

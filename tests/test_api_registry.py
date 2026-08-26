@@ -60,6 +60,7 @@ class PublicAPIRegistryTests(unittest.TestCase):
             flowguard.EVIDENCE_API,
             flowguard.FLOWGUARD_GOVERNANCE_API,
             flowguard.PORTABLE_VERIFICATION_API,
+            flowguard.IMPLEMENTATION_SURFACE_AUDIT_API,
             flowguard._PUBLIC_API_SUPPLEMENT,
         )
 

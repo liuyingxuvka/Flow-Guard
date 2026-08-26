@@ -21,7 +21,7 @@ model-first entry prompts, local risk template library behavior, template
 harvest rules, or public starter examples.
 
 Run:
-python .flowguard/risk_template_library/run_checks.py
+python .flowguard/verification/owners/risk_template_library/run_checks.py
 
 Replace this sample risk with the workflow under review.
 """

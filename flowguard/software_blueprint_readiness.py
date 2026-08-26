@@ -34,7 +34,7 @@ from .target_system_blueprint import (
 )
 
 
-BEHAVIOR_BLUEPRINT_SCHEMA = "flowguard.behavior_blueprint.v7"
+BEHAVIOR_BLUEPRINT_SCHEMA = "flowguard.behavior_blueprint.v8"
 RESOURCE_INVENTORY_SCHEMA = "flowguard.project_resource_inventory.v4"
 INTENT_INVENTORY_SCHEMA = "flowguard.project_intent_inventory.v5"
 STATIC_BLUEPRINT_READINESS_SCHEMA = "flowguard.static_blueprint_readiness.v2"
@@ -1493,6 +1493,30 @@ class BehaviorBlueprintReport:
     def execution_complete(self) -> bool:
         return self.executed_evidence_status == "passed"
 
+    @cached_property
+    def execution_evidence_fingerprint(self) -> str:
+        """Fingerprint the exact native execution dispositions.
+
+        This identity is deliberately separate from ``fingerprint`` (which
+        also covers static contracts and findings).  It is a read-only
+        projection over already-owned terminal evidence and never runs a test
+        or validator.  A consumer still must require ``execution_complete``;
+        the fingerprint alone is not a success claim.
+        """
+
+        return _canonical_fingerprint_and_size(
+            {
+                "inventory_fingerprint": self.inventory_fingerprint,
+                "executed_evidence_status": self.executed_evidence_status,
+                "coverage_execution_evidence": [
+                    row.to_dict() for row in self.coverage_execution_evidence
+                ],
+                "test_node_dispositions": [
+                    row.to_dict() for row in self.test_node_dispositions
+                ],
+            }
+        )[0]
+
     @property
     def pre_code_findings(self) -> tuple[ReadinessFinding, ...]:
         return tuple(
@@ -1537,6 +1561,7 @@ class BehaviorBlueprintReport:
             "owner_structure_status": self.owner_structure_status,
             "pre_code_status": self.pre_code_status,
             "executed_evidence_status": self.executed_evidence_status,
+            "execution_evidence_fingerprint": self.execution_evidence_fingerprint,
         }
 
     def to_normalized_reference_dict(self) -> dict[str, Any]:
@@ -1584,6 +1609,7 @@ class BehaviorBlueprintReport:
             "owner_structure_status": self.owner_structure_status,
             "pre_code_status": self.pre_code_status,
             "executed_evidence_status": self.executed_evidence_status,
+            "execution_evidence_fingerprint": self.execution_evidence_fingerprint,
             "behavior_report_fingerprint": behavior_report_fingerprint,
             "coverage_edge_fingerprints": {
                 row.coverage_id: row.content_fingerprint

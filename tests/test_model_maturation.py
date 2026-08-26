@@ -68,6 +68,7 @@ MODEL_CANDIDATE_FP = canonical_fingerprint({"model": "candidate-1"})
 MODEL_CANDIDATE_2_FP = canonical_fingerprint({"model": "candidate-2"})
 MODEL_CANDIDATE_3_FP = canonical_fingerprint({"model": "candidate-3"})
 COMPILE_CANDIDATE_FP = canonical_fingerprint({"model": "candidate-compile"})
+NATIVE_EVIDENCE_FP = canonical_fingerprint({"evidence": "native"})
 
 
 def _path_quality(model_id: str, model_fingerprint: str, currentness_id: str):
@@ -185,7 +186,7 @@ def _plan(**overrides):
         "model_id": "checkout",
         "risk_id": "risk-checkout",
         "coverage_universe_id": "checkout-obligations-v1",
-        "coverage_demand_fingerprint": "sha256:task-demand",
+        "coverage_demand_fingerprint": canonical_fingerprint({"demand": "task-demand"}),
         "coverage_owner": "existing-model-preflight",
         "coverage_source_refs": ("model:checkout@base-1", "code-map:checkout@code-1"),
         "coverage_ids": ("checkout.failure",),
@@ -221,7 +222,7 @@ def _plan(**overrides):
             disposition=COVERAGE_DISPOSITION_SATISFIED,
             obligation_ids=plan.coverage_ids,
             evidence_ids=("proof:model-miss-review",),
-            evidence_fingerprints=("sha256:native-evidence",),
+            evidence_fingerprints=(NATIVE_EVIDENCE_FP,),
         )
         proof = ProofArtifactRef(
             "proof:model-miss-review",
@@ -234,7 +235,7 @@ def _plan(**overrides):
             finished_at="2026-08-02T00:00:01+00:00",
             subject_id=resolution.resolution_id,
             subject_fingerprint=resolution.resolution_fingerprint,
-            artifact_fingerprints={"candidate": "sha256:native-evidence"},
+            artifact_fingerprints={"candidate": NATIVE_EVIDENCE_FP},
             covered_obligation_ids=plan.coverage_ids,
         )
         contribution = ModelMaturationCoverageContribution(
@@ -245,7 +246,7 @@ def _plan(**overrides):
             evidence_ref=proof,
             owner_resolution=resolution,
             candidate_model_fingerprint=plan.candidate_model_fingerprint,
-            subject_fingerprints={"candidate": "sha256:native-evidence"},
+            subject_fingerprints={"candidate": NATIVE_EVIDENCE_FP},
         )
         plan = replace(
             plan,
@@ -338,7 +339,7 @@ class ModelMaturationTests(unittest.TestCase):
             "coverage_source_refs": ("spec:task-compile",),
             "coverage_ids": ("requirement:submit",),
             "required_probe_ids": ("probe:submit",),
-            "subject_fingerprints": {"candidate": "sha256:candidate-compile"},
+            "subject_fingerprints": {"candidate": COMPILE_CANDIDATE_FP},
             "evidence_ref": ProofArtifactRef(
                 f"proof:{contribution_id}",
                 producer_route="existing_model_preflight",
@@ -348,7 +349,7 @@ class ModelMaturationTests(unittest.TestCase):
                 exit_code=0,
                 started_at="2026-08-02T00:00:00+00:00",
                 finished_at="2026-08-02T00:00:01+00:00",
-                artifact_fingerprints={"candidate": "sha256:candidate-compile"},
+                artifact_fingerprints={"candidate": COMPILE_CANDIDATE_FP},
                 covered_obligation_ids=("requirement:submit",),
             ),
         }
@@ -446,7 +447,7 @@ class ModelMaturationTests(unittest.TestCase):
                 producer_route="behavior_commitment_ledger",
                 result_status="passed",
                 exit_code=0,
-                artifact_fingerprints={"candidate": "sha256:candidate-compile"},
+                artifact_fingerprints={"candidate": COMPILE_CANDIDATE_FP},
                 covered_obligation_ids=("behavior:submit",),
             ),
         )

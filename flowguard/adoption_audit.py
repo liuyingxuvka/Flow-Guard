@@ -162,7 +162,7 @@ def audit_flowguard_adoption(
                         "warning",
                         "stale_fallback_model",
                         "real flowguard is importable, but this current .flowguard model still appears to use fallback evidence",
-                        "Migrate the current model to the formal FlowGuard CheckPlan path, or mark the fallback as historical.",
+                        "Directly rewrite the current model into the formal FlowGuard CheckPlan path, or mark the observed fallback as historical provenance; do not add a compatibility path.",
                         str(path),
                         {"markers": markers},
                     )
@@ -173,7 +173,7 @@ def audit_flowguard_adoption(
                         "warning",
                         "current_fallback_model",
                         "this current .flowguard model appears to use fallback evidence because real flowguard is not importable",
-                        "Connect the real FlowGuard package or record the fallback as a skipped/blocked adoption gap.",
+                        "Connect the real FlowGuard package; otherwise keep the adoption gap skipped/blocked. Do not add a fallback implementation.",
                         str(path),
                         {"markers": markers},
                     )
@@ -186,7 +186,7 @@ def audit_flowguard_adoption(
                     "warning",
                     "direct_explorer_formal_entry_required",
                     "this current .flowguard model appears to run Explorer directly without a formal CheckPlan and known-bad proof gate",
-                    "Migrate the model to FlowGuardCheckPlan with RiskIntent, MinimumModelContract, KnownBadProof, and run_model_first_checks.",
+                    "Directly rewrite the model to FlowGuardCheckPlan with RiskIntent, MinimumModelContract, KnownBadProof, and run_model_first_checks; do not add a migration or fallback route.",
                     str(path),
                     {"markers": direct_markers},
                 )

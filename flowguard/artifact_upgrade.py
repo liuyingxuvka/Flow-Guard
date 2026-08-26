@@ -1,4 +1,11 @@
-"""Deterministic upgrade scanning for older FlowGuard artifacts."""
+"""Fail-closed audit of older FlowGuard artifacts.
+
+This module deliberately does not migrate or rewrite old data.  A legacy
+artifact is evidence that the target still needs a direct current-authority
+rewrite by the maintaining agent.  Keeping a deterministic ``--apply`` path
+would create a second compatibility authority and would let an old artifact
+become current without re-authoring its model, owner, tests, and receipts.
+"""
 
 from __future__ import annotations
 
@@ -8,14 +15,9 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
-from ._normalization import string_sequence as _as_tuple
 from .behavior_commitment import (
-    BCL_ACTOR_KINDS,
-    BCL_BEHAVIOR_PLANES,
     BCL_LEDGER_ARTIFACT_TYPE,
     BCL_LEDGER_FORMAT_VERSION,
-    BCL_RELATION_DEPENDS_ON,
-    BehaviorCommitmentLedger,
     behavior_commitment_ledger_from_mapping,
     behavior_commitment_ledger_to_mapping,
 )
@@ -23,13 +25,12 @@ from .export import to_jsonable
 from .schema import SCHEMA_VERSION
 
 
-ARTIFACT_UPGRADE_STATUS_UPGRADED = "upgraded"
 ARTIFACT_UPGRADE_STATUS_UNCHANGED = "unchanged"
 ARTIFACT_UPGRADE_STATUS_BLOCKED = "blocked"
 ARTIFACT_UPGRADE_STATUS_SKIPPED = "skipped"
+ARTIFACT_UPGRADE_POLICY = "direct_current_rewrite_only"
 
 ARTIFACT_UPGRADE_STATUSES = {
-    ARTIFACT_UPGRADE_STATUS_UPGRADED,
     ARTIFACT_UPGRADE_STATUS_UNCHANGED,
     ARTIFACT_UPGRADE_STATUS_BLOCKED,
     ARTIFACT_UPGRADE_STATUS_SKIPPED,
@@ -72,10 +73,6 @@ _UNKNOWN_SCRIPT_MARKERS = (
 )
 
 _LEGACY_BCL_DEPENDENCY_FIELD = "dependency_commitment_ids"
-_BCL_MIGRATION_RATIONALE = (
-    "Migrated deterministically from legacy same-plane dependency_commitment_ids."
-)
-_LEGACY_BCL_SHAPE_ID = "flowguard.bcl.legacy.56083c1e"
 # Exact `to_dict()` field sets from the final pre-migration producer commit
 # 56083c1e47602654089e05701e9f5b42cce6c9a1. That producer emitted every
 # listed key; none of these fields is optional in its serialized JSON shape.
@@ -295,7 +292,9 @@ class ArtifactUpgradeReport:
 
     @property
     def upgraded_count(self) -> int:
-        return sum(1 for item in self.items if item.status == ARTIFACT_UPGRADE_STATUS_UPGRADED)
+        # Kept as a zero-valued diagnostic field for the current report shape;
+        # this module no longer exposes or performs any upgrade operation.
+        return 0
 
     @property
     def blocked_count(self) -> int:
@@ -315,6 +314,7 @@ class ArtifactUpgradeReport:
     def to_dict(self) -> dict[str, Any]:
         return {
             "artifact_type": "flowguard_artifact_upgrade_report",
+            "policy": ARTIFACT_UPGRADE_POLICY,
             "ok": self.ok,
             "root": self.root,
             "apply": self.apply,
@@ -326,8 +326,9 @@ class ArtifactUpgradeReport:
             "blocked_paths": list(self.blocked_paths),
             "items": [item.to_dict() for item in self.items],
             "validation_note": (
-                "Artifact upgrades do not replace executable model checks, "
-                "tests, replay, or route-owner evidence."
+                "Legacy artifacts are rejected. No automatic migration or "
+                "compatibility rewrite is performed; direct current-authority "
+                "rewriting must be followed by current checks and receipts."
             ),
         }
 
@@ -341,7 +342,7 @@ class ArtifactUpgradeReport:
             f"root: {self.root}",
             f"mode: {'apply' if self.apply else 'dry-run'}",
             f"summary: {self.summary}",
-            "note: artifact upgrades do not replace executable model checks, tests, replay, or route-owner evidence.",
+            "policy: legacy artifacts are rejected; no automatic migration or compatibility rewrite is performed.",
         ]
         for item in self.items[:max_items]:
             lines.extend(
@@ -358,93 +359,6 @@ class ArtifactUpgradeReport:
         if len(self.items) > max_items:
             lines.append(f"... {len(self.items) - max_items} more items")
         return "\n".join(lines)
-
-
-@dataclass(frozen=True)
-class BehaviorLedgerMigrationFinding:
-    """One ambiguity that prevents safe automatic ledger migration."""
-
-    code: str
-    message: str
-    commitment_id: str = ""
-    target_commitment_id: str = ""
-    metadata: Mapping[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "code", str(self.code))
-        object.__setattr__(self, "message", str(self.message))
-        object.__setattr__(self, "commitment_id", str(self.commitment_id))
-        object.__setattr__(self, "target_commitment_id", str(self.target_commitment_id))
-        object.__setattr__(self, "metadata", dict(self.metadata))
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "code": self.code,
-            "message": self.message,
-            "commitment_id": self.commitment_id,
-            "target_commitment_id": self.target_commitment_id,
-            "metadata": to_jsonable(dict(self.metadata)),
-        }
-
-
-@dataclass(frozen=True)
-class BehaviorLedgerMigrationResult:
-    """Pure migration result for one machine-readable legacy BCL mapping."""
-
-    status: str
-    mapping: Mapping[str, Any] = field(default_factory=dict)
-    findings: tuple[BehaviorLedgerMigrationFinding, ...] = ()
-    migrated_commitment_ids: tuple[str, ...] = ()
-
-    def __post_init__(self) -> None:
-        if self.status not in ARTIFACT_UPGRADE_STATUSES:
-            raise ValueError(f"unknown behavior-ledger migration status: {self.status!r}")
-        object.__setattr__(self, "mapping", dict(self.mapping))
-        object.__setattr__(self, "findings", tuple(self.findings))
-        object.__setattr__(
-            self,
-            "migrated_commitment_ids",
-            tuple(str(value) for value in self.migrated_commitment_ids),
-        )
-
-    @property
-    def ok(self) -> bool:
-        return self.status != ARTIFACT_UPGRADE_STATUS_BLOCKED
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "status": self.status,
-            "ok": self.ok,
-            "mapping": to_jsonable(dict(self.mapping)),
-            "findings": [finding.to_dict() for finding in self.findings],
-            "migrated_commitment_ids": list(self.migrated_commitment_ids),
-        }
-
-
-def _explicit_migration_value(commitment: Mapping[str, Any], name: str) -> str:
-    metadata = commitment.get("metadata")
-    if isinstance(metadata, Mapping):
-        return str(metadata.get(name, "")).strip()
-    return ""
-
-
-def _explicit_legacy_plane_actor(
-    commitment: Mapping[str, Any],
-) -> tuple[str, str, tuple[str, ...]]:
-    """Read one evidence-bound AI migration disposition from legacy metadata."""
-
-    reasons: list[str] = []
-    plane = ""
-    actor_kind = ""
-    explicit_plane = _explicit_migration_value(commitment, "migration_behavior_plane")
-    explicit_actor = _explicit_migration_value(commitment, "migration_actor_kind")
-    if explicit_plane in BCL_BEHAVIOR_PLANES:
-        plane = explicit_plane
-        reasons.append("explicit_migration_behavior_plane")
-    if explicit_actor in BCL_ACTOR_KINDS:
-        actor_kind = explicit_actor
-        reasons.append("explicit_migration_actor_kind")
-    return plane, actor_kind, tuple(reasons)
 
 
 def _is_json_string_list(value: Any) -> bool:
@@ -615,418 +529,28 @@ def _current_behavior_ledger_envelope_findings(
     return ()
 
 
-def _materialize_current_path_authority(
-    legacy: Mapping[str, Any],
-    *,
-    commitment_id: str,
-) -> dict[str, Any]:
-    primary_path_ids = list(legacy["primary_path_ids"])
-    metadata = dict(legacy["metadata"])
-    if primary_path_ids:
-        metadata["historical_primary_path_migration"] = {
-            "source_shape_id": _LEGACY_BCL_SHAPE_ID,
-            "source_field": "primary_path_ids",
-        }
-    return {
-        "path_sensitive": legacy["path_sensitive"],
-        "business_intent": legacy["business_intent"],
-        "business_intent_id": "",
-        "behavior_commitment_id": commitment_id,
-        "ppa_report_id": legacy["ppa_report_id"],
-        "ppa_decision": legacy["ppa_decision"],
-        "ppa_confidence": legacy["ppa_confidence"],
-        "ppa_ok": legacy["ppa_ok"],
-        "primary_path_id": primary_path_ids[0] if primary_path_ids else "",
-        "fallback_candidate_ids": list(legacy["fallback_candidate_ids"]),
-        "ppa_coverage_receipt_ids": list(legacy["ppa_coverage_receipt_ids"]),
-        "ppa_coverage_shard_ids": list(legacy["ppa_coverage_shard_ids"]),
-        "ppa_risk_gate_ids": list(legacy["ppa_risk_gate_ids"]),
-        "scoped_out_reason": legacy["scoped_out_reason"],
-        "evidence_refs": list(legacy["evidence_refs"]),
-        "runtime_observation_ids": [],
-        "proof_artifact_ids": [],
-        "evidence_current": False,
-        "metadata": metadata,
-    }
-
-
-def _materialize_current_commitment(row: Mapping[str, Any]) -> dict[str, Any]:
-    commitment_id = str(row["commitment_id"])
-    metadata = dict(row["metadata"])
-    metadata.pop("migration_behavior_plane", None)
-    metadata.pop("migration_actor_kind", None)
-    return {
-        "commitment_id": commitment_id,
-        "business_intent_id": "",
-        "label": row["label"],
-        "commitment_kind": row["commitment_kind"],
-        "behavior_plane": row["behavior_plane"],
-        "actor_kind": row["actor_kind"],
-        "actor": row["actor"],
-        "trigger": row["trigger"],
-        "expected_result": row["expected_result"],
-        "failure_boundary": row["failure_boundary"],
-        "preconditions": [],
-        "expected_terminal": "",
-        "state_writes": [],
-        "side_effects": [],
-        "variant_of_business_intent_id": "",
-        "external_differences": [],
-        "canonical_relation_ids": [],
-        "relation_obligation_ids": [],
-        "surface_delegation_only": False,
-        "source_surface_ids": list(row["source_surface_ids"]),
-        "source_refs": list(row["source_refs"]),
-        "primary_owner_model_id": row["primary_owner_model_id"],
-        "supporting_model_ids": list(row["supporting_model_ids"]),
-        "child_model_ids": list(row["child_model_ids"]),
-        "relations": [dict(relation) for relation in row["relations"]],
-        "lookup_binding": {
-            "task_terms": [],
-            "path_patterns": [],
-            "tool_ids": [],
-            "error_signatures": [],
-            "workflow_families": [],
-            "metadata": {},
-        },
-        "excluded_behavior_ids": list(row["excluded_behavior_ids"]),
-        "replacement_state": row["replacement_state"],
-        "model_sync_state": row["model_sync_state"],
-        "miss_origin_state": row["miss_origin_state"],
-        "path_authority": _materialize_current_path_authority(
-            row["path_authority"],
-            commitment_id=commitment_id,
-        ),
-        "evidence": {
-            key: list(value) if isinstance(value, list) else dict(value)
-            if key == "metadata"
-            else value
-            for key, value in row["evidence"].items()
-        },
-        "in_scope": row["in_scope"],
-        "scoped_out_reason": row["scoped_out_reason"],
-        "owner": row["owner"],
-        "validation_boundary": row["validation_boundary"],
-        "rationale": row["rationale"],
-        "metadata": metadata,
-    }
-
-
-def _materialize_current_source_surface(
-    legacy: Mapping[str, Any],
-) -> dict[str, Any]:
-    return {
-        "surface_id": legacy["surface_id"],
-        "surface_kind": legacy["surface_kind"],
-        "label": legacy["label"],
-        "source_ref": legacy["source_ref"],
-        "commitment_ids": list(legacy["commitment_ids"]),
-        "business_intent_ids": [],
-        "primary_path_id": "",
-        "delegates_to_primary_path": False,
-        "canonical_relation_ids": [],
-        "relation_obligation_ids": [],
-        "freshness_state": legacy["freshness_state"],
-        "in_scope": legacy["in_scope"],
-        "scoped_out_reason": legacy["scoped_out_reason"],
-        "owner": legacy["owner"],
-        "validation_boundary": legacy["validation_boundary"],
-        "rationale": legacy["rationale"],
-        "metadata": dict(legacy["metadata"]),
-    }
-
-
-def upgrade_behavior_commitment_ledger_mapping(
-    value: Mapping[str, Any],
-) -> BehaviorLedgerMigrationResult:
-    """Upgrade official JSON/mapping BCL input without executing Python.
-
-    Classification is deliberately conservative.  Ambiguous workflow or doc
-    rows and cross-plane legacy dependencies produce manual findings and no
-    partially upgraded authority.
-    """
-
-    original = dict(value)
-    is_envelope = (
-        "ledger" in original
-        or str(original.get("artifact_type", "")) == BCL_LEDGER_ARTIFACT_TYPE
-    )
-    if is_envelope:
-        envelope_findings = _current_behavior_ledger_envelope_findings(original)
-        if envelope_findings:
-            return BehaviorLedgerMigrationResult(
-                ARTIFACT_UPGRADE_STATUS_BLOCKED,
-                findings=(
-                    BehaviorLedgerMigrationFinding(
-                        "behavior_ledger_envelope_not_exact_current",
-                        "The ledger envelope is not the exact current canonical producer shape.",
-                        metadata={"findings": list(envelope_findings)},
-                    ),
-                ),
-            )
-        return BehaviorLedgerMigrationResult(
-            ARTIFACT_UPGRADE_STATUS_UNCHANGED,
-            mapping=original,
-            migrated_commitment_ids=tuple(
-                str(row.get("commitment_id", ""))
-                for row in original["ledger"]["commitments"]
-                if isinstance(row, Mapping)
-            ),
-        )
-    if not _has_exact_legacy_behavior_ledger_shape(original):
-        return BehaviorLedgerMigrationResult(
-            ARTIFACT_UPGRADE_STATUS_BLOCKED,
-            findings=(
-                BehaviorLedgerMigrationFinding(
-                    "behavior_ledger_legacy_shape_unregistered",
-                    "The mapping is not the exact historical FlowGuard ledger producer shape.",
-                ),
-            ),
-        )
-    ledger = dict(original)
-
-    rows = ledger.get("commitments")
-    if not isinstance(rows, list):
-        return BehaviorLedgerMigrationResult(
-            ARTIFACT_UPGRADE_STATUS_BLOCKED,
-            findings=(
-                BehaviorLedgerMigrationFinding(
-                    "behavior_ledger_commitments_missing",
-                    "The legacy ledger has no commitment list.",
-                ),
-            ),
-        )
-    findings: list[BehaviorLedgerMigrationFinding] = []
-    migrated_rows: list[dict[str, Any]] = []
-    by_id: dict[str, dict[str, Any]] = {}
-    classification_reasons: dict[str, tuple[str, ...]] = {}
-    if "behavior_plane_migration" in ledger["metadata"]:
-        findings.append(
-            BehaviorLedgerMigrationFinding(
-                "behavior_ledger_migration_metadata_collision",
-                "Historical ledger metadata already owns the current migration provenance key.",
-                metadata={"key": "behavior_plane_migration"},
-            )
-        )
-    for raw in rows:
-        if not isinstance(raw, Mapping):
-            findings.append(
-                BehaviorLedgerMigrationFinding(
-                    "behavior_ledger_commitment_not_mapping",
-                    "Every legacy commitment must be a mapping.",
-                )
-            )
-            continue
-        row = dict(raw)
-        commitment_id = str(row.get("commitment_id", ""))
-        if not commitment_id:
-            findings.append(
-                BehaviorLedgerMigrationFinding(
-                    "behavior_ledger_commitment_id_missing",
-                    "A legacy commitment has no stable commitment_id.",
-                )
-            )
-            continue
-        if commitment_id in by_id:
-            findings.append(
-                BehaviorLedgerMigrationFinding(
-                    "behavior_ledger_commitment_id_duplicate",
-                    "A legacy commitment_id occurs more than once.",
-                    commitment_id=commitment_id,
-                )
-            )
-            continue
-        plane, actor_kind, reasons = _explicit_legacy_plane_actor(row)
-        if plane not in BCL_BEHAVIOR_PLANES or actor_kind not in BCL_ACTOR_KINDS:
-            findings.append(
-                BehaviorLedgerMigrationFinding(
-                    "behavior_ledger_plane_actor_requires_manual_classification",
-                    "The legacy commitment cannot be assigned safely to one execution plane and actor kind.",
-                    commitment_id=commitment_id,
-                    metadata={
-                        "commitment_kind": str(row.get("commitment_kind", "")),
-                        "inferred_plane": plane,
-                        "inferred_actor_kind": actor_kind,
-                    },
-                )
-            )
-        else:
-            row["behavior_plane"] = plane
-            row["actor_kind"] = actor_kind
-            classification_reasons[commitment_id] = reasons
-        primary_path_ids = row["path_authority"]["primary_path_ids"]
-        path_metadata = row["path_authority"]["metadata"]
-        if "legacy_primary_path_ids" in path_metadata:
-            findings.append(
-                BehaviorLedgerMigrationFinding(
-                    "behavior_ledger_retired_path_metadata_residual",
-                    "Retired legacy_primary_path_ids metadata requires an explicit current disposition before migration.",
-                    commitment_id=commitment_id,
-                )
-            )
-        if primary_path_ids and "historical_primary_path_migration" in path_metadata:
-            findings.append(
-                BehaviorLedgerMigrationFinding(
-                    "behavior_ledger_path_migration_metadata_collision",
-                    "Historical path metadata already owns the current migration provenance key.",
-                    commitment_id=commitment_id,
-                    metadata={"key": "historical_primary_path_migration"},
-                )
-            )
-        if len(primary_path_ids) > 1:
-            findings.append(
-                BehaviorLedgerMigrationFinding(
-                    "behavior_ledger_primary_path_requires_manual_classification",
-                    "Multiple historical primary_path_ids cannot be reduced to one current primary path without explicit evidence.",
-                    commitment_id=commitment_id,
-                    metadata={"primary_path_ids": list(primary_path_ids)},
-                )
-            )
-        migrated_rows.append(row)
-        by_id[commitment_id] = row
-
-    for row in migrated_rows:
-        commitment_id = str(row.get("commitment_id", ""))
-        dependencies = row.get(_LEGACY_BCL_DEPENDENCY_FIELD, ())
-        if isinstance(dependencies, str):
-            dependencies = (dependencies,)
-        if not isinstance(dependencies, Sequence):
-            findings.append(
-                BehaviorLedgerMigrationFinding(
-                    "behavior_ledger_dependencies_invalid",
-                    "Legacy dependency_commitment_ids must be a sequence.",
-                    commitment_id=commitment_id,
-                )
-            )
-            continue
-        relations = list(row.get("relations", ()))
-        for target_id_raw in dependencies:
-            target_id = str(target_id_raw)
-            target = by_id.get(target_id)
-            if target is None:
-                findings.append(
-                    BehaviorLedgerMigrationFinding(
-                        "behavior_ledger_dependency_target_unknown",
-                        "A legacy dependency target is not registered in the ledger.",
-                        commitment_id=commitment_id,
-                        target_commitment_id=target_id,
-                    )
-                )
-                continue
-            if row.get("behavior_plane") != target.get("behavior_plane"):
-                findings.append(
-                    BehaviorLedgerMigrationFinding(
-                        "behavior_ledger_cross_plane_dependency_requires_typed_relation",
-                        "A cross-plane legacy dependency needs an explicit typed relation and rationale.",
-                        commitment_id=commitment_id,
-                        target_commitment_id=target_id,
-                        metadata={
-                            "source_plane": row.get("behavior_plane", ""),
-                            "target_plane": target.get("behavior_plane", ""),
-                        },
-                    )
-                )
-                continue
-            if not any(
-                isinstance(relation, Mapping)
-                and str(relation.get("target_commitment_id", "")) == target_id
-                and str(relation.get("relation_type", "")) == BCL_RELATION_DEPENDS_ON
-                for relation in relations
-            ):
-                relations.append(
-                    {
-                        "target_commitment_id": target_id,
-                        "relation_type": BCL_RELATION_DEPENDS_ON,
-                        "rationale": _BCL_MIGRATION_RATIONALE,
-                        "metadata": {"migration_source": _LEGACY_BCL_DEPENDENCY_FIELD},
-                    }
-                )
-        row.pop(_LEGACY_BCL_DEPENDENCY_FIELD, None)
-        row["relations"] = relations
-
-    if findings:
-        return BehaviorLedgerMigrationResult(
-            ARTIFACT_UPGRADE_STATUS_BLOCKED,
-            findings=tuple(findings),
-        )
-
-    metadata = dict(ledger.get("metadata") or {})
-    metadata["behavior_plane_migration"] = {
-        "source_format": str(original.get("format_version", "legacy_mapping")),
-        "source_shape_id": _LEGACY_BCL_SHAPE_ID,
-        "classification_reasons": {
-            key: list(values) for key, values in sorted(classification_reasons.items())
-        },
-    }
-    current_ledger = {
-        "ledger_id": ledger["ledger_id"],
-        "project_boundary": ledger["project_boundary"],
-        "current_revision": ledger["current_revision"],
-        "commitments": [
-            _materialize_current_commitment(row) for row in migrated_rows
-        ],
-        "source_surfaces": [
-            _materialize_current_source_surface(surface)
-            for surface in ledger["source_surfaces"]
-        ],
-        "expected_commitment_ids": list(ledger["expected_commitment_ids"]),
-        "expected_business_intent_ids": [],
-        "claim_scope": ledger["claim_scope"],
-        "change_mode": ledger["change_mode"],
-        "require_current_evidence": ledger["require_current_evidence"],
-        "require_risk_gates_for_broad_claim": ledger[
-            "require_risk_gates_for_broad_claim"
-        ],
-        "owner": ledger["owner"],
-        "validation_boundary": ledger["validation_boundary"],
-        "rationale": ledger["rationale"],
-        "metadata": metadata,
-    }
-    upgraded_candidate = {
-        "artifact_type": BCL_LEDGER_ARTIFACT_TYPE,
-        "schema_version": SCHEMA_VERSION,
-        "format_version": BCL_LEDGER_FORMAT_VERSION,
-        "ledger": current_ledger,
-    }
-    try:
-        upgraded = behavior_commitment_ledger_to_mapping(
-            BehaviorCommitmentLedger(**current_ledger)
-        )
-    except (AttributeError, KeyError, TypeError, ValueError) as exc:
-        return BehaviorLedgerMigrationResult(
-            ARTIFACT_UPGRADE_STATUS_BLOCKED,
-            findings=(
-                BehaviorLedgerMigrationFinding(
-                    "behavior_ledger_current_materialization_failed",
-                    "The exact historical ledger could not be materialized as one current canonical envelope.",
-                    metadata={"error_type": type(exc).__name__},
-                ),
-            ),
-        )
-    return BehaviorLedgerMigrationResult(
-        ARTIFACT_UPGRADE_STATUS_UPGRADED,
-        mapping=upgraded,
-        migrated_commitment_ids=tuple(str(row["commitment_id"]) for row in migrated_rows),
-    )
-
-
 def review_artifact_upgrades(
     root: str | Path = ".",
     *,
-    apply: bool = False,
     include_dirs: Sequence[str] = _DEFAULT_SCAN_DIRS,
     paths: Sequence[str | Path] = (),
 ) -> ArtifactUpgradeReport:
-    """Scan a repository for deterministic FlowGuard artifact upgrades."""
+    """Scan for stale FlowGuard artifacts without providing an upgrade path.
+
+    This is a read-only currentness diagnostic.  It never produces an
+    upgraded mapping, rewrites a source file, or accepts a historical shape.
+    A blocked item is a handoff to the maintaining agent for direct current
+    source/model authorship and fresh validation.
+    """
 
     root_path = Path(root).resolve()
     candidates = tuple(_candidate_paths(root_path, include_dirs=include_dirs, paths=paths))
     items: list[ArtifactUpgradeItem] = []
     for path in candidates:
-        item = _review_path(path, root_path=root_path, apply=apply)
+        item = _review_path(path, root_path=root_path)
         if item is not None:
             items.append(item)
-    return ArtifactUpgradeReport(root=str(root_path), apply=apply, items=tuple(items))
+    return ArtifactUpgradeReport(root=str(root_path), items=tuple(items))
 
 
 def _candidate_paths(
@@ -1070,67 +594,71 @@ def _is_scannable(path: Path, *, root_path: Path | None = None) -> bool:
     return not any(part in _IGNORED_PARTS for part in parts)
 
 
-def _review_path(path: Path, *, root_path: Path, apply: bool) -> ArtifactUpgradeItem | None:
+def _review_path(path: Path, *, root_path: Path) -> ArtifactUpgradeItem | None:
     suffix = path.suffix.lower()
     rel_path = _relative_path(path, root_path)
     if suffix in _JSON_SUFFIXES:
-        return _review_json_path(path, rel_path=rel_path, apply=apply)
+        return _review_json_path(path, rel_path=rel_path)
     if suffix in _TEXT_SUFFIXES:
-        return _review_text_path(path, rel_path=rel_path, apply=apply)
+        return _review_text_path(path, rel_path=rel_path)
     if suffix in _TOML_SUFFIXES:
         return _review_toml_path(path, rel_path=rel_path)
     return None
 
 
-def _review_json_path(path: Path, *, rel_path: str, apply: bool) -> ArtifactUpgradeItem | None:
+def _review_json_path(path: Path, *, rel_path: str) -> ArtifactUpgradeItem | None:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return None
     if not isinstance(data, dict):
         return None
-    if _looks_like_behavior_ledger_mapping(data):
-        migration = upgrade_behavior_commitment_ledger_mapping(data)
-        if migration.status == ARTIFACT_UPGRADE_STATUS_BLOCKED:
+
+    if str(data.get("artifact_type", "")) == BCL_LEDGER_ARTIFACT_TYPE:
+        envelope_findings = _current_behavior_ledger_envelope_findings(data)
+        if envelope_findings:
             return ArtifactUpgradeItem(
                 rel_path,
                 "behavior_commitment_ledger",
                 ARTIFACT_UPGRADE_STATUS_BLOCKED,
-                detected_shape="legacy_behavior_commitment_ledger",
-                replacement=f"{BCL_LEDGER_ARTIFACT_TYPE}:{BCL_LEDGER_FORMAT_VERSION}",
-                message="behavior ledger migration needs explicit manual classification or typed relation evidence",
-                metadata={"findings": [finding.to_dict() for finding in migration.findings]},
-            )
-        if apply and migration.status == ARTIFACT_UPGRADE_STATUS_UPGRADED:
-            path.write_text(
-                json.dumps(migration.mapping, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-                encoding="utf-8",
+                detected_shape="non_current_behavior_commitment_ledger",
+                replacement="direct_current_model_and_ledger_rewrite",
+                message=(
+                    "behavior ledger is not the exact current canonical shape; "
+                    "rewrite the current model and ledger directly, then rerun checks"
+                ),
+                metadata={
+                    "findings": list(envelope_findings),
+                    "policy": ARTIFACT_UPGRADE_POLICY,
+                },
             )
         return ArtifactUpgradeItem(
             rel_path,
             "behavior_commitment_ledger",
-            migration.status,
-            detected_shape=(
-                "current_behavior_commitment_ledger"
-                if migration.status == ARTIFACT_UPGRADE_STATUS_UNCHANGED
-                else "legacy_behavior_commitment_ledger"
-            ),
+            ARTIFACT_UPGRADE_STATUS_UNCHANGED,
+            detected_shape="current_behavior_commitment_ledger",
             replacement=f"{BCL_LEDGER_ARTIFACT_TYPE}:{BCL_LEDGER_FORMAT_VERSION}",
+            message="behavior ledger already uses the exact current canonical shape",
+            metadata={"policy": ARTIFACT_UPGRADE_POLICY},
+        )
+
+    if _has_exact_legacy_behavior_ledger_shape(data):
+        return ArtifactUpgradeItem(
+            rel_path,
+            "behavior_commitment_ledger",
+            ARTIFACT_UPGRADE_STATUS_BLOCKED,
+            detected_shape="legacy_behavior_commitment_ledger",
+            replacement="direct_current_model_and_ledger_rewrite",
             message=(
-                "behavior ledger already uses the canonical execution-plane format"
-                if migration.status == ARTIFACT_UPGRADE_STATUS_UNCHANGED
-                else "behavior ledger was migrated without executing project Python"
+                "legacy behavior ledger is rejected; no in-memory conversion or "
+                "automatic rewrite is available; author the current model and ledger directly"
             ),
-            changed=apply and migration.status == ARTIFACT_UPGRADE_STATUS_UPGRADED,
             metadata={
-                "legacy_shape_id": (
-                    _LEGACY_BCL_SHAPE_ID
-                    if migration.status == ARTIFACT_UPGRADE_STATUS_UPGRADED
-                    else ""
-                ),
-                "migrated_commitment_ids": list(migration.migrated_commitment_ids),
+                "policy": ARTIFACT_UPGRADE_POLICY,
+                "legacy_field": _LEGACY_BCL_DEPENDENCY_FIELD,
             },
         )
+
     registration = _registered_flowguard_json_artifact(data)
     if registration is None:
         return None
@@ -1169,13 +697,12 @@ def _review_json_path(path: Path, *, rel_path: str, apply: bool) -> ArtifactUpgr
         "registered_json_artifact",
         ARTIFACT_UPGRADE_STATUS_BLOCKED,
         detected_shape=f"schema_version:{schema_version}",
-        message=(
-            "registered FlowGuard artifact version has no evidence-bound migration"
-        ),
+        message="registered FlowGuard artifact version is not current and has no migration route",
         metadata={
             "artifact_type": registration.artifact_type,
             "version_field": registration.version_field,
             "current_versions": sorted(registration.current_versions),
+            "policy": ARTIFACT_UPGRADE_POLICY,
         },
     )
 
@@ -1210,7 +737,7 @@ def _registration_shape_findings(
     return tuple(findings)
 
 
-def _review_text_path(path: Path, *, rel_path: str, apply: bool) -> ArtifactUpgradeItem | None:
+def _review_text_path(path: Path, *, rel_path: str) -> ArtifactUpgradeItem | None:
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
@@ -1220,7 +747,7 @@ def _review_text_path(path: Path, *, rel_path: str, apply: bool) -> ArtifactUpgr
         return _skipped_text_item(rel_path, "historical_adoption_log")
 
     if (
-        rel_path == ".flowguard/behavior_commitment_ledger/model.py"
+        rel_path == ".flowguard/models/owners/behavior_commitment_ledger/model.py"
         and "load_behavior_commitment_ledger" not in text
         and ("BehaviorCommitment(" in text or "BehaviorCommitmentLedger(" in text)
     ):
@@ -1231,8 +758,8 @@ def _review_text_path(path: Path, *, rel_path: str, apply: bool) -> ArtifactUpgr
             detected_shape="embedded_python_behavior_ledger_inventory",
             replacement="canonical ledger.json plus thin loader",
             message=(
-                "embedded Python behavior inventory is not executed by the upgrader; "
-                "export or classify it into canonical JSON first"
+                "embedded Python behavior inventory is not executed by the audit; "
+                "author or classify it into the canonical current ledger directly"
             ),
         )
 
@@ -1244,7 +771,7 @@ def _review_text_path(path: Path, *, rel_path: str, apply: bool) -> ArtifactUpgr
             ARTIFACT_UPGRADE_STATUS_BLOCKED,
             detected_shape="unknown_behavior_script",
             message="behavior-bearing script contains an unknown legacy FlowGuard marker",
-            metadata={"markers": list(unknown_markers)},
+            metadata={"markers": list(unknown_markers), "policy": ARTIFACT_UPGRADE_POLICY},
         )
 
     replacements = {
@@ -1256,20 +783,18 @@ def _review_text_path(path: Path, *, rel_path: str, apply: bool) -> ArtifactUpgr
         return None
     if rel_path.startswith("tests/") and ("removed_aliases" in text or "assertNotIn" in text):
         return _skipped_text_item(rel_path, "negative_legacy_test")
-    upgraded = text
-    for old, new in replacements.items():
-        upgraded = upgraded.replace(old, new)
-    if apply and upgraded != text:
-        path.write_text(upgraded, encoding="utf-8")
     return ArtifactUpgradeItem(
         rel_path,
         "text_reference" if path.suffix.lower() != ".py" else "python_script",
-        ARTIFACT_UPGRADE_STATUS_UPGRADED,
+        ARTIFACT_UPGRADE_STATUS_BLOCKED,
         detected_shape="obsolete_api_aliases",
         replacement="current_route_first_api",
-        message="known obsolete FlowGuard API aliases were replaced deterministically",
-        changed=apply and upgraded != text,
-        metadata={"replacements": replacements},
+        message=(
+            "obsolete FlowGuard aliases require a direct current-source rewrite; "
+            "automatic compatibility replacement is disabled"
+        ),
+        changed=False,
+        metadata={"replacements": replacements, "policy": ARTIFACT_UPGRADE_POLICY},
     )
 
 
@@ -1301,12 +826,13 @@ def _review_toml_path(path: Path, *, rel_path: str) -> ArtifactUpgradeItem | Non
     return ArtifactUpgradeItem(
         rel_path,
         "project_manifest",
-        ARTIFACT_UPGRADE_STATUS_SKIPPED,
+        ARTIFACT_UPGRADE_STATUS_BLOCKED,
         detected_shape="manifest_schema_mismatch",
-        message="project manifest schema is updated by project-upgrade record handling",
+        message=(
+            "project manifest schema is not current; rewrite the manifest directly "
+            "and rerun current adoption checks"
+        ),
     )
-
-
 def _relative_path(path: Path, root_path: Path) -> str:
     try:
         return path.resolve().relative_to(root_path).as_posix()
@@ -1315,16 +841,13 @@ def _relative_path(path: Path, root_path: Path) -> str:
 
 
 __all__ = [
+    "ARTIFACT_UPGRADE_POLICY",
     "ARTIFACT_UPGRADE_STATUS_BLOCKED",
     "ARTIFACT_UPGRADE_STATUS_SKIPPED",
     "ARTIFACT_UPGRADE_STATUS_UNCHANGED",
-    "ARTIFACT_UPGRADE_STATUS_UPGRADED",
     "ARTIFACT_UPGRADE_STATUSES",
     "ARTIFACT_UPGRADE_TEXT_REPLACEMENTS",
     "ArtifactUpgradeItem",
     "ArtifactUpgradeReport",
-    "BehaviorLedgerMigrationFinding",
-    "BehaviorLedgerMigrationResult",
     "review_artifact_upgrades",
-    "upgrade_behavior_commitment_ledger_mapping",
 ]

@@ -297,5 +297,5 @@ Create a starter scaffold:
 
 ```powershell
 python -m flowguard test-mesh-template --output .
-python .flowguard/test_mesh/run_checks.py
+python .flowguard/verification/owners/test_mesh/run_checks.py
 ```

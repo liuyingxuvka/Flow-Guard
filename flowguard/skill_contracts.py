@@ -65,7 +65,13 @@ _CURRENT_SOURCE_FIELDS = frozenset(
     }
 )
 _CURRENT_AUTHORITY_FILES = frozenset(
-    {"contract-source.json", "compiled-contract.json", "check-manifest.json"}
+    {
+        "contract-source.json",
+        "compiled-contract.json",
+        "check-manifest.json",
+        "surface-inventory.json",
+        "surface-semantic-map.json",
+    }
 )
 _FORMER_AUTHORITY_NAMES = frozenset(
     {
@@ -115,6 +121,7 @@ _DEPTH_PROFILE_FIELDS = frozenset(
         "enforcement_level",
         "required_closure_profiles",
         "provider_runtime",
+        "surface_inventory",
         "claim_boundary",
     }
 )

@@ -87,10 +87,18 @@ if __name__ == "__main__":
 
 
 def _entry(root: Path, model_id: str, model_source: str) -> dict[str, object]:
-    directory = root / ".flowguard" / model_id
+    directory = root / ".flowguard" / "models" / "owners" / model_id
     directory.mkdir(parents=True)
     model_path = directory / "model.py"
-    runner_path = directory / "run_checks.py"
+    runner_path = (
+        root
+        / ".flowguard"
+        / "verification"
+        / "owners"
+        / model_id
+        / "run_checks.py"
+    )
+    runner_path.parent.mkdir(parents=True, exist_ok=True)
     model_path.write_text(model_source, encoding="utf-8")
     runner_path.write_text(RUNNER, encoding="utf-8")
     failure_id = f"failure.{model_id}.bypass"
@@ -122,15 +130,18 @@ def _entry(root: Path, model_id: str, model_source: str) -> dict[str, object]:
     )
     return {
         "model_id": model_id,
-        "model_path": f".flowguard/{model_id}/model.py",
-        "runner": ["{python}", f".flowguard/{model_id}/run_checks.py"],
+        "model_path": f".flowguard/models/owners/{model_id}/model.py",
+        "runner": [
+            "{python}",
+            f".flowguard/verification/owners/{model_id}/run_checks.py",
+        ],
         "tier": "fast",
         "timeout_seconds": 10,
         "shard_safe": False,
         "mutation_policy": "none",
         "input_globs": [
-            f".flowguard/{model_id}/model.py",
-            f".flowguard/{model_id}/run_checks.py",
+            f".flowguard/models/owners/{model_id}/model.py",
+            f".flowguard/verification/owners/{model_id}/run_checks.py",
         ],
         "expected_artifacts": [],
         "exclusion_reason": "",
@@ -140,19 +151,28 @@ def _entry(root: Path, model_id: str, model_source: str) -> dict[str, object]:
     }
 
 
-def _fixture_root(tmp_path: Path) -> Path:
+def _fixture_root(
+    tmp_path: Path,
+    *,
+    workflow_source: str = WORKFLOW_MODEL,
+) -> Path:
     entries = (
-        _entry(tmp_path, "workflow_owner", WORKFLOW_MODEL),
+        _entry(tmp_path, "workflow_owner", workflow_source),
         _entry(tmp_path, "export_owner", EXPORT_MODEL),
     )
     manifest = {
         "schema_version": MANIFEST_SCHEMA,
-        "governed_input_globs": [".flowguard/**/*.py"],
+        "governed_input_globs": [
+            ".flowguard/models/owners/**/*.py",
+            ".flowguard/verification/owners/**/*.py",
+        ],
         "snapshot_only_input_globs": [],
         "shared_input_groups": [],
         "models": list(entries),
     }
-    (tmp_path / ".flowguard" / "model-regression-manifest.json").write_text(
+    (
+        tmp_path / ".flowguard" / "models" / "regression-manifest.json"
+    ).write_text(
         json.dumps(manifest, indent=2) + "\n",
         encoding="utf-8",
     )
@@ -249,6 +269,45 @@ def test_compiles_dynamic_denominator_from_real_workflow_and_contract_export(
         "export_owner",
         "workflow_owner",
     ]
+
+
+def test_provider_loader_resolves_sibling_module_from_model_entrypoint(
+    tmp_path: Path,
+) -> None:
+    """The projection loader must match a runner's local import surface."""
+
+    root = _fixture_root(
+        tmp_path,
+        workflow_source=(
+            "from sibling_provider import HELPER_VALUE\n" + WORKFLOW_MODEL
+        ),
+    )
+    model_dir = root / ".flowguard" / "models" / "owners" / "workflow_owner"
+    (model_dir / "sibling_provider.py").write_text(
+        "HELPER_VALUE = 'current-local-provider'\n",
+        encoding="utf-8",
+    )
+    model_path = model_dir / "model.py"
+    model_path.write_text(
+        "from sibling_provider import HELPER_VALUE\n"
+        + WORKFLOW_MODEL,
+        encoding="utf-8",
+    )
+    manifest_path = root / ".flowguard" / "models" / "regression-manifest.json"
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    workflow_entry = next(
+        item for item in payload["models"] if item["model_id"] == "workflow_owner"
+    )
+    workflow_entry["input_globs"].append(
+        ".flowguard/models/owners/workflow_owner/sibling_provider.py"
+    )
+    manifest_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    material = compile_flowguard_self_path_quality_material(root, _snapshot(root))
+
+    assert material.ok
+    workflow = next(item for item in material.details if item.model_id == "workflow_owner")
+    assert workflow.provider_kind == "flowguard.executable-workflow-structure.v1"
 
 
 def test_exact_deep_trigger_stays_unresolved_without_candidate_synthesis(
@@ -354,7 +413,9 @@ def test_stale_candidate_snapshot_is_rejected_instead_of_downgraded(
 ) -> None:
     root = _fixture_root(tmp_path)
     snapshot = _snapshot(root)
-    model_path = root / ".flowguard" / "workflow_owner" / "model.py"
+    model_path = (
+        root / ".flowguard" / "models" / "owners" / "workflow_owner" / "model.py"
+    )
     model_path.write_text(WORKFLOW_MODEL + "\n# changed after snapshot\n", encoding="utf-8")
 
     material = compile_flowguard_self_path_quality_material(root, snapshot)
@@ -379,7 +440,7 @@ def test_manifest_change_after_snapshot_is_a_hard_currentness_block(
 ) -> None:
     root = _fixture_root(tmp_path)
     snapshot = _snapshot(root)
-    manifest_path = root / ".flowguard" / "model-regression-manifest.json"
+    manifest_path = root / ".flowguard" / "models" / "regression-manifest.json"
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     payload["snapshot_only_input_globs"] = [".flowguard/evidence/**/*"]
     manifest_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

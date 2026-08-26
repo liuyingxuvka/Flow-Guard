@@ -54,6 +54,47 @@ BEHAVIOR_COMMITMENT_ORACLE_ID = "behavior_commitment_coverage_must_block"
 BCL_SOURCE_FILE_AGGREGATE_SCHEMA = "flowguard.behavior-source-file-aggregate.v1"
 BCL_SOURCE_INVENTORY_SCHEMA = "flowguard.behavior-source-inventory.v1"
 BCL_LIVE_SOURCE_IDENTITY_METADATA_KEY = "live_source_identity"
+BCL_BEHAVIOR_INVENTORY_SCHEMA = "flowguard.independent-behavior-inventory.v2"
+
+# The independent behavior denominator is intentionally stricter than the
+# historical BCL source-surface ledger.  Historical specifications remain
+# provenance only; one of these dispositions must state how the current
+# effective intent treats that source.
+BCL_INTENT_DISPOSITION_ACCEPTED_CURRENT = "accepted_current"
+BCL_INTENT_DISPOSITION_SUPERSEDED = "superseded"
+BCL_INTENT_DISPOSITION_MERGED = "merged"
+BCL_INTENT_DISPOSITION_RETIRED = "retired"
+BCL_INTENT_DISPOSITION_REJECTED = "rejected"
+BCL_INTENT_DISPOSITION_UNRESOLVED = "unresolved"
+BCL_INTENT_DISPOSITIONS = (
+    BCL_INTENT_DISPOSITION_ACCEPTED_CURRENT,
+    BCL_INTENT_DISPOSITION_SUPERSEDED,
+    BCL_INTENT_DISPOSITION_MERGED,
+    BCL_INTENT_DISPOSITION_RETIRED,
+    BCL_INTENT_DISPOSITION_REJECTED,
+    BCL_INTENT_DISPOSITION_UNRESOLVED,
+)
+
+BCL_LIFECYCLE_LANES = (
+    "happy_path",
+    "boundary",
+    "negative",
+    "fault",
+    "recovery",
+    "cleanup",
+    "idempotency",
+    "repeated",
+    "interruption",
+    "runtime",
+    "ui",
+    "consumer",
+    "installation",
+    "platform",
+    "release",
+    "observed_miss_backfeed",
+)
+BCL_LIFECYCLE_REQUIRED = "required_and_covered"
+BCL_LIFECYCLE_NOT_APPLICABLE = "verified_not_applicable"
 
 BCL_SCOPE_ROUTINE = "routine"
 BCL_SCOPE_DONE = "done"
@@ -254,6 +295,21 @@ BCL_COVERAGE_DISPOSITIONS = (
     BCL_DISPOSITION_SCOPED,
 )
 
+# Independent behavior inventories use more explicit disposition names than
+# the historical source-surface dispositions above.  These values belong only
+# to the independent inventory; the old BCL source-surface constants remain
+# unchanged and are not accepted as inventory values.
+BCL_BEHAVIOR_DISPOSITION_MODELED = "modeled"
+BCL_BEHAVIOR_DISPOSITION_DELEGATED = "delegated_to_named_owner"
+BCL_BEHAVIOR_DISPOSITION_SCOPED = "explicitly_out_of_scope_with_reason"
+BCL_BEHAVIOR_DISPOSITION_BLOCKED = "blocked_gap"
+BCL_BEHAVIOR_INVENTORY_DISPOSITIONS = (
+    BCL_BEHAVIOR_DISPOSITION_MODELED,
+    BCL_BEHAVIOR_DISPOSITION_DELEGATED,
+    BCL_BEHAVIOR_DISPOSITION_SCOPED,
+    BCL_BEHAVIOR_DISPOSITION_BLOCKED,
+)
+
 BCL_REPLACEMENT_ACTIVE = "active"
 BCL_REPLACEMENT_DEPRECATED = "deprecated"
 BCL_REPLACEMENT_REPLACED = "replaced"
@@ -340,6 +396,24 @@ def _coerce_surface(value: "BehaviorSourceSurface | Mapping[str, Any]") -> "Beha
     if isinstance(value, BehaviorSourceSurface):
         return value
     return BehaviorSourceSurface(**dict(value))
+
+
+def _coerce_behavior_inventory(
+    value: "BehaviorInventory | Mapping[str, Any] | None",
+) -> "BehaviorInventory | None":
+    if value is None or isinstance(value, BehaviorInventory):
+        return value
+    data = dict(value)
+    expected_fingerprint = data.pop("fingerprint", None)
+    schema_version = data.pop("schema_version", BCL_BEHAVIOR_INVENTORY_SCHEMA)
+    if schema_version != BCL_BEHAVIOR_INVENTORY_SCHEMA:
+        raise ValueError(
+            f"unsupported behavior inventory schema_version {schema_version!r}"
+        )
+    result = BehaviorInventory(**data)
+    if expected_fingerprint is not None and expected_fingerprint != result.fingerprint:
+        raise ValueError("behavior inventory fingerprint is stale")
+    return result
 
 
 def _coerce_commitment(value: "BehaviorCommitment | Mapping[str, Any]") -> "BehaviorCommitment":
@@ -577,6 +651,316 @@ class BehaviorExternalDifference:
             "evidence_current": self.evidence_current,
             "rationale": self.rationale,
             "metadata": to_jsonable(dict(self.metadata)),
+        }
+
+
+@dataclass(frozen=True)
+class BehaviorInventoryItem:
+    """One independently discovered external behavior denominator member.
+
+    The discovery owner supplies these rows independently of BCL commitment
+    rows and test inventories.  BCL only reconciles each row to one typed
+    disposition and preserves its external success, error, and recovery
+    semantics for downstream model/test alignment.
+    """
+
+    behavior_id: str
+    source_kind: str
+    source_ref: str
+    source_fingerprint: str
+    public_surface: str
+    intent: str
+    success: str
+    errors: tuple[str, ...]
+    recovery: tuple[str, ...]
+    owner: str
+    disposition: str
+    intent_source_refs: tuple[str, ...] = ()
+    intent_disposition: str = BCL_INTENT_DISPOSITION_ACCEPTED_CURRENT
+    function_id: str = ""
+    route_id: str = ""
+    obligation_ids: tuple[str, ...] = ()
+    required_check_ids: tuple[str, ...] = ()
+    test_refs: tuple[str, ...] = ()
+    evidence_subject_ids: tuple[str, ...] = ()
+    oracle_ids: tuple[str, ...] = ()
+    failure_case_ids: tuple[str, ...] = ()
+    recovery_case_ids: tuple[str, ...] = ()
+    current_intent_fingerprint: str = ""
+    lifecycle_envelope: Mapping[str, Any] = field(default_factory=dict)
+    commitment_id: str = ""
+    model_owner_id: str = ""
+    delegated_owner_inventory_id: str = ""
+    delegation_relation_type: str = ""
+    scoped_out_reason: str = ""
+    blocked_gap_reason: str = ""
+    validation_boundary: str = ""
+    rationale: str = ""
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        for name in (
+            "behavior_id",
+            "source_kind",
+            "source_ref",
+            "source_fingerprint",
+            "public_surface",
+            "intent",
+            "success",
+            "owner",
+            "disposition",
+        ):
+            value = str(getattr(self, name))
+            if not value.strip():
+                raise ValueError(f"behavior inventory {name} must be non-empty")
+            object.__setattr__(self, name, value)
+        if (
+            not self.source_fingerprint.startswith("sha256:")
+            or not self.source_fingerprint[7:].strip()
+        ):
+            raise ValueError(
+                "behavior inventory source_fingerprint must be a sha256 identity"
+            )
+        object.__setattr__(
+            self,
+            "intent_source_refs",
+            _as_tuple(self.intent_source_refs),
+        )
+        object.__setattr__(
+            self,
+            "intent_disposition",
+            str(self.intent_disposition or BCL_INTENT_DISPOSITION_UNRESOLVED),
+        )
+        if self.intent_disposition not in BCL_INTENT_DISPOSITIONS:
+            raise ValueError(
+                "behavior inventory intent_disposition must be one of "
+                + ", ".join(BCL_INTENT_DISPOSITIONS)
+            )
+        for name in (
+            "function_id",
+            "route_id",
+            "current_intent_fingerprint",
+        ):
+            object.__setattr__(self, name, str(getattr(self, name)))
+        for name in (
+            "obligation_ids",
+            "required_check_ids",
+            "test_refs",
+            "evidence_subject_ids",
+            "oracle_ids",
+            "failure_case_ids",
+            "recovery_case_ids",
+        ):
+            object.__setattr__(self, name, _as_tuple(getattr(self, name)))
+        envelope = dict(self.lifecycle_envelope or {})
+        object.__setattr__(self, "lifecycle_envelope", envelope)
+        disposition = str(self.disposition)
+        if disposition not in BCL_BEHAVIOR_INVENTORY_DISPOSITIONS:
+            raise ValueError(
+                "behavior inventory disposition must be modeled, "
+                "delegated_to_named_owner, explicitly_out_of_scope_with_reason, "
+                "or blocked_gap"
+            )
+        object.__setattr__(self, "disposition", disposition)
+        for name in ("errors", "recovery"):
+            values = _as_tuple(getattr(self, name))
+            if not values or any(not value.strip() for value in values):
+                raise ValueError(
+                    f"behavior inventory {name} must contain an explicit outcome or not-applicable reason"
+                )
+            object.__setattr__(self, name, values)
+        for name in (
+            "commitment_id",
+            "model_owner_id",
+            "delegated_owner_inventory_id",
+            "delegation_relation_type",
+            "scoped_out_reason",
+            "blocked_gap_reason",
+            "validation_boundary",
+            "rationale",
+        ):
+            object.__setattr__(self, name, str(getattr(self, name)))
+        object.__setattr__(self, "metadata", _metadata(self.metadata))
+
+    def identity_payload(self) -> dict[str, Any]:
+        return {
+            "schema_version": BCL_BEHAVIOR_INVENTORY_SCHEMA,
+            "behavior_id": self.behavior_id,
+            "source_kind": self.source_kind,
+            "source_ref": self.source_ref,
+            "source_fingerprint": self.source_fingerprint,
+            "public_surface": self.public_surface,
+            "intent": self.intent,
+            "intent_source_refs": list(self.intent_source_refs),
+            "intent_disposition": self.intent_disposition,
+            "function_id": self.function_id,
+            "route_id": self.route_id,
+            "obligation_ids": list(self.obligation_ids),
+            "required_check_ids": list(self.required_check_ids),
+            "test_refs": list(self.test_refs),
+            "evidence_subject_ids": list(self.evidence_subject_ids),
+            "oracle_ids": list(self.oracle_ids),
+            "failure_case_ids": list(self.failure_case_ids),
+            "recovery_case_ids": list(self.recovery_case_ids),
+            "current_intent_fingerprint": self.current_intent_fingerprint,
+            "lifecycle_envelope": to_jsonable(dict(self.lifecycle_envelope)),
+            "success": self.success,
+            "errors": list(self.errors),
+            "recovery": list(self.recovery),
+            "owner": self.owner,
+            "disposition": self.disposition,
+            "commitment_id": self.commitment_id,
+            "model_owner_id": self.model_owner_id,
+            "delegated_owner_inventory_id": self.delegated_owner_inventory_id,
+            "delegation_relation_type": self.delegation_relation_type,
+            "scoped_out_reason": self.scoped_out_reason,
+            "blocked_gap_reason": self.blocked_gap_reason,
+            "validation_boundary": self.validation_boundary,
+            "rationale": self.rationale,
+            "metadata": to_jsonable(dict(self.metadata)),
+        }
+
+    @property
+    def fingerprint(self) -> str:
+        return _canonical_sha256(self.identity_payload())
+
+    def to_dict(self) -> dict[str, Any]:
+        return {**self.identity_payload(), "fingerprint": self.fingerprint}
+
+
+def _coerce_behavior_inventory_item(
+    value: "BehaviorInventoryItem | Mapping[str, Any]",
+) -> "BehaviorInventoryItem":
+    if isinstance(value, BehaviorInventoryItem):
+        return value
+    data = dict(value)
+    expected_fingerprint = data.pop("fingerprint", None)
+    schema_version = data.pop("schema_version", BCL_BEHAVIOR_INVENTORY_SCHEMA)
+    if schema_version != BCL_BEHAVIOR_INVENTORY_SCHEMA:
+        raise ValueError(
+            f"unsupported behavior inventory item schema_version {schema_version!r}"
+        )
+    result = BehaviorInventoryItem(**data)
+    if expected_fingerprint is not None and expected_fingerprint != result.fingerprint:
+        raise ValueError("behavior inventory item fingerprint is stale")
+    return result
+
+
+@dataclass(frozen=True)
+class BehaviorInventory:
+    """The independently discovered expected behavior denominator."""
+
+    inventory_id: str
+    project_boundary: str
+    current_revision: str
+    discovery_owner: str
+    discovery_fingerprint: str
+    discovery_evidence_ids: tuple[str, ...]
+    expected_behavior_ids: tuple[str, ...]
+    items: tuple[BehaviorInventoryItem | Mapping[str, Any], ...]
+    claim_boundary: str
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        for name in (
+            "inventory_id",
+            "project_boundary",
+            "current_revision",
+            "discovery_owner",
+            "discovery_fingerprint",
+            "claim_boundary",
+        ):
+            value = str(getattr(self, name))
+            if not value.strip():
+                raise ValueError(f"behavior inventory {name} must be non-empty")
+            object.__setattr__(self, name, value)
+        if (
+            not self.discovery_fingerprint.startswith("sha256:")
+            or not self.discovery_fingerprint[7:].strip()
+        ):
+            raise ValueError(
+                "behavior inventory discovery_fingerprint must be a sha256 identity"
+            )
+        evidence_ids = _as_tuple(self.discovery_evidence_ids)
+        expected_ids = _as_tuple(self.expected_behavior_ids)
+        if not evidence_ids or any(not item.strip() for item in evidence_ids):
+            raise ValueError("behavior inventory requires discovery evidence")
+        if not expected_ids or any(not item.strip() for item in expected_ids):
+            raise ValueError("behavior inventory requires expected behavior ids")
+        object.__setattr__(self, "discovery_evidence_ids", evidence_ids)
+        object.__setattr__(self, "expected_behavior_ids", expected_ids)
+        object.__setattr__(
+            self,
+            "items",
+            tuple(
+                sorted(
+                    (_coerce_behavior_inventory_item(item) for item in self.items),
+                    key=lambda item: item.behavior_id,
+                )
+            ),
+        )
+        object.__setattr__(self, "metadata", _metadata(self.metadata))
+
+    def identity_payload(self) -> dict[str, Any]:
+        return {
+            "schema_version": BCL_BEHAVIOR_INVENTORY_SCHEMA,
+            "inventory_id": self.inventory_id,
+            "project_boundary": self.project_boundary,
+            "current_revision": self.current_revision,
+            "discovery_owner": self.discovery_owner,
+            "discovery_fingerprint": self.discovery_fingerprint,
+            "discovery_evidence_ids": list(self.discovery_evidence_ids),
+            "expected_behavior_ids": list(self.expected_behavior_ids),
+            "items": [item.to_dict() for item in self.items],
+            "claim_boundary": self.claim_boundary,
+            "metadata": to_jsonable(dict(self.metadata)),
+        }
+
+    @property
+    def fingerprint(self) -> str:
+        return _canonical_sha256(self.identity_payload())
+
+    @property
+    def behavior_ids(self) -> tuple[str, ...]:
+        return tuple(item.behavior_id for item in self.items)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {**self.identity_payload(), "fingerprint": self.fingerprint}
+
+
+@dataclass(frozen=True)
+class BehaviorInventoryReport:
+    """Reconciliation result for one independent behavior denominator."""
+
+    ok: bool
+    inventory_id: str
+    inventory_fingerprint: str
+    expected_behavior_ids: tuple[str, ...] = ()
+    actual_behavior_ids: tuple[str, ...] = ()
+    missing_behavior_ids: tuple[str, ...] = ()
+    unexpected_behavior_ids: tuple[str, ...] = ()
+    findings: tuple["BehaviorCommitmentFinding", ...] = ()
+
+    def __post_init__(self) -> None:
+        for name in (
+            "expected_behavior_ids",
+            "actual_behavior_ids",
+            "missing_behavior_ids",
+            "unexpected_behavior_ids",
+        ):
+            object.__setattr__(self, name, _as_tuple(getattr(self, name)))
+        object.__setattr__(self, "findings", tuple(self.findings))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ok": self.ok,
+            "inventory_id": self.inventory_id,
+            "inventory_fingerprint": self.inventory_fingerprint,
+            "expected_behavior_ids": list(self.expected_behavior_ids),
+            "actual_behavior_ids": list(self.actual_behavior_ids),
+            "missing_behavior_ids": list(self.missing_behavior_ids),
+            "unexpected_behavior_ids": list(self.unexpected_behavior_ids),
+            "findings": [finding.to_dict() for finding in self.findings],
         }
 
 
@@ -1072,6 +1456,8 @@ class BehaviorCommitmentLedger:
     source_inventory_fingerprint: str = ""
     source_inventory_evidence_ids: tuple[str, ...] = ()
     require_complete_source_inventory: bool = False
+    independent_behavior_inventory: BehaviorInventory | Mapping[str, Any] | None = None
+    require_complete_behavior_inventory: bool = False
     expected_commitment_ids: tuple[str, ...] = ()
     expected_business_intent_ids: tuple[str, ...] = ()
     claim_scope: str = BCL_SCOPE_ROUTINE
@@ -1115,6 +1501,16 @@ class BehaviorCommitmentLedger:
             "require_complete_source_inventory",
             bool(self.require_complete_source_inventory),
         )
+        object.__setattr__(
+            self,
+            "independent_behavior_inventory",
+            _coerce_behavior_inventory(self.independent_behavior_inventory),
+        )
+        object.__setattr__(
+            self,
+            "require_complete_behavior_inventory",
+            bool(self.require_complete_behavior_inventory),
+        )
         object.__setattr__(self, "expected_commitment_ids", _as_tuple(self.expected_commitment_ids))
         object.__setattr__(self, "expected_business_intent_ids", _as_tuple(self.expected_business_intent_ids))
         object.__setattr__(self, "claim_scope", str(self.claim_scope or BCL_SCOPE_ROUTINE))
@@ -1146,6 +1542,12 @@ class BehaviorCommitmentLedger:
             "source_inventory_fingerprint": self.source_inventory_fingerprint,
             "source_inventory_evidence_ids": list(self.source_inventory_evidence_ids),
             "require_complete_source_inventory": self.require_complete_source_inventory,
+            "independent_behavior_inventory": (
+                self.independent_behavior_inventory.to_dict()
+                if self.independent_behavior_inventory is not None
+                else None
+            ),
+            "require_complete_behavior_inventory": self.require_complete_behavior_inventory,
             "expected_commitment_ids": list(self.expected_commitment_ids),
             "expected_business_intent_ids": list(self.expected_business_intent_ids),
             "claim_scope": self.claim_scope,
@@ -1313,6 +1715,10 @@ class BehaviorCommitmentCoverageReport:
     coverage_case_ids: tuple[str, ...] = ()
     coverage_shard_ids: tuple[str, ...] = ()
     coverage_receipt_ids: tuple[str, ...] = ()
+    behavior_inventory_id: str = ""
+    behavior_inventory_fingerprint: str = ""
+    missing_behavior_ids: tuple[str, ...] = ()
+    unexpected_behavior_ids: tuple[str, ...] = ()
     summary: str = ""
 
     def __post_init__(self) -> None:
@@ -1338,6 +1744,14 @@ class BehaviorCommitmentCoverageReport:
         object.__setattr__(self, "coverage_case_ids", _as_tuple(self.coverage_case_ids))
         object.__setattr__(self, "coverage_shard_ids", _as_tuple(self.coverage_shard_ids))
         object.__setattr__(self, "coverage_receipt_ids", _as_tuple(self.coverage_receipt_ids))
+        object.__setattr__(self, "behavior_inventory_id", str(self.behavior_inventory_id))
+        object.__setattr__(
+            self,
+            "behavior_inventory_fingerprint",
+            str(self.behavior_inventory_fingerprint),
+        )
+        object.__setattr__(self, "missing_behavior_ids", _as_tuple(self.missing_behavior_ids))
+        object.__setattr__(self, "unexpected_behavior_ids", _as_tuple(self.unexpected_behavior_ids))
         if not self.summary:
             status = "OK" if self.ok else "BLOCKED"
             object.__setattr__(
@@ -1363,6 +1777,8 @@ class BehaviorCommitmentCoverageReport:
             f"unexpected_source_surfaces: {len(self.unexpected_source_surface_ids)}",
             f"unmapped_surfaces: {len(self.unmapped_surface_ids)}",
             f"extra_commitments: {len(self.extra_commitment_ids)}",
+            f"missing_behaviors: {len(self.missing_behavior_ids)}",
+            f"unexpected_behaviors: {len(self.unexpected_behavior_ids)}",
             f"findings: {len(self.findings)}",
         ]
         for finding in self.findings[:max_findings]:
@@ -1398,6 +1814,10 @@ class BehaviorCommitmentCoverageReport:
             "coverage_case_ids": list(self.coverage_case_ids),
             "coverage_shard_ids": list(self.coverage_shard_ids),
             "coverage_receipt_ids": list(self.coverage_receipt_ids),
+            "behavior_inventory_id": self.behavior_inventory_id,
+            "behavior_inventory_fingerprint": self.behavior_inventory_fingerprint,
+            "missing_behavior_ids": list(self.missing_behavior_ids),
+            "unexpected_behavior_ids": list(self.unexpected_behavior_ids),
             "summary": self.summary,
         }
 
@@ -1418,6 +1838,272 @@ def _finding(
         commitment_id=commitment_id,
         surface_id=surface_id,
         metadata=metadata or {},
+    )
+
+
+def review_independent_behavior_inventory(
+    inventory: BehaviorInventory | Mapping[str, Any],
+    *,
+    ledger: BehaviorCommitmentLedger | Mapping[str, Any] | None = None,
+) -> BehaviorInventoryReport:
+    """Reconcile an independently discovered behavior denominator.
+
+    The expected id list and discovery identity are caller-supplied evidence;
+    this function never derives them from BCL commitment rows or tests.  When
+    a ledger is supplied, it only checks the typed handoff for modeled rows
+    and rejects an inventory that reuses the ledger's own identity as its
+    discovery authority.
+    """
+
+    normalized = _coerce_behavior_inventory(inventory)
+    if normalized is None:
+        raise ValueError("independent behavior inventory cannot be null")
+    normalized_ledger = (
+        None
+        if ledger is None
+        else behavior_commitment_ledger_from_mapping(ledger)
+    )
+    findings: list[BehaviorCommitmentFinding] = []
+    expected_ids = tuple(normalized.expected_behavior_ids)
+    actual_ids = tuple(item.behavior_id for item in normalized.items)
+    duplicate_expected = tuple(
+        sorted(
+            item_id
+            for item_id in set(expected_ids)
+            if expected_ids.count(item_id) > 1
+        )
+    )
+    duplicate_actual = tuple(
+        sorted(
+            item_id
+            for item_id in set(actual_ids)
+            if actual_ids.count(item_id) > 1
+        )
+    )
+    if duplicate_expected:
+        findings.append(
+            _finding(
+                "behavior_inventory_expected_duplicate_id",
+                "independent behavior inventory expected ids must be unique",
+                metadata={"behavior_ids": list(duplicate_expected)},
+            )
+        )
+    if duplicate_actual:
+        findings.append(
+            _finding(
+                "behavior_inventory_duplicate_id",
+                "independent behavior inventory contains duplicate materialized ids",
+                metadata={"behavior_ids": list(duplicate_actual)},
+            )
+        )
+    missing_ids = tuple(sorted(set(expected_ids) - set(actual_ids)))
+    unexpected_ids = tuple(sorted(set(actual_ids) - set(expected_ids)))
+    for behavior_id in missing_ids:
+        findings.append(
+            _finding(
+                "behavior_inventory_expected_item_missing",
+                "independent expected behavior is absent from the materialized inventory",
+                metadata={"behavior_id": behavior_id},
+            )
+        )
+    for behavior_id in unexpected_ids:
+        findings.append(
+            _finding(
+                "behavior_inventory_unexpected_item",
+                "materialized behavior is outside the independent expected denominator",
+                metadata={"behavior_id": behavior_id},
+            )
+        )
+    if normalized.inventory_id == (normalized_ledger.ledger_id if normalized_ledger else ""):
+        findings.append(
+            _finding(
+                "behavior_inventory_authority_collision",
+                "independent behavior inventory must have an authority identity distinct from the BCL ledger",
+            )
+        )
+    if normalized_ledger is not None:
+        ledger_fingerprint = behavior_commitment_ledger_fingerprint(normalized_ledger)
+        if normalized.discovery_fingerprint == f"sha256:{ledger_fingerprint}":
+            findings.append(
+                _finding(
+                    "behavior_inventory_discovery_not_independent",
+                    "independent behavior discovery fingerprint cannot reuse the BCL ledger fingerprint",
+                )
+            )
+    commitment_by_id = {
+        commitment.commitment_id: commitment for commitment in normalized_ledger.commitments
+    } if normalized_ledger is not None else {}
+    for item in normalized.items:
+        if not item.intent_source_refs:
+            findings.append(
+                _finding(
+                    "behavior_inventory_intent_source_missing",
+                    "every behavior must retain at least one explicit intent provenance reference",
+                    metadata={"behavior_id": item.behavior_id},
+                )
+            )
+        if item.intent_disposition == BCL_INTENT_DISPOSITION_UNRESOLVED:
+            findings.append(
+                _finding(
+                    "behavior_inventory_intent_unresolved",
+                    "an unresolved historical/current intent disposition blocks the inventory",
+                    metadata={"behavior_id": item.behavior_id},
+                )
+            )
+        if (
+            not item.current_intent_fingerprint.startswith("sha256:")
+            or not item.current_intent_fingerprint[7:].strip()
+        ):
+            findings.append(
+                _finding(
+                    "behavior_inventory_current_intent_identity_missing",
+                    "every behavior must bind the current effective intent fingerprint",
+                    metadata={"behavior_id": item.behavior_id},
+                )
+            )
+        if item.intent_disposition == BCL_INTENT_DISPOSITION_ACCEPTED_CURRENT:
+            if not item.function_id and not item.route_id:
+                findings.append(
+                    _finding(
+                        "behavior_inventory_function_route_missing",
+                        "accepted current behavior requires a function or route identity",
+                        metadata={"behavior_id": item.behavior_id},
+                    )
+                )
+            required_links = (
+                ("obligation_ids", item.obligation_ids),
+                ("required_check_ids", item.required_check_ids),
+                ("test_refs", item.test_refs),
+                ("evidence_subject_ids", item.evidence_subject_ids),
+                ("oracle_ids", item.oracle_ids),
+                ("failure_case_ids", item.failure_case_ids),
+                ("recovery_case_ids", item.recovery_case_ids),
+            )
+            for field_name, values in required_links:
+                if not values:
+                    findings.append(
+                        _finding(
+                            "behavior_inventory_required_link_missing",
+                            f"accepted current behavior requires non-empty {field_name}",
+                            metadata={
+                                "behavior_id": item.behavior_id,
+                                "field": field_name,
+                            },
+                        )
+                    )
+            envelope = item.lifecycle_envelope
+            missing_lanes = tuple(
+                lane for lane in BCL_LIFECYCLE_LANES if lane not in envelope
+            )
+            unknown_lanes = tuple(
+                sorted(set(envelope) - set(BCL_LIFECYCLE_LANES))
+            )
+            if missing_lanes or unknown_lanes:
+                findings.append(
+                    _finding(
+                        "behavior_inventory_lifecycle_envelope_incomplete",
+                        "accepted current behavior must account for every lifecycle lane",
+                        metadata={
+                            "behavior_id": item.behavior_id,
+                            "missing_lanes": list(missing_lanes),
+                            "unknown_lanes": list(unknown_lanes),
+                        },
+                    )
+                )
+            else:
+                invalid_lanes = []
+                for lane in BCL_LIFECYCLE_LANES:
+                    value = envelope.get(lane)
+                    if not isinstance(value, Mapping):
+                        invalid_lanes.append(lane)
+                        continue
+                    status = str(value.get("status", ""))
+                    if status not in (
+                        BCL_LIFECYCLE_REQUIRED,
+                        BCL_LIFECYCLE_NOT_APPLICABLE,
+                    ):
+                        invalid_lanes.append(lane)
+                if invalid_lanes:
+                    findings.append(
+                        _finding(
+                            "behavior_inventory_lifecycle_lane_invalid",
+                            "each lifecycle lane must be covered or have a verifier-backed not-applicable disposition",
+                            metadata={
+                                "behavior_id": item.behavior_id,
+                                "lanes": sorted(invalid_lanes),
+                            },
+                        )
+                    )
+        if item.disposition == BCL_DISPOSITION_MODELED:
+            if not item.commitment_id:
+                findings.append(
+                    _finding(
+                        "behavior_inventory_modeled_commitment_missing",
+                        "modeled independent behavior requires one BCL commitment id",
+                        metadata={"behavior_id": item.behavior_id},
+                    )
+                )
+            elif normalized_ledger is not None and item.commitment_id not in commitment_by_id:
+                findings.append(
+                    _finding(
+                        "behavior_inventory_modeled_commitment_unknown",
+                        "modeled independent behavior names a commitment outside the current BCL",
+                        commitment_id=item.commitment_id,
+                        metadata={"behavior_id": item.behavior_id},
+                    )
+                )
+            if not item.model_owner_id:
+                findings.append(
+                    _finding(
+                        "behavior_inventory_modeled_owner_missing",
+                        "modeled independent behavior requires one exact primary model owner",
+                        commitment_id=item.commitment_id,
+                        metadata={"behavior_id": item.behavior_id},
+                    )
+                )
+        elif item.disposition == BCL_BEHAVIOR_DISPOSITION_DELEGATED:
+            if not item.delegated_owner_inventory_id or not item.delegation_relation_type:
+                findings.append(
+                    _finding(
+                        "behavior_inventory_delegated_owner_incomplete",
+                        "delegated independent behavior requires a named native owner inventory and typed relation",
+                        metadata={"behavior_id": item.behavior_id},
+                    )
+                )
+        elif item.disposition == BCL_BEHAVIOR_DISPOSITION_SCOPED:
+            if not item.scoped_out_reason or not item.validation_boundary or not item.rationale:
+                findings.append(
+                    _finding(
+                        "behavior_inventory_out_of_scope_disposition_incomplete",
+                        "out-of-scope independent behavior requires reason, owner boundary, and rationale",
+                        metadata={"behavior_id": item.behavior_id},
+                    )
+                )
+        elif item.disposition == BCL_BEHAVIOR_DISPOSITION_BLOCKED:
+            findings.append(
+                _finding(
+                    "behavior_inventory_blocked_gap",
+                    "independent behavior remains a visible blocked gap until its native owner closes it",
+                    metadata={"behavior_id": item.behavior_id},
+                )
+            )
+            if not item.blocked_gap_reason or not item.validation_boundary or not item.rationale:
+                findings.append(
+                    _finding(
+                        "behavior_inventory_blocked_gap_incomplete",
+                        "blocked behavior gap requires an explicit reason, owner boundary, and rationale",
+                        metadata={"behavior_id": item.behavior_id},
+                    )
+                )
+    return BehaviorInventoryReport(
+        ok=not findings,
+        inventory_id=normalized.inventory_id,
+        inventory_fingerprint=normalized.fingerprint,
+        expected_behavior_ids=expected_ids,
+        actual_behavior_ids=actual_ids,
+        missing_behavior_ids=missing_ids,
+        unexpected_behavior_ids=unexpected_ids,
+        findings=tuple(findings),
     )
 
 
@@ -2198,6 +2884,22 @@ def review_behavior_commitment_ledger(
                 )
             )
 
+    behavior_inventory_report: BehaviorInventoryReport | None = None
+    if ledger.independent_behavior_inventory is None:
+        if ledger.require_complete_behavior_inventory:
+            findings.append(
+                _finding(
+                    "independent_behavior_inventory_missing",
+                    "complete behavior coverage requires an independently discovered behavior inventory",
+                )
+            )
+    else:
+        behavior_inventory_report = review_independent_behavior_inventory(
+            ledger.independent_behavior_inventory,
+            ledger=ledger,
+        )
+        findings.extend(behavior_inventory_report.findings)
+
     stable_identity_required = bool(
         ledger.broad_claim()
         or ledger.expected_business_intent_ids
@@ -2470,6 +3172,26 @@ def review_behavior_commitment_ledger(
         coverage_case_ids=tuple(dict.fromkeys(coverage_case_ids)),
         coverage_shard_ids=tuple(dict.fromkeys(coverage_shard_ids)),
         coverage_receipt_ids=tuple(dict.fromkeys(coverage_receipt_ids)),
+        behavior_inventory_id=(
+            behavior_inventory_report.inventory_id
+            if behavior_inventory_report is not None
+            else ""
+        ),
+        behavior_inventory_fingerprint=(
+            behavior_inventory_report.inventory_fingerprint
+            if behavior_inventory_report is not None
+            else ""
+        ),
+        missing_behavior_ids=(
+            behavior_inventory_report.missing_behavior_ids
+            if behavior_inventory_report is not None
+            else ()
+        ),
+        unexpected_behavior_ids=(
+            behavior_inventory_report.unexpected_behavior_ids
+            if behavior_inventory_report is not None
+            else ()
+        ),
     )
 
 
@@ -3448,6 +4170,22 @@ __all__ = [
     "BCL_PPA_PASSED",
     "BCL_PPA_RESULTS",
     "BCL_BEHAVIOR_PLANES",
+    "BCL_BEHAVIOR_INVENTORY_SCHEMA",
+    "BCL_INTENT_DISPOSITION_ACCEPTED_CURRENT",
+    "BCL_INTENT_DISPOSITION_SUPERSEDED",
+    "BCL_INTENT_DISPOSITION_MERGED",
+    "BCL_INTENT_DISPOSITION_RETIRED",
+    "BCL_INTENT_DISPOSITION_REJECTED",
+    "BCL_INTENT_DISPOSITION_UNRESOLVED",
+    "BCL_INTENT_DISPOSITIONS",
+    "BCL_LIFECYCLE_LANES",
+    "BCL_LIFECYCLE_REQUIRED",
+    "BCL_LIFECYCLE_NOT_APPLICABLE",
+    "BCL_BEHAVIOR_DISPOSITION_MODELED",
+    "BCL_BEHAVIOR_DISPOSITION_DELEGATED",
+    "BCL_BEHAVIOR_DISPOSITION_SCOPED",
+    "BCL_BEHAVIOR_DISPOSITION_BLOCKED",
+    "BCL_BEHAVIOR_INVENTORY_DISPOSITIONS",
     "BCL_PLANE_AGENT_OPERATION",
     "BCL_PLANE_DEVELOPMENT_PROCESS",
     "BCL_PLANE_PRODUCT_RUNTIME",
@@ -3518,6 +4256,9 @@ __all__ = [
     "BehaviorCommitmentCoverageReport",
     "BehaviorCommitmentFinding",
     "BehaviorCommitmentLedger",
+    "BehaviorInventoryItem",
+    "BehaviorInventory",
+    "BehaviorInventoryReport",
     "BehaviorEvidenceBinding",
     "BehaviorExternalDifference",
     "BehaviorLookupBinding",
@@ -3539,6 +4280,7 @@ __all__ = [
     "default_behavior_commitment_interaction_groups",
     "load_behavior_commitment_ledger",
     "refresh_behavior_commitment_source_inventory",
+    "review_independent_behavior_inventory",
     "review_behavior_commitment_ledger",
     "write_behavior_commitment_ledger",
 ]

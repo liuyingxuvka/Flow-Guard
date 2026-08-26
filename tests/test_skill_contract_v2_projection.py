@@ -12,21 +12,21 @@ from flowguard.skill_contracts import validate_contract_source
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = {
-    "flowguard": ".flowguard/minimum_valuable_model_entry/model.py",
-    "flowguard-architecture-reduction": ".flowguard/architecture_reduction/model.py",
-    "flowguard-behavior-commitment-ledger": ".flowguard/behavior_commitment_ledger/model.py",
+    "flowguard": ".flowguard/models/owners/minimum_valuable_model_entry/model.py",
+    "flowguard-architecture-reduction": ".flowguard/models/owners/architecture_reduction/model.py",
+    "flowguard-behavior-commitment-ledger": ".flowguard/models/owners/behavior_commitment_ledger/model.py",
     "flowguard-code-structure-recommendation": "examples/skill_contract_model_exports/code_structure_recommendation.py",
     "flowguard-contract-exhaustion-mesh": "examples/skill_contract_model_exports/contract_exhaustion_mesh.py",
-    "flowguard-development-process-flow": ".flowguard/development_process_flow/model.py",
-    "flowguard-existing-model-preflight": ".flowguard/existing_model_preflight/model.py",
-    "flowguard-field-lifecycle-mesh": ".flowguard/default_replacement_field_lifecycle/model.py",
-    "flowguard-model-mesh": ".flowguard/hierarchical_model_mesh/model.py",
-    "flowguard-model-miss-review": ".flowguard/model_miss_review/model.py",
-    "flowguard-model-test-alignment": ".flowguard/model_test_code_alignment/model.py",
-    "flowguard-model-topology-hazard-review": ".flowguard/model_topology_hazard_review/model.py",
-    "flowguard-structure-mesh": ".flowguard/structure_refactor_mesh/model.py",
-    "flowguard-test-mesh": ".flowguard/test_evidence_mesh/model.py",
-    "flowguard-ui-flow-structure": ".flowguard/ui_flow_structure_skill/model.py",
+    "flowguard-development-process-flow": ".flowguard/models/owners/development_process_flow/model.py",
+    "flowguard-existing-model-preflight": ".flowguard/models/owners/existing_model_preflight/model.py",
+    "flowguard-field-lifecycle-mesh": ".flowguard/models/owners/default_replacement_field_lifecycle/model.py",
+    "flowguard-model-mesh": ".flowguard/models/owners/hierarchical_model_mesh/model.py",
+    "flowguard-model-miss-review": ".flowguard/models/owners/model_miss_review/model.py",
+    "flowguard-model-test-alignment": ".flowguard/models/owners/model_test_code_alignment/model.py",
+    "flowguard-model-topology-hazard-review": ".flowguard/models/owners/model_topology_hazard_review/model.py",
+    "flowguard-structure-mesh": ".flowguard/models/owners/structure_refactor_mesh/model.py",
+    "flowguard-test-mesh": ".flowguard/models/owners/test_evidence_mesh/model.py",
+    "flowguard-ui-flow-structure": ".flowguard/models/owners/ui_flow_structure_skill/model.py",
 }
 SUITE_MEMBER_IDS = tuple(SKILLS)
 

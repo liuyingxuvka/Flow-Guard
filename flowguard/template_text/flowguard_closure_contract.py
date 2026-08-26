@@ -30,7 +30,7 @@ final confidence reports, runtime gateway adoption, release closure, or route
 closure packages that depend on multiple FlowGuard evidence routes.
 
 Run:
-python .flowguard/closure_contract/run_checks.py
+python .flowguard/verification/owners/closure_contract/run_checks.py
 
 Replace the sample IDs with the project evidence IDs for the claim under
 review.
@@ -151,14 +151,14 @@ def maturation_evidence():
     snapshot = snapshot_bytes(
         "artifact:critical-write-model",
         b"critical-write-model",
-        path_token="<WORKSPACE>/.flowguard/critical_write/model.py",
+        path_token="<WORKSPACE>/.flowguard/models/owners/critical_write/model.py",
         obligation_ids=("obligation:critical-write-maturation",),
     )
     environment = {"python_version": "template"}
     publication = ModelMaturationReceiptPublication(
         producer_id="flowguard.model_maturation",
         producer_version="template",
-        command=("python", ".flowguard/critical_write/run_checks.py"),
+        command=("python", ".flowguard/verification/owners/critical_write/run_checks.py"),
         started_at="2026-01-01T00:00:00+00:00",
         finished_at="2026-01-01T00:00:01+00:00",
         environment_metadata=environment,

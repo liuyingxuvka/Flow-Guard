@@ -142,7 +142,7 @@ SELF_BLUEPRINT_BUILD_INPUT_IDENTITY_SCHEMA = (
     "flowguard.self_blueprint_build_input_identity.v2"
 )
 DEFAULT_SELF_BLUEPRINT_DEFINITION = (
-    ".flowguard/authoritative_model_system/software_blueprint_definition.json"
+    ".flowguard/models/owners/authoritative_model_system/software_blueprint_definition.json"
 )
 
 
@@ -886,7 +886,7 @@ def _self_surface_disposition(surface: ImplementationSurface) -> str:
 
 
 def _manifest_entries(root: Path) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
-    value = _load_json_object(root / ".flowguard/model-regression-manifest.json")
+    value = _load_json_object(root / ".flowguard/models/regression-manifest.json")
     entries = {
         str(item["model_id"]): item
         for item in value.get("models", ())
@@ -971,7 +971,7 @@ def _declared_owner_composite_contracts(
         )
         expected_source_identity = {
             "purpose_source_id": (
-                ".flowguard/model-regression-manifest.json"
+                ".flowguard/models/regression-manifest.json"
                 f"#model:{owner}:purpose-declaration"
             ),
             "purpose_source_owner_id": f"model-purpose-declaration:{owner}",
@@ -2497,7 +2497,7 @@ def _load_self_accepted_revision(
         )
     revision_path = (
         root
-        / ".flowguard/model-mesh/revisions"
+        / ".flowguard/models/authority/revisions"
         / f"{revision_digest}.json"
     )
     try:
@@ -3066,7 +3066,7 @@ def capture_flowguard_self_blueprint_build_input_identity(
     )
     semantic_mesh = _load_json_object(
         root_path
-        / ".flowguard/authoritative_model_system/semantic_model_mesh.json"
+        / ".flowguard/models/owners/authoritative_model_system/semantic_model_mesh.json"
     )
     try:
         model_regression_evidence = resolve_current_full_model_regression_parent(
@@ -3317,7 +3317,7 @@ def build_flowguard_self_blueprint(
         observed_snapshot_fingerprint=observed_snapshot_fingerprint,
         owners=owners,
     )
-    semantic_mesh_path = root_path / ".flowguard/authoritative_model_system/semantic_model_mesh.json"
+    semantic_mesh_path = root_path / ".flowguard/models/owners/authoritative_model_system/semantic_model_mesh.json"
     semantic_mesh = _load_json_object(semantic_mesh_path)
     try:
         model_regression_evidence = resolve_current_full_model_regression_parent(

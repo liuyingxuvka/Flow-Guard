@@ -98,6 +98,35 @@ class FullValidationCompositionTests(unittest.TestCase):
             suite_command._external_tree_fingerprint(self.installed),
         )
 
+    def test_parent_current_projects_frozen_owner_manifests_without_rescanning(self):
+        calls = []
+        original = suite_command.build_validation_parent_current
+
+        def capture(root, owner_plan, **kwargs):
+            calls.append(kwargs)
+            return original(root, owner_plan, **kwargs)
+
+        with patch.object(
+            suite_command,
+            "build_validation_parent_current",
+            side_effect=capture,
+        ), patch.object(
+            suite_command,
+            "_execute_command",
+            side_effect=self.executor(),
+        ):
+            result = suite_command.run_full_validation(self.args())
+
+        self.assertEqual("pass", result.status)
+        self.assertGreaterEqual(len(calls), 3)
+        self.assertTrue(
+            all(
+                tuple(kwargs.get("frozen_validation_manifest", ()))
+                and tuple(kwargs.get("frozen_release_tree_manifest", ()))
+                for kwargs in calls
+            )
+        )
+
     @staticmethod
     def child_id(command):
         joined = " ".join(command)
@@ -108,7 +137,7 @@ class FullValidationCompositionTests(unittest.TestCase):
         if "project-audit" in command:
             return "project_audit"
         if "check_flowguard_skill_suite.py" in joined:
-            return "skill_suite_static"
+            return "skill_suite_light"
         if "check_flowguard_self_governance.py" in joined:
             return "skill_self_governance"
         if "run_flowguard_skill_native_checks.py" in joined:
@@ -186,10 +215,10 @@ class FullValidationCompositionTests(unittest.TestCase):
 
         return fake
 
-    def test_default_scope_remains_static(self):
+    def test_default_scope_is_light(self):
         args = suite_command.build_parser().parse_args([])
-        self.assertEqual("static", args.scope)
-        with patch.object(suite_command, "run_static_suite", return_value={"ok": True, "passed_members": 15, "total_members": 15, "blockers": [], "members": []}) as run:
+        self.assertEqual("light", args.scope)
+        with patch.object(suite_command, "run_light_suite", return_value={"ok": True, "passed_members": 15, "total_members": 15, "blockers": [], "members": []}) as run:
             with patch("builtins.print"):
                 exit_code = suite_command.main(["--root", str(self.root)])
         self.assertEqual(0, exit_code)
@@ -211,7 +240,7 @@ class FullValidationCompositionTests(unittest.TestCase):
                     "[model_authority]",
                     'system_id = "fixture"',
                     "observed_snapshot_path = "
-                    f'".flowguard/model-mesh/snapshots/{snapshot_digest}.json"',
+                    f'".flowguard/models/authority/snapshots/{snapshot_digest}.json"',
                     "observed_snapshot_fingerprint = "
                     f'"sha256:{snapshot_digest}"',
                     'subject_revision = "source-inventory:fixture"',
@@ -230,10 +259,10 @@ class FullValidationCompositionTests(unittest.TestCase):
             encoding="utf-8",
         )
         required = (
-            f".flowguard/model-mesh/snapshots/{snapshot_digest}.json",
-            f".flowguard/model-mesh/snapshots/{previous_digest}.json",
-            f".flowguard/model-mesh/revisions/{revision_digest}.json",
-            f".flowguard/model-mesh/activations/{activation_digest}.json",
+            f".flowguard/models/authority/snapshots/{snapshot_digest}.json",
+            f".flowguard/models/authority/snapshots/{previous_digest}.json",
+            f".flowguard/models/authority/revisions/{revision_digest}.json",
+            f".flowguard/models/authority/activations/{activation_digest}.json",
         )
         (self.root / ".gitignore").write_text(".flowguard/\n", encoding="utf-8")
         subprocess.run(
@@ -363,7 +392,7 @@ class FullValidationCompositionTests(unittest.TestCase):
         self.assertEqual(1, rejected["exit_code"])
         self.assertEqual("fail", rejected["payload"]["decision"])
 
-    def test_static_skillguard_check_binds_non_self_target_to_repository(self):
+    def test_light_skillguard_check_binds_non_self_target_to_repository(self):
         skill = self.root / ".agents" / "skills" / "target"
         (skill / ".skillguard").mkdir(parents=True)
         (skill / ".skillguard" / "contract-source.json").write_text(
@@ -408,12 +437,12 @@ class FullValidationCompositionTests(unittest.TestCase):
             patch.object(suite_command, "_skillguard_cli", return_value=cli),
             patch.object(suite_command, "_run_json_command", side_effect=fake_run),
         ):
-            result = suite_command.run_static_suite(self.root)
+            result = suite_command.run_light_suite(self.root)
 
         self.assertTrue(result["ok"])
-        static = next(command for command in commands if "check-skill" in command)
-        self.assertIn("--repository-root", static)
-        self.assertEqual(str(self.root), static[static.index("--repository-root") + 1])
+        light = next(command for command in commands if "check-skill" in command)
+        self.assertIn("--repository-root", light)
+        self.assertEqual(str(self.root), light[light.index("--repository-root") + 1])
 
     def test_full_pass_retains_independent_child_artifacts(self):
         with patch.object(suite_command, "_execute_command", side_effect=self.executor()):
@@ -444,9 +473,9 @@ class FullValidationCompositionTests(unittest.TestCase):
         self.assertEqual("parent", parent_head["authority_kind"])
         self.assertTrue(gzip.decompress(Path(model_child.artifact_paths[0]).read_bytes()))
 
-    def test_static_child_publishes_only_child_authority(self):
-        child_run = Path(self.temporary.name) / "parent-run" / "static-suite"
-        suite_command._write_static_result(
+    def test_light_child_publishes_only_child_authority(self):
+        child_run = Path(self.temporary.name) / "parent-run" / "light-suite"
+        suite_command._write_light_result(
             {"status": "pass"},
             str(child_run),
             authority_kind="child",
@@ -515,7 +544,7 @@ class FullValidationCompositionTests(unittest.TestCase):
         )
         self.assertNotEqual(
             contracts["project_audit"].resource_keys,
-            contracts["skill_suite_static"].resource_keys,
+        contracts["skill_suite_light"].resource_keys,
         )
 
     def test_project_audit_failure_does_not_block_unrelated_owners(self):
@@ -529,7 +558,7 @@ class FullValidationCompositionTests(unittest.TestCase):
         self.assertEqual("blocked", result.status)
         executed = {self.child_id(call.args[0]) for call in execute.call_args_list}
         self.assertIn("project_audit", executed)
-        self.assertIn("skill_suite_static", executed)
+        self.assertIn("skill_suite_light", executed)
         self.assertIn("pytest", executed)
         self.assertEqual(10, len(executed))
 
@@ -602,13 +631,13 @@ class FullValidationCompositionTests(unittest.TestCase):
         self.assertEqual(3600.0, specs["pytest"].timeout_seconds)
         self.assertEqual(900.0, specs["openspec_strict"].timeout_seconds)
 
-    def test_static_owner_declares_self_maintenance_route_registry_input(self):
+    def test_light_owner_declares_self_maintenance_route_registry_input(self):
         specs = {
             item.child_id: item
             for item in suite_command._full_child_specs(self.args(), self.root)
         }
 
-        self.assertIn("flowguard/self_maintenance.py", specs["skill_suite_static"].input_patterns)
+        self.assertIn("flowguard/self_maintenance.py", specs["skill_suite_light"].input_patterns)
 
     def test_self_maintenance_review_publishes_compact_projection(self):
         specs = {

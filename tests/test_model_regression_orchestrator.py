@@ -17,10 +17,12 @@ class ModelRegressionOrchestratorTests(unittest.TestCase):
         models = []
         for spec in specs:
             model_id = str(spec["model_id"])
-            model_dir = root / ".flowguard" / model_id
+            model_dir = root / ".flowguard" / "models" / "owners" / model_id
+            runner_dir = root / ".flowguard" / "verification" / "owners" / model_id
             model_dir.mkdir(parents=True)
+            runner_dir.mkdir(parents=True)
             model_dir.joinpath("model.py").write_text("VALUE = 1\n", encoding="utf-8")
-            model_dir.joinpath("run_checks.py").write_text(str(spec["script"]), encoding="utf-8")
+            runner_dir.joinpath("run_checks.py").write_text(str(spec["script"]), encoding="utf-8")
             purpose = build_model_purpose_closure(
                 model_instance_id=f"regression:{model_id}:current",
                 reusable_model_type_id=model_id,
@@ -36,24 +38,24 @@ class ModelRegressionOrchestratorTests(unittest.TestCase):
                 claim_boundary=f"Current {model_id} fixture closure proves only the declared temporary test boundary and no production behavior.",
                 evidence_check_ids=(f"check:model-regression:{model_id}",),
                 model_sha256=file_fingerprint(model_dir / "model.py"),
-                runner_sha256=file_fingerprint(model_dir / "run_checks.py"),
+                runner_sha256=file_fingerprint(runner_dir / "run_checks.py"),
             )
             models.append(
                 {
                     "model_id": model_id,
-                    "model_path": f".flowguard/{model_id}/model.py",
-                    "runner": ["{python}", f".flowguard/{model_id}/run_checks.py"],
+                    "model_path": f".flowguard/models/owners/{model_id}/model.py",
+                    "runner": ["{python}", f".flowguard/verification/owners/{model_id}/run_checks.py"],
                     "tier": spec.get("tier", "fast"),
                     "timeout_seconds": spec.get("timeout_seconds", 5),
                     "shard_safe": spec.get("shard_safe", True),
                     "mutation_policy": spec.get("mutation_policy", "none"),
-                    "input_globs": [f".flowguard/{model_id}/model.py", f".flowguard/{model_id}/run_checks.py"],
+                    "input_globs": [f".flowguard/models/owners/{model_id}/model.py", f".flowguard/verification/owners/{model_id}/run_checks.py"],
                     "expected_artifacts": spec.get("expected_artifacts", []),
                     "exclusion_reason": "",
                     "purpose_closure": purpose.to_dict(),
                 }
             )
-        (root / ".flowguard" / "model-regression-manifest.json").write_text(
+        (root / ".flowguard" / "models" / "regression-manifest.json").write_text(
             json.dumps(
                 {
                     "schema_version": MANIFEST_SCHEMA,
@@ -90,8 +92,8 @@ class ModelRegressionOrchestratorTests(unittest.TestCase):
         self.assertTrue(result.input_inventory_fingerprint.startswith("sha256:"))
         self.assertEqual(
             [
-                ".flowguard/slow/model.py",
-                ".flowguard/slow/run_checks.py",
+                ".flowguard/models/owners/slow/model.py",
+                ".flowguard/verification/owners/slow/run_checks.py",
             ],
             [item["path"] for item in result.input_inventory],
         )
@@ -285,12 +287,12 @@ class ModelRegressionOrchestratorTests(unittest.TestCase):
                 {"model_id": "beta", "script": script},
             ]
         )
-        alpha_config = root / ".flowguard" / "alpha" / "config.json"
+        alpha_config = root / ".flowguard" / "models" / "owners" / "alpha" / "config.json"
         alpha_config.write_text('{"value": 1}\n', encoding="utf-8")
-        manifest_path = root / ".flowguard" / "model-regression-manifest.json"
+        manifest_path = root / ".flowguard" / "models" / "regression-manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         manifest["models"][0]["input_globs"].append(
-            ".flowguard/alpha/config.json"
+            ".flowguard/models/owners/alpha/config.json"
         )
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
         with patch("flowguard.model_regressions._tracked_paths", return_value=()):
@@ -334,7 +336,7 @@ class ModelRegressionOrchestratorTests(unittest.TestCase):
                 output_dir=root / "outputs" / "out-first",
             )
             manifest_path = (
-                root / ".flowguard" / "model-regression-manifest.json"
+                root / ".flowguard" / "models" / "regression-manifest.json"
             )
             manifest = json.loads(
                 manifest_path.read_text(encoding="utf-8")

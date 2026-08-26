@@ -13,6 +13,7 @@ import io
 import json
 import os
 import shutil
+import stat as _stat
 import time
 import uuid
 from contextlib import contextmanager
@@ -114,7 +115,13 @@ def _remove_tree_exact(path: Path) -> None:
 
 
 def write_json_atomic(path: str | Path, payload: Mapping[str, Any]) -> None:
-    _atomic_write(Path(path), json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8") + b"\n")
+    _atomic_write(Path(path), _pretty_json_bytes(payload))
+
+
+def _pretty_json_bytes(payload: Mapping[str, Any]) -> bytes:
+    """Return the exact stable bytes used by atomic JSON publication."""
+
+    return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8") + b"\n"
 
 
 def fingerprint_payload(payload: Mapping[str, Any] | None) -> str:
@@ -733,12 +740,14 @@ def publish_run(
     manifest = {**manifest_body, "run_id": run_id}
     manifest_path = run_path / "evidence-run.json"
     if manifest_path.exists():
-        current = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest_bytes = Path(_extended_windows_path(manifest_path)).read_bytes()
+        current = json.loads(manifest_bytes.decode("utf-8"))
         if current != manifest:
             raise EvidenceLifecycleError("immutable evidence-run manifest already exists with different content")
     else:
-        write_json_atomic(manifest_path, manifest)
-    manifest_sha = _sha256_file(manifest_path)
+        manifest_bytes = _pretty_json_bytes(manifest)
+        _atomic_write(manifest_path, manifest_bytes)
+    manifest_sha = _sha256_bytes(manifest_bytes)
     if update_head:
         scope_root = run_path.parent
         head = {
@@ -822,6 +831,252 @@ def _directory_fingerprint(path: Path) -> str:
         relative = item.relative_to(path).as_posix()
         rows.append((relative, item.stat().st_size, _sha256_file(item)))
     return _sha256_bytes(_canonical_bytes({"files": rows}))
+
+
+@dataclass(frozen=True)
+class _CatalogEntry:
+    """One filesystem entry observed during an audit catalog walk."""
+
+    path: Path
+    relative: str
+    is_file: bool
+    is_dir: bool
+    size: int = 0
+    mtime: float = 0.0
+
+
+class _EvidenceCatalog:
+    """Cache one audit-local tree walk, stats, reads, and content digests.
+
+    The catalog is deliberately invocation-local.  It is not persisted and it
+    never changes evidence authority.  It lets the audit reuse one observed
+    file read for JSON parsing, result verification, and directory
+    fingerprints while retaining all exact hashes that the lifecycle contract
+    requires.
+    """
+
+    def __init__(self, root: Path) -> None:
+        self.root = root.resolve()
+        self.entries: tuple[_CatalogEntry, ...] = self._walk()
+        self._by_resolved = {entry.path.resolve(): entry for entry in self.entries}
+        self._bytes: dict[Path, bytes] = {}
+        self._digests: dict[Path, str] = {}
+        self._size_by_dir: dict[Path, int] = {}
+        self._files_by_dir: dict[Path, list[_CatalogEntry]] = {}
+        self._aggregate_file_memberships()
+
+    def _walk(self) -> tuple[_CatalogEntry, ...]:
+        entries: list[_CatalogEntry] = []
+        if not self.root.exists():
+            return ()
+        candidates = sorted(
+            self.root.rglob("*"),
+            key=lambda value: value.relative_to(self.root).as_posix(),
+        )
+        for item in candidates:
+            in_quarantine = ".quarantine" in item.parts
+            try:
+                info = item.stat()
+            except OSError:
+                continue
+            is_file = _stat.S_ISREG(info.st_mode)
+            is_dir = _stat.S_ISDIR(info.st_mode)
+            # Quarantine payloads are intentionally not part of evidence
+            # hashes/bytes, but their directory shape is needed to report the
+            # retained quarantine count without a second tree walk.
+            if in_quarantine and not is_dir:
+                continue
+            if not is_file and not is_dir:
+                continue
+            entries.append(
+                _CatalogEntry(
+                    path=item,
+                    relative=item.relative_to(self.root).as_posix(),
+                    is_file=is_file,
+                    is_dir=is_dir,
+                    size=int(info.st_size) if is_file else 0,
+                    mtime=float(info.st_mtime),
+                )
+            )
+        return tuple(entries)
+
+    def files_named(self, name: str) -> tuple[Path, ...]:
+        return tuple(
+            entry.path
+            for entry in self.entries
+            if entry.is_file and entry.path.name == name
+        )
+
+    def entry(self, path: Path) -> _CatalogEntry | None:
+        return self._by_resolved.get(path.resolve())
+
+    def read_bytes(self, path: Path) -> bytes:
+        key = path.resolve()
+        if key not in self._bytes:
+            entry = self.entry(path)
+            source = entry.path if entry is not None else path
+            self._bytes[key] = Path(_extended_windows_path(source)).read_bytes()
+        return self._bytes[key]
+
+    def digest(self, path: Path) -> str:
+        key = path.resolve()
+        if key not in self._digests:
+            self._digests[key] = _sha256_bytes(self.read_bytes(path))
+        return self._digests[key]
+
+    def _aggregate_file_memberships(self) -> None:
+        for entry in self.entries:
+            if not entry.is_file:
+                continue
+            directory = entry.path.resolve().parent
+            while self._contained(self.root, directory):
+                self._size_by_dir[directory] = self._size_by_dir.get(directory, 0) + entry.size
+                self._files_by_dir.setdefault(directory, []).append(entry)
+                if directory == self.root:
+                    break
+                directory = directory.parent
+
+    def load_json(self, path: Path) -> Mapping[str, Any]:
+        try:
+            value = json.loads(self.read_bytes(path).decode("utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise EvidenceLifecycleError(f"cannot read {path}: {exc}") from exc
+        if not isinstance(value, Mapping):
+            raise EvidenceLifecycleError(f"expected JSON object: {path}")
+        return value
+
+    @staticmethod
+    def _contained(base: Path, value: Path) -> bool:
+        return value == base or base in value.parents
+
+    def directory_size(self, path: Path) -> int:
+        return self._size_by_dir.get(path.resolve(), 0)
+
+    def directory_fingerprint(self, path: Path) -> str:
+        base = path.resolve()
+        rows: list[tuple[str, int, str]] = []
+        for entry in self._files_by_dir.get(base, ()):
+            relative = entry.path.resolve().relative_to(base).as_posix()
+            rows.append((relative, entry.size, self.digest(entry.path)))
+        rows.sort(key=lambda row: row[0])
+        return _sha256_bytes(_canonical_bytes({"files": rows}))
+
+    def unmanaged_partition_roots(self, managed_dirs: set[Path]) -> list[Path]:
+        """Partition non-managed directories using the already observed tree."""
+
+        directories = {
+            entry.path.resolve()
+            for entry in self.entries
+            if entry.is_dir
+        }
+        directories.add(self.root)
+        children: dict[Path, list[Path]] = {}
+        for directory in directories:
+            if directory == self.root or self.root not in directory.parents:
+                continue
+            children.setdefault(directory.parent, []).append(directory)
+        for values in children.values():
+            values.sort()
+
+        roots: list[Path] = []
+
+        def visit(candidate: Path) -> None:
+            resolved = candidate.resolve()
+            if resolved.name == ".quarantine":
+                return
+            if resolved in managed_dirs or any(parent in managed_dirs for parent in resolved.parents):
+                return
+            if any(resolved in managed.parents for managed in managed_dirs):
+                for child in children.get(resolved, ()):
+                    visit(child)
+                return
+            roots.append(resolved)
+
+        for child in children.get(self.root, ()):
+            visit(child)
+        return roots
+
+
+def _catalog_head_targets(
+    catalog: _EvidenceCatalog,
+) -> tuple[tuple[dict[str, Any], ...], set[Path], list[dict[str, str]]]:
+    rows: list[dict[str, Any]] = []
+    targets: set[Path] = set()
+    findings: list[dict[str, str]] = []
+    for path in catalog.files_named("CURRENT.json"):
+        try:
+            payload = catalog.load_json(path)
+            if payload.get("schema_version") != HEAD_SCHEMA:
+                raise EvidenceLifecycleError("unsupported current-head schema")
+            target = (path.parent / str(payload.get("run_path", ""))).resolve()
+            if not _path_within(catalog.root, target):
+                raise EvidenceLifecycleError("current-head target escapes evidence root")
+            manifest_path = target / "evidence-run.json"
+            if catalog.digest(manifest_path) != payload.get("manifest_sha256"):
+                raise EvidenceLifecycleError("current-head manifest fingerprint mismatch")
+            manifest = catalog.load_json(manifest_path)
+            result_path = target / str(manifest.get("result_path", ""))
+            if catalog.digest(result_path) != payload.get("result_sha256"):
+                raise EvidenceLifecycleError("current-head result fingerprint mismatch")
+            targets.add(target)
+            rows.append(
+                {
+                    "head_path": path.relative_to(catalog.root).as_posix(),
+                    "target_path": target.relative_to(catalog.root).as_posix(),
+                    **dict(payload),
+                }
+            )
+        except (EvidenceLifecycleError, OSError) as exc:
+            findings.append(
+                {
+                    "code": "invalid_current_head",
+                    "path": path.relative_to(catalog.root).as_posix(),
+                    "message": str(exc),
+                }
+            )
+    return tuple(rows), targets, findings
+
+
+def _catalog_pin_targets(
+    catalog: _EvidenceCatalog,
+) -> tuple[tuple[dict[str, Any], ...], set[Path], list[dict[str, str]]]:
+    rows: list[dict[str, Any]] = []
+    targets: set[Path] = set()
+    findings: list[dict[str, str]] = []
+    for path in catalog.files_named("PINS.json"):
+        try:
+            payload = catalog.load_json(path)
+            if payload.get("schema_version") != PINS_SCHEMA:
+                raise EvidenceLifecycleError("unsupported pins schema")
+            pins = payload.get("pins", ())
+            if not isinstance(pins, Sequence) or isinstance(pins, (str, bytes)):
+                raise EvidenceLifecycleError("pins must be a list")
+            for pin in pins:
+                if not isinstance(pin, Mapping):
+                    raise EvidenceLifecycleError("pin must be an object")
+                target = (path.parent / str(pin.get("run_path", ""))).resolve()
+                if not _path_within(catalog.root, target):
+                    raise EvidenceLifecycleError("pin target escapes evidence root")
+                manifest = catalog.load_json(target / "evidence-run.json")
+                if manifest.get("run_id") != pin.get("run_id"):
+                    raise EvidenceLifecycleError("pin run identity mismatch")
+                targets.add(target)
+                rows.append(
+                    {
+                        "pins_path": path.relative_to(catalog.root).as_posix(),
+                        "target_path": target.relative_to(catalog.root).as_posix(),
+                        **dict(pin),
+                    }
+                )
+        except (EvidenceLifecycleError, OSError) as exc:
+            findings.append(
+                {
+                    "code": "invalid_pin",
+                    "path": path.relative_to(catalog.root).as_posix(),
+                    "message": str(exc),
+                }
+            )
+    return tuple(rows), targets, findings
 
 
 def _head_targets(root: Path) -> tuple[dict[str, Any], set[Path], list[dict[str, str]]]:
@@ -921,25 +1176,24 @@ def audit_evidence(root: str | Path) -> dict[str, Any]:
             "logical_bytes": 0,
             "stored_bytes": 0,
         }
-    heads, head_targets, findings = _head_targets(root_path)
-    pins, pin_targets, pin_findings = _pin_targets(root_path)
+    catalog = _EvidenceCatalog(root_path)
+    heads, head_targets, findings = _catalog_head_targets(catalog)
+    pins, pin_targets, pin_findings = _catalog_pin_targets(catalog)
     findings.extend(pin_findings)
     rows: list[dict[str, Any]] = []
     managed_dirs: set[Path] = set()
-    for manifest_path in sorted(root_path.rglob("evidence-run.json")):
-        if ".quarantine" in manifest_path.parts:
-            continue
+    for manifest_path in catalog.files_named("evidence-run.json"):
         run_path = manifest_path.parent.resolve()
         managed_dirs.add(run_path)
         classification = "collectible"
         valid = True
         message = ""
         try:
-            manifest = _load_json(manifest_path)
+            manifest = catalog.load_json(manifest_path)
             if manifest.get("schema_version") != RUN_SCHEMA or not manifest.get("terminal"):
                 raise EvidenceLifecycleError("invalid or non-terminal run manifest")
             result = run_path / str(manifest.get("result_path", ""))
-            if _sha256_file(result) != manifest.get("result_sha256"):
+            if catalog.digest(result) != manifest.get("result_sha256"):
                 raise EvidenceLifecycleError("run result fingerprint mismatch")
             if run_path in head_targets:
                 classification = "current"
@@ -960,12 +1214,12 @@ def audit_evidence(root: str | Path) -> dict[str, Any]:
                 "kind": str(manifest.get("kind", "")),
                 "status": str(manifest.get("status", "")),
                 "finished_at_epoch": float(manifest.get("finished_at_epoch", 0.0) or 0.0),
-                "stored_bytes": _directory_size(run_path),
-                "fingerprint": _directory_fingerprint(run_path),
+                "stored_bytes": catalog.directory_size(run_path),
+                "fingerprint": catalog.directory_fingerprint(run_path),
                 "message": message,
             }
         )
-    for run_path in _unmanaged_partition_roots(root_path, managed_dirs):
+    for run_path in catalog.unmanaged_partition_roots(managed_dirs):
         rows.append(
             {
                 "path": run_path.relative_to(root_path).as_posix(),
@@ -974,33 +1228,32 @@ def audit_evidence(root: str | Path) -> dict[str, Any]:
                 "run_id": "",
                 "kind": "legacy",
                 "status": "historical",
-                "finished_at_epoch": run_path.stat().st_mtime,
-                "stored_bytes": _directory_size(run_path),
-                "fingerprint": _directory_fingerprint(run_path),
+                "finished_at_epoch": catalog.entry(run_path).mtime
+                if catalog.entry(run_path) is not None
+                else run_path.stat().st_mtime,
+                "stored_bytes": catalog.directory_size(run_path),
+                "fingerprint": catalog.directory_fingerprint(run_path),
                 "message": "Lifecycle-unmanaged evidence is historical by default; preserve it explicitly when another current authority still binds it.",
             }
         )
     quarantined = 0
     quarantine_root = root_path / ".quarantine"
-    if quarantine_root.is_dir():
-        quarantined = sum(1 for path in quarantine_root.iterdir() if path.is_dir() and path.name != "receipts")
+    quarantine_entry = catalog.entry(quarantine_root)
+    if quarantine_entry is not None and quarantine_entry.is_dir:
+        quarantined = sum(
+            1
+            for entry in catalog.entries
+            if entry.is_dir
+            and entry.path.parent.resolve() == quarantine_root.resolve()
+            and entry.path.name != "receipts"
+        )
     counts = {name: sum(row["classification"] == name for row in rows) for name in ("current", "pinned", "collectible", "legacy_unmanaged", "invalid")}
     counts["quarantined"] = quarantined
-    stored = 0
-    for item in root_path.rglob("*"):
-        if ".quarantine" in item.parts:
-            continue
-        try:
-            if item.is_file():
-                stored += item.stat().st_size
-        except OSError:
-            continue
+    stored = sum(entry.size for entry in catalog.entries if entry.is_file)
     object_logical: dict[str, int] = {}
-    for descriptor_path in root_path.rglob("result.json"):
-        if ".quarantine" in descriptor_path.parts:
-            continue
+    for descriptor_path in catalog.files_named("result.json"):
         try:
-            payload = _load_json(descriptor_path)
+            payload = catalog.load_json(descriptor_path)
         except EvidenceLifecycleError:
             continue
         for key in ("stdout", "stderr"):
@@ -1014,11 +1267,13 @@ def audit_evidence(root: str | Path) -> dict[str, Any]:
     } | {
         (root_path / str(row["pins_path"])).resolve() for row in pins
     }
-    classified_stored = sum(_directory_size(path) for path in classified_paths)
+    classified_stored = sum(catalog.directory_size(path) for path in classified_paths)
     control_stored = sum(
-        path.stat().st_size
+        catalog.entry(path).size
         for path in control_paths
-        if path.is_file() and not any(root == path or root in path.parents for root in classified_paths)
+        if catalog.entry(path) is not None
+        and catalog.entry(path).is_file
+        and not any(root == path or root in path.parents for root in classified_paths)
     )
     unclassified = max(0, stored - classified_stored - control_stored)
     result = {
@@ -1060,6 +1315,7 @@ def plan_evidence_gc(
     keep: int = 2,
     include_legacy: bool = False,
     preserve_paths: Sequence[str] = (),
+    storage_audit: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if keep < 0:
         raise EvidenceLifecycleError("keep must be non-negative")
@@ -1110,6 +1366,12 @@ def plan_evidence_gc(
         "pin_bindings": audit["pins"],
         "claim_boundary": "This plan is read-only and authorizes no move or deletion until exact identities are revalidated.",
     }
+    if storage_audit is not None:
+        # Keep the optional read-light observation inside the signed plan body.
+        # The observation is advisory for lifecycle mutation, but excluding it
+        # from the plan identity would make the public --storage-audit route
+        # produce an artifact that can never pass the exact plan loader.
+        body["storage_audit"] = dict(storage_audit)
     return {**body, "plan_id": _sha256_bytes(_canonical_bytes(body))}
 
 
@@ -1133,6 +1395,11 @@ def apply_evidence_gc(root: str | Path, plan: str | Path | Mapping[str, Any]) ->
         keep=int(payload.get("keep", 0)),
         include_legacy=bool(payload.get("include_legacy")),
         preserve_paths=tuple(str(item) for item in payload.get("preserved_paths", ())),
+        storage_audit=(
+            payload.get("storage_audit")
+            if isinstance(payload.get("storage_audit"), Mapping)
+            else None
+        ),
     )
     if current.get("plan_id") != payload.get("plan_id"):
         raise EvidenceLifecycleError("evidence GC plan is stale")

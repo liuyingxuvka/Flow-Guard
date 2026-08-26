@@ -1,1 +1,1 @@
-"""Latest-schema upgrade policy self-model."""
+"""Direct-current rewrite policy self-model."""

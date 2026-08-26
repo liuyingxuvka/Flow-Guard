@@ -1870,6 +1870,12 @@ def list_evidence_receipts(
     receipts: list[EvidenceReceipt] = []
     seen_ids: set[str] = set()
     for path in sorted(root.glob("*.json")):
+        # ``CURRENT.json`` is the immutable-store head pointer emitted by
+        # validation runners, not an EvidenceReceipt.  It deliberately lives
+        # beside the content-addressed receipt files, so it must not enter the
+        # receipt inventory or be parsed as a receipt payload.
+        if path.name == "CURRENT.json":
+            continue
         receipt = load_evidence_receipt(path)
         if path.name != _receipt_filename(receipt.receipt_id):
             raise ReceiptValidationError(

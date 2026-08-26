@@ -28,6 +28,12 @@ from .artifact_upgrade import ArtifactUpgradeReport, review_artifact_upgrades
 from .core import FrozenMetadata, freeze_metadata
 from .export import to_jsonable
 from .model_authority_store import audit_model_authority
+from .project_layout import (
+    CANONICAL_ROLE_ROOTS,
+    audit_project_layout,
+    current_layout_manifest_text,
+    current_layout_readme_text,
+)
 from .project_manifest import (
     ProjectManifestError,
     manifest_text_fingerprint,
@@ -58,6 +64,57 @@ PROJECT_ADOPTION_CLAIM_BOUNDARY = (
     "and canonical skill-suite reconciliation. It does not replace current executable "
     "model checks, tests, replay, UI click-through, release, or business-path evidence."
 )
+
+_LAYOUT_BOOTSTRAP_ALLOWED_ENTRIES = frozenset(
+    {"project.toml", "layout.toml", "adoption_log.jsonl", "README.md"}
+)
+
+
+def _layout_bootstrap_allowed(report: Any) -> bool:
+    """Allow initialization only for an absent or genuinely empty control plane.
+
+    This is not a migration path.  Once an old artifact or directory exists,
+    adoption must stop and the maintainer must rewrite it directly into the
+    current layout before any model/evidence reader is allowed to proceed.
+    """
+
+    flowguard_root = Path(str(getattr(report, "flowguard_root", "")))
+    try:
+        if flowguard_root.is_symlink():
+            return False
+        if not flowguard_root.exists():
+            return True
+        if not flowguard_root.is_dir():
+            return False
+        entries = {
+            str(item).rstrip("/")
+            for item in getattr(report, "observed_entries", ())
+        }
+        return entries.issubset(_LAYOUT_BOOTSTRAP_ALLOWED_ENTRIES)
+    except OSError:
+        return False
+
+
+def _prepare_current_layout(
+    root_path: Path, *, project_identity: str | None = None
+) -> tuple[str, ...]:
+    """Create the current layout for a new/empty project adoption only."""
+
+    flowguard_root = root_path / ".flowguard"
+    flowguard_root.mkdir(parents=True, exist_ok=True)
+    # Role roots are created on demand by the owner that first writes an
+    # artifact.  The manifest declares the allowed semantic destinations; it
+    # must not manufacture six empty directories for every small project.
+    layout_path = flowguard_root / "layout.toml"
+    if not layout_path.exists():
+        layout_path.write_text(
+            current_layout_manifest_text(root_path, project_identity=project_identity),
+            encoding="utf-8",
+        )
+    readme_path = flowguard_root / "README.md"
+    if not readme_path.exists():
+        readme_path.write_text(current_layout_readme_text(), encoding="utf-8")
+    return (str(layout_path), str(readme_path))
 
 _RULE_MARKER_RE = re.compile(r"<!--\s*flowguard-rule:([a-z0-9_.-]+)\s*-->", re.IGNORECASE)
 _RULE_SECTION_RE = re.compile(
@@ -605,6 +662,7 @@ def audit_project_adoption(root: str | Path = ".") -> ProjectAdoptionReport:
     """Read-only semantic audit of project adoption and suite state."""
 
     root_path = Path(root).resolve()
+    layout_report = audit_project_layout(root_path)
     package_version = installed_flowguard_package_version()
     manifest = _read_manifest(root_path / FLOWGUARD_PROJECT_MANIFEST)
     manifest_package = str(manifest.get("adopted_package_version", ""))
@@ -627,40 +685,52 @@ def audit_project_adoption(root: str | Path = ".") -> ProjectAdoptionReport:
         expected_block,
         suite,
     )
-    manifest_document = _read_manifest_document(
-        root_path / FLOWGUARD_PROJECT_MANIFEST
-    )
-    if isinstance(manifest_document.get("model_authority"), Mapping):
-        authority_report = audit_model_authority(root_path)
-        if not authority_report.ok:
-            findings.append(
-                ProjectAdoptionFinding(
-                    "blocked",
-                    "model_authority_invalid",
-                    "The project model-authority pointer or snapshot is invalid.",
-                    "Repair the current authority head before claiming project adoption.",
-                    metadata=authority_report.to_dict(),
-                )
+    if not layout_report.ok:
+        findings.append(
+            ProjectAdoptionFinding(
+                "blocked",
+                "project_layout_invalid",
+                "The target .flowguard layout is not current; model and evidence authority was not read.",
+                "Manually rewrite the target into the current role layout, then rerun project-audit. No migration or fallback reader is available.",
+                str(root_path / ".flowguard"),
+                metadata=layout_report.to_dict(),
             )
-        elif authority_report.status == "pass_with_gaps":
+        )
+    else:
+        manifest_document = _read_manifest_document(
+            root_path / FLOWGUARD_PROJECT_MANIFEST
+        )
+        if isinstance(manifest_document.get("model_authority"), Mapping):
+            authority_report = audit_model_authority(root_path)
+            if not authority_report.ok:
+                findings.append(
+                    ProjectAdoptionFinding(
+                        "blocked",
+                        "model_authority_invalid",
+                        "The project model-authority pointer or snapshot is invalid.",
+                        "Repair the current authority head before claiming project adoption.",
+                        metadata=authority_report.to_dict(),
+                    )
+                )
+            elif authority_report.status == "pass_with_gaps":
+                findings.append(
+                    ProjectAdoptionFinding(
+                        "warning",
+                        "model_authority_coverage_gaps",
+                        "The current model-system authority is valid but retains explicit coverage gaps.",
+                        "Close or explicitly accept the bounded gaps before claiming full model coverage.",
+                        metadata=authority_report.to_dict(),
+                    )
+                )
+        else:
             findings.append(
                 ProjectAdoptionFinding(
                     "warning",
-                    "model_authority_coverage_gaps",
-                    "The current model-system authority is valid but retains explicit coverage gaps.",
-                    "Close or explicitly accept the bounded gaps before claiming full model coverage.",
-                    metadata=authority_report.to_dict(),
+                    "model_authority_missing",
+                    "The project has no authoritative observed model-system snapshot yet.",
+                    "Bootstrap one observed snapshot before broad model-coverage claims.",
                 )
             )
-    else:
-        findings.append(
-            ProjectAdoptionFinding(
-                "warning",
-                "model_authority_missing",
-                "The project has no authoritative observed model-system snapshot yet.",
-                "Bootstrap one observed snapshot before broad model-coverage claims.",
-            )
-        )
     rendered_package, rendered_schema = _rendered_versions(managed_block)
     observed_ids = managed_rule_ids_in_block(managed_block)
     missing_ids = tuple(rule_id for rule_id in FLOWGUARD_REQUIRED_RULE_IDS if rule_id not in observed_ids)
@@ -692,8 +762,11 @@ def audit_project_adoption(root: str | Path = ".") -> ProjectAdoptionReport:
         missing_rule_ids=missing_ids,
         semantic_rule_changes=_semantic_rule_changes(managed_block, expected_block),
         required_revalidation=_minimum_revalidation(),
-        checks=("managed_block_semantic_parity", "adoption_version_parity", "skill_suite_inventory"),
-        skipped_steps=("Audit is read-only; no project file or adoption log was written.",),
+        checks=("project_layout_current", "managed_block_semantic_parity", "adoption_version_parity", "skill_suite_inventory"),
+        skipped_steps=(
+            "Audit is read-only; no project file or adoption log was written.",
+            *( ("Model authority audit was not run because project layout is not current.",) if not layout_report.ok else () ),
+        ),
         before_state=state,
         after_state=state,
         findings=tuple(findings),
@@ -741,16 +814,29 @@ def _write_project_adoption(
     dry_run: bool = False,
 ) -> ProjectAdoptionReport:
     root_path = Path(root).resolve()
+    layout_report = audit_project_layout(root_path)
+    layout_bootstrap = (not layout_report.ok) and _layout_bootstrap_allowed(layout_report)
     package_version = installed_flowguard_package_version()
     manifest_path = root_path / FLOWGUARD_PROJECT_MANIFEST
     existing_manifest_text = read_manifest_text(manifest_path)
     existing_manifest_fingerprint = manifest_text_fingerprint(
         existing_manifest_text
     )
-    manifest_document = _read_manifest_document(manifest_path)
-    model_authority = manifest_document.get("model_authority")
-    if not isinstance(model_authority, Mapping):
-        model_authority = None
+    # The layout gate is deliberately evaluated before consulting the
+    # model-authority section.  An old/ambiguous control-plane tree is not an
+    # input format for this writer: the maintainer must first rewrite it into
+    # the current layout and then rebuild the authority identity.  Empty
+    # bootstrap is the only non-current state that may continue, and it has no
+    # existing model authority to inherit.
+    manifest_document: Mapping[str, Any] = {}
+    model_authority: Mapping[str, Any] | None = None
+    if layout_report.ok or layout_bootstrap:
+        candidate_document = _read_manifest_document(manifest_path)
+        if isinstance(candidate_document, Mapping):
+            manifest_document = candidate_document
+            candidate_authority = candidate_document.get("model_authority")
+            if isinstance(candidate_authority, Mapping):
+                model_authority = candidate_authority
     manifest = _read_manifest(manifest_path)
     manifest_package = str(manifest.get("adopted_package_version", ""))
     manifest_schema = str(manifest.get("schema_version", ""))
@@ -780,6 +866,17 @@ def _write_project_adoption(
         proposed_block,
         suite,
     )
+    if not layout_report.ok and not layout_bootstrap:
+        audit_findings.append(
+            ProjectAdoptionFinding(
+                "blocked",
+                "project_layout_invalid",
+                "Writing adoption records is blocked because the target .flowguard layout is not current.",
+                "Manually rewrite old material into the current role layout, then rerun adoption. No migration or fallback reader is available.",
+                str(root_path / ".flowguard"),
+                metadata=layout_report.to_dict(),
+            )
+        )
     rendered_package, rendered_schema = _rendered_versions(current_block)
     observed_ids = managed_rule_ids_in_block(current_block)
     missing_ids = tuple(rule_id for rule_id in FLOWGUARD_REQUIRED_RULE_IDS if rule_id not in observed_ids)
@@ -806,9 +903,10 @@ def _write_project_adoption(
         action == PROJECT_ADOPTION_ACTION_UPGRADE
         and upgrade_needed
         and not records_only
+        and (layout_report.ok or layout_bootstrap)
         and (dry_run or not blockers)
     ):
-        artifact_upgrade_report = review_artifact_upgrades(root_path, apply=False)
+        artifact_upgrade_report = review_artifact_upgrades(root_path)
         if not artifact_upgrade_report.ok:
             findings.append(
                 ProjectAdoptionFinding(
@@ -827,6 +925,14 @@ def _write_project_adoption(
         artifact_report=artifact_upgrade_report,
         include_logs=True,
     )
+    if layout_bootstrap:
+        proposed_files = tuple(
+            dict.fromkeys(
+                (*proposed_files,
+                 str(root_path / ".flowguard" / "layout.toml"),
+                 str(root_path / ".flowguard" / "README.md"))
+            )
+        )
     before_state = _adoption_state(
         package_version=package_version,
         manifest_package=manifest_package,
@@ -923,15 +1029,18 @@ def _write_project_adoption(
                 "project adoption lost project-manifest ownership before mutation"
             )
 
-        if (
-            action == PROJECT_ADOPTION_ACTION_UPGRADE
-            and upgrade_needed
-            and not records_only
-        ):
-            artifact_upgrade_report = review_artifact_upgrades(
-                root_path,
-                apply=True,
+        if layout_bootstrap:
+            written.extend(
+                _prepare_current_layout(
+                    root_path, project_identity=FLOWGUARD_REPOSITORY_URL
+                )
             )
+
+        # Legacy artifacts are a hard preflight blocker.  Do not invoke an
+        # automatic migration writer here: the maintainer must rewrite the
+        # current model/artifact directly, then regenerate current receipts
+        # under one frozen identity.  The read-only scan above already stopped
+        # before this lock when an old artifact was found.
 
         if updated_agents != existing_agents:
             agents_path.write_text(updated_agents, encoding="utf-8")
@@ -1047,6 +1156,7 @@ def _write_project_adoption(
         proposed_files=proposed_files,
         required_revalidation=_minimum_revalidation(),
         checks=(
+            "project_layout_current",
             "managed_block_semantic_parity",
             "adoption_version_parity",
             "skill_suite_inventory",
@@ -1103,7 +1213,7 @@ def _build_report(
         semantic_rule_changes=_semantic_rule_changes(current_block, proposed_block),
         proposed_files=proposed_files,
         required_revalidation=_minimum_revalidation(),
-        checks=("managed_block_semantic_parity", "adoption_version_parity", "skill_suite_inventory"),
+        checks=("project_layout_current", "managed_block_semantic_parity", "adoption_version_parity", "skill_suite_inventory"),
         skipped_steps=skipped_steps,
         dry_run=dry_run,
         before_state=before_state,

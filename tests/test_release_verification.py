@@ -40,11 +40,34 @@ class ReleaseVerificationTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         (self.root / ".flowguard").mkdir()
-        (self.root / ".flowguard" / "fixture-model").mkdir()
-        (self.root / ".flowguard" / "model-mesh" / "snapshots").mkdir(
-            parents=True
-        )
-        (self.root / ".flowguard" / "model-mesh" / "bootstraps").mkdir()
+        (
+            self.root
+            / ".flowguard"
+            / "models"
+            / "owners"
+            / "fixture-model"
+        ).mkdir(parents=True)
+        (
+            self.root
+            / ".flowguard"
+            / "verification"
+            / "owners"
+            / "fixture-model"
+        ).mkdir(parents=True)
+        (
+            self.root
+            / ".flowguard"
+            / "models"
+            / "authority"
+            / "snapshots"
+        ).mkdir(parents=True)
+        (
+            self.root
+            / ".flowguard"
+            / "models"
+            / "authority"
+            / "bootstraps"
+        ).mkdir(parents=True)
         (self.root / "dist").mkdir()
         (self.root / "flowguard").mkdir()
         (self.root / "flowguard" / "__init__.py").write_bytes(
@@ -56,7 +79,7 @@ class ReleaseVerificationTests(unittest.TestCase):
         (self.root / ".flowguard" / "project.toml").write_bytes(
             b'[flowguard]\npackage_version="1.2.3"\nschema_version="1.0"\n'
             b'\n[model_authority]\n'
-            b'observed_snapshot_path=".flowguard/model-mesh/snapshots/'
+            b'observed_snapshot_path=".flowguard/models/authority/snapshots/'
             + (b"a" * 64)
             + b'.json"\n'
             + b'observed_snapshot_fingerprint="sha256:'
@@ -71,14 +94,15 @@ class ReleaseVerificationTests(unittest.TestCase):
             + b'"\n'
             + b'previous_snapshot_fingerprint=""\n'
         )
-        model_path = ".flowguard/fixture-model/model.py"
-        runner_path = ".flowguard/fixture-model/run_checks.py"
+        model_path = ".flowguard/models/owners/fixture-model/model.py"
+        runner_path = ".flowguard/verification/owners/fixture-model/run_checks.py"
         (self.root / model_path).write_bytes(b"MODEL = 'fixture'\n")
         (self.root / runner_path).write_bytes(b"print('fixture')\n")
         (
             self.root
             / ".flowguard"
-            / "model-mesh"
+            / "models"
+            / "authority"
             / "snapshots"
             / (("a" * 64) + ".json")
         ).write_text(
@@ -99,7 +123,8 @@ class ReleaseVerificationTests(unittest.TestCase):
         (
             self.root
             / ".flowguard"
-            / "model-mesh"
+            / "models"
+            / "authority"
             / "bootstraps"
             / (("b" * 64) + ".json")
         ).write_text("{}\n", encoding="utf-8")
@@ -365,7 +390,7 @@ class ReleaseVerificationTests(unittest.TestCase):
         )
 
     def test_untracked_observed_model_input_blocks_local_candidate(self) -> None:
-        model_path = ".flowguard/fixture-model/model.py"
+        model_path = ".flowguard/models/owners/fixture-model/model.py"
         subprocess.run(
             ("git", "rm", "--cached", "--quiet", model_path),
             cwd=self.root,
@@ -387,7 +412,7 @@ class ReleaseVerificationTests(unittest.TestCase):
         self.assertEqual([model_path], check.details["missing_paths"])
 
     def test_untracked_observed_runner_input_blocks_same_class(self) -> None:
-        runner_path = ".flowguard/fixture-model/run_checks.py"
+        runner_path = ".flowguard/verification/owners/fixture-model/run_checks.py"
         subprocess.run(
             ("git", "rm", "--cached", "--quiet", runner_path),
             cwd=self.root,
@@ -410,11 +435,15 @@ class ReleaseVerificationTests(unittest.TestCase):
         snapshot = (
             self.root
             / ".flowguard"
-            / "model-mesh"
+            / "models"
+            / "authority"
             / "snapshots"
             / (("a" * 64) + ".json")
         )
-        input_paths = [f".flowguard/models/model-{index}.py" for index in range(1000)]
+        input_paths = [
+            f".flowguard/models/owners/model-{index}.py"
+            for index in range(1000)
+        ]
         snapshot.write_text(
             json.dumps(
                 {
@@ -427,8 +456,8 @@ class ReleaseVerificationTests(unittest.TestCase):
         )
         tracked = "\0".join(
             [
-                f".flowguard/model-mesh/snapshots/{'a' * 64}.json",
-                f".flowguard/model-mesh/bootstraps/{'b' * 64}.json",
+                f".flowguard/models/authority/snapshots/{'a' * 64}.json",
+                f".flowguard/models/authority/bootstraps/{'b' * 64}.json",
                 *input_paths,
                 "",
             ]

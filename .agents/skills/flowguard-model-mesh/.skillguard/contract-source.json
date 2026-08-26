@@ -16,7 +16,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/hierarchical_model_mesh/model.py"
+          "path": ".flowguard/models/owners/hierarchical_model_mesh/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -51,7 +51,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/hierarchical_model_mesh/model.py"
+          "path": ".flowguard/models/owners/hierarchical_model_mesh/model.py"
         },
         {
           "kind": "path",
@@ -95,7 +95,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/hierarchical_model_mesh/model.py"
+          "path": ".flowguard/models/owners/hierarchical_model_mesh/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -149,12 +149,12 @@
     "claim_boundary": "flowguard-model-mesh owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
     "integration_mode": "native-integrated",
+    "model_deepening_check_id": "check:flowguard-model-mesh:native-authority",
     "native_check_ids": [
       "check:flowguard-model-mesh:plane-boundary",
       "check:flowguard-model-mesh:native-authority",
       "check:flowguard-model-mesh:evidence-closure"
     ],
-    "model_deepening_check_id": "check:flowguard-model-mesh:native-authority",
     "native_owner_id": "model_mesh_maintenance",
     "native_route_ids": [
       "route:model_mesh_maintenance"
@@ -181,11 +181,21 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard-model-mesh:plane-boundary",
+        "check:flowguard-model-mesh:native-authority",
+        "check:flowguard-model-mesh:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard-model-mesh:native-authority",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard-model-mesh"
   },
   "implementation_paths": [
     ".agents/skills/flowguard-model-mesh",
-    ".flowguard/hierarchical_model_mesh",
+    ".flowguard/models/owners/hierarchical_model_mesh",
+    ".flowguard/verification/owners/hierarchical_model_mesh",
     "flowguard/hierarchy.py",
     "flowguard/portable_model.py",
     "flowguard/portable_checker.py",
@@ -215,7 +225,7 @@
     "flowguard-ui-flow-structure"
   ],
   "model_id": "flowguard.model_mesh_maintenance.skill_contract.v2",
-  "model_path": ".flowguard/hierarchical_model_mesh/model.py",
+  "model_path": ".flowguard/models/owners/hierarchical_model_mesh/model.py",
   "native_check_bindings": [
     {
       "authority": "target-native",

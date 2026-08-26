@@ -111,9 +111,9 @@ class ModelSystemInventoryTests(unittest.TestCase):
     def test_optional_local_absence_remains_declared_and_missing(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            manifest_dir = root / ".flowguard"
-            manifest_dir.mkdir()
-            (manifest_dir / "model-regression-manifest.json").write_text(
+            manifest_dir = root / ".flowguard" / "models"
+            manifest_dir.mkdir(parents=True)
+            (manifest_dir / "regression-manifest.json").write_text(
                 json.dumps(
                     {
                         "schema_version": MANIFEST_SCHEMA,
@@ -123,10 +123,10 @@ class ModelSystemInventoryTests(unittest.TestCase):
                         "models": [
                             {
                                 "model_id": "missing_local",
-                                "model_path": ".flowguard/missing/model.py",
+                                "model_path": ".flowguard/models/owners/missing/model.py",
                                 "runner": [
                                     "{python}",
-                                    ".flowguard/missing/run_checks.py",
+                                    ".flowguard/verification/owners/missing/run_checks.py",
                                 ],
                                 "tier": "fast",
                                 "timeout_seconds": 5,
@@ -163,10 +163,12 @@ class ModelSystemInventoryTests(unittest.TestCase):
             intent_paths = {}
             (root / "docs").mkdir()
             for model_id in ("alpha", "beta"):
-                model_dir = root / ".flowguard" / model_id
+                model_dir = root / ".flowguard" / "models" / "owners" / model_id
                 model_dir.mkdir(parents=True)
+                runner_dir = root / ".flowguard" / "verification" / "owners" / model_id
+                runner_dir.mkdir(parents=True)
                 model_paths[model_id] = model_dir / "model.py"
-                runner_paths[model_id] = model_dir / "run_checks.py"
+                runner_paths[model_id] = runner_dir / "run_checks.py"
                 model_paths[model_id].write_text(
                     f"VALUE = {model_id!r}\n",
                     encoding="utf-8",
@@ -215,19 +217,19 @@ class ModelSystemInventoryTests(unittest.TestCase):
                         {
                             "model_id": model_id,
                             "model_path": (
-                                f".flowguard/{model_id}/model.py"
+                                f".flowguard/models/owners/{model_id}/model.py"
                             ),
                             "runner": [
                                 "{python}",
-                                f".flowguard/{model_id}/run_checks.py",
+                                f".flowguard/verification/owners/{model_id}/run_checks.py",
                             ],
                             "tier": "fast",
                             "timeout_seconds": 5,
                             "shard_safe": True,
                             "mutation_policy": "none",
                             "input_globs": [
-                                f".flowguard/{model_id}/model.py",
-                                f".flowguard/{model_id}/run_checks.py",
+                                f".flowguard/models/owners/{model_id}/model.py",
+                                f".flowguard/verification/owners/{model_id}/run_checks.py",
                             ],
                             "intent_source_inputs": [f"docs/{model_id}.md"],
                             "expected_artifacts": [],
@@ -236,7 +238,7 @@ class ModelSystemInventoryTests(unittest.TestCase):
                         }
                     )
                 (
-                    root / ".flowguard" / "model-regression-manifest.json"
+                    root / ".flowguard" / "models" / "regression-manifest.json"
                 ).write_text(
                     json.dumps(
                         {
@@ -325,10 +327,12 @@ class ModelSystemInventoryTests(unittest.TestCase):
     def test_manifest_snapshot_connects_model_purpose_and_commitment(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            model_dir = root / ".flowguard" / "owner"
+            model_dir = root / ".flowguard" / "models" / "owners" / "owner"
             model_dir.mkdir(parents=True)
+            runner_dir = root / ".flowguard" / "verification" / "owners" / "owner"
+            runner_dir.mkdir(parents=True)
             model_path = model_dir / "model.py"
-            runner_path = model_dir / "run_checks.py"
+            runner_path = runner_dir / "run_checks.py"
             model_path.write_text("VALUE = 1\n", encoding="utf-8")
             runner_path.write_text("print('ok')\n", encoding="utf-8")
             purpose = build_model_purpose_closure(
@@ -367,18 +371,18 @@ class ModelSystemInventoryTests(unittest.TestCase):
                 "models": [
                     {
                         "model_id": "owner",
-                        "model_path": ".flowguard/owner/model.py",
+                        "model_path": ".flowguard/models/owners/owner/model.py",
                         "runner": [
                             "{python}",
-                            ".flowguard/owner/run_checks.py",
+                            ".flowguard/verification/owners/owner/run_checks.py",
                         ],
                         "tier": "fast",
                         "timeout_seconds": 5,
                         "shard_safe": True,
                         "mutation_policy": "none",
                         "input_globs": [
-                            ".flowguard/owner/model.py",
-                            ".flowguard/owner/run_checks.py",
+                            ".flowguard/models/owners/owner/model.py",
+                            ".flowguard/verification/owners/owner/run_checks.py",
                         ],
                         "expected_artifacts": [],
                         "exclusion_reason": "",
@@ -386,12 +390,12 @@ class ModelSystemInventoryTests(unittest.TestCase):
                     }
                 ],
             }
-            (root / ".flowguard" / "model-regression-manifest.json").write_text(
+            (root / ".flowguard" / "models" / "regression-manifest.json").write_text(
                 json.dumps(manifest),
                 encoding="utf-8",
             )
-            ledger_dir = root / ".flowguard" / "behavior_commitment_ledger"
-            ledger_dir.mkdir()
+            ledger_dir = root / ".flowguard" / "behavior" / "inventory"
+            ledger_dir.mkdir(parents=True)
             write_behavior_commitment_ledger(
                 ledger_dir / "ledger.json",
                 BehaviorCommitmentLedger(
@@ -427,7 +431,7 @@ class ModelSystemInventoryTests(unittest.TestCase):
                             "commitment:owner",
                             business_intent_id="intent:owner",
                             source_surface_ids=("surface:owner",),
-                            primary_owner_model_id=".flowguard/owner/model.py",
+                            primary_owner_model_id=".flowguard/models/owners/owner/model.py",
                             state_writes=("state:owner",),
                             evidence=BehaviorEvidenceBinding(
                                 code_contract_ids=("contract:owner",),

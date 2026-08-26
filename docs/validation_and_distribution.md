@@ -142,8 +142,9 @@ Do not reuse an old directory as evidence for changed inputs without current fre
 
 ## Evidence Storage And Explicit Cleanup
 
-Executable model source lives in `.flowguard/**/model.py` with its native
-`run_checks.py`. Evidence, extra local worktrees, build products, caches, and
+Executable model source lives in `.flowguard/models/owners/**/model.py`; its
+native runners live in `.flowguard/verification/owners/**/run_checks.py`.
+Evidence, extra local worktrees, build products, caches, and
 release receipts are generated state. They are not additional model versions
 and are excluded from the clean installed skill projection.
 
@@ -448,7 +449,8 @@ Progress 只证明任务还活着。进程 id、不断增长的 log、`START` �
 
 ### 证据存储与显式清理
 
-`.flowguard/**/model.py` 和对应原生 `run_checks.py` 是可执行模型源码。
+`.flowguard/models/owners/**/model.py` 是可执行模型源码；对应原生检查器位于
+`.flowguard/verification/owners/**/run_checks.py`。
 证据、额外本地 worktree、build 产物、缓存和 release 回执属于生成状态，
 不是更多模型版本，也不会进入干净的技能安装投影。
 

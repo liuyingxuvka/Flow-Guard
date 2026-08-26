@@ -16,7 +16,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/model_topology_hazard_review/model.py"
+          "path": ".flowguard/models/owners/model_topology_hazard_review/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -27,7 +27,7 @@
     },
     {
       "args": [
-        ".flowguard/model_topology_hazard_review/run_checks.py"
+        ".flowguard/verification/owners/model_topology_hazard_review/run_checks.py"
       ],
       "check_id": "check:flowguard-model-topology-hazard-review:native-authority",
       "command": "python",
@@ -48,11 +48,11 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/model_topology_hazard_review/model.py"
+          "path": ".flowguard/models/owners/model_topology_hazard_review/model.py"
         },
         {
           "kind": "path",
-          "path": ".flowguard/model_topology_hazard_review/run_checks.py"
+          "path": ".flowguard/verification/owners/model_topology_hazard_review/run_checks.py"
         },
         {
           "kind": "path",
@@ -92,7 +92,7 @@
       "input_selectors": [
         {
           "kind": "path",
-          "path": ".flowguard/model_topology_hazard_review/model.py"
+          "path": ".flowguard/models/owners/model_topology_hazard_review/model.py"
         }
       ],
       "kind": "model_assertion",
@@ -146,12 +146,12 @@
     "claim_boundary": "flowguard-model-topology-hazard-review owns every check's domain meaning; SkillGuard only reconciles the exact current declared-check inventory and terminal receipts in one fixed enforced closure.",
     "enforcement_level": "enforced",
     "integration_mode": "native-integrated",
+    "model_deepening_check_id": "check:flowguard-model-topology-hazard-review:native-authority",
     "native_check_ids": [
       "check:flowguard-model-topology-hazard-review:plane-boundary",
       "check:flowguard-model-topology-hazard-review:native-authority",
       "check:flowguard-model-topology-hazard-review:evidence-closure"
     ],
-    "model_deepening_check_id": "check:flowguard-model-topology-hazard-review:native-authority",
     "native_owner_id": "model_topology_hazard_review",
     "native_route_ids": [
       "route:model_topology_hazard_review"
@@ -178,11 +178,21 @@
     ],
     "schema_version": "skillguard.depth_profile.v2",
     "skillguard_adds_domain_route": false,
+    "surface_inventory": {
+      "adequacy_check_ids": [
+        "check:flowguard-model-topology-hazard-review:plane-boundary",
+        "check:flowguard-model-topology-hazard-review:native-authority",
+        "check:flowguard-model-topology-hazard-review:evidence-closure"
+      ],
+      "model_deepening_check_id": "check:flowguard-model-topology-hazard-review:native-authority",
+      "path": ".skillguard/surface-inventory.json"
+    },
     "target_skill_id": "flowguard-model-topology-hazard-review"
   },
   "implementation_paths": [
     ".agents/skills/flowguard-model-topology-hazard-review",
-    ".flowguard/model_topology_hazard_review",
+    ".flowguard/models/owners/model_topology_hazard_review",
+    ".flowguard/verification/owners/model_topology_hazard_review",
     "flowguard/topology_hazard.py",
     "flowguard/portable_model.py",
     "flowguard/portable_checker.py",
@@ -212,7 +222,7 @@
     "flowguard-ui-flow-structure"
   ],
   "model_id": "flowguard.model_topology_hazard_review.skill_contract.v2",
-  "model_path": ".flowguard/model_topology_hazard_review/model.py",
+  "model_path": ".flowguard/models/owners/model_topology_hazard_review/model.py",
   "native_check_bindings": [
     {
       "authority": "target-native",

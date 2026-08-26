@@ -1,6 +1,6 @@
-"""Validate the FlowGuard skill suite at static or full repository scope.
+"""Validate the FlowGuard skill suite at light, affected, or full repository scope.
 
-The default ``static`` scope checks the current 15-member
+The default ``light`` scope checks the current 15-member
 inventory/compiler/SkillGuard check.  ``full`` is the release-facing
 composition: every required child keeps its own stdout, stderr, and canonical
 result artifact, and the parent uses FlowGuard's shared validation-result
@@ -85,7 +85,7 @@ from flowguard.validation_results import (
 
 FULL_CHILD_IDS = (
     "project_audit",
-    "skill_suite_static",
+    "skill_suite_light",
     "skill_native_checks",
     "skill_self_governance",
     "model_regressions_full",
@@ -189,9 +189,9 @@ def _external_tree_fingerprint(path: Path) -> str:
 def _model_regression_input_patterns(root: Path) -> tuple[str, ...]:
     """Use the manifest's exact owned inputs instead of scanning runtime stores."""
 
-    manifest_path = root / ".flowguard" / "model-regression-manifest.json"
+    manifest_path = root / ".flowguard" / "models" / "regression-manifest.json"
     patterns = {
-        ".flowguard/model-regression-manifest.json",
+        ".flowguard/models/regression-manifest.json",
         "flowguard/model_regressions.py",
         "scripts/run_flowguard_model_regressions.py",
     }
@@ -213,7 +213,7 @@ def _skillguard_cli(value: str) -> Path:
 
 
 def _run_json_command(command: list[str], cwd: Path) -> dict[str, Any]:
-    """Run one static-scope child and expose its terminal JSON material."""
+    """Run one light/affected child and expose its terminal JSON material."""
 
     outcome = _execute_command(tuple(command), cwd)
     return {
@@ -312,7 +312,7 @@ def _v2_contract_projection(
     }
 
 
-def run_static_suite(
+def run_light_suite(
     root: Path,
     *,
     skillguard: str = "all",
@@ -338,7 +338,7 @@ def run_static_suite(
                 source_payload = {}
             is_v2 = source_payload.get("schema_version") == "skillguard.contract_source.v2"
             commands = {
-                "static": [
+                "light": [
                     sys.executable,
                     str(cli),
                     "check-skill",
@@ -374,7 +374,7 @@ def run_static_suite(
                     "-",
                 ]
             results = {name: _run_json_command(command, root) for name, command in commands.items()}
-            static_ok = results["static"]["exit_code"] == 0 and (results["static"]["payload"] or {}).get("decision") == "pass"
+            light_ok = results["light"]["exit_code"] == 0 and (results["light"]["payload"] or {}).get("decision") == "pass"
             depth_payload = results["depth"]["payload"] or {}
             if is_v2:
                 results["contract"] = _v2_contract_projection(skill_id, compiler, results["depth"])
@@ -391,8 +391,8 @@ def run_static_suite(
             member_rows.append(
                 {
                     "skill_id": skill_id,
-                    "ok": static_ok and contract_ok and depth_ok,
-                    "static_ok": static_ok,
+                    "ok": light_ok and contract_ok and depth_ok,
+                    "light_ok": light_ok,
                     "contract_ok": contract_ok,
                     "depth_ok": depth_ok,
                     "depth_classification": depth_payload.get("depth_classification", "unavailable"),
@@ -419,7 +419,7 @@ def run_static_suite(
         "compiler": compiler.to_dict(),
         "members": member_rows,
         "blockers": blockers,
-        "skipped_checks": [] if cli.is_file() else ["SkillGuard static/contract/depth"],
+        "skipped_checks": [] if cli.is_file() else ["SkillGuard light/contract/depth"],
         "residual_risk": [
             "Static contract-currentness does not execute declared FlowGuard native commands or prove future AI behavior."
         ],
@@ -430,7 +430,7 @@ def run_static_suite(
     }
 
 
-def _write_static_result(
+def _write_light_result(
     payload: Mapping[str, Any],
     output_dir: str | None,
     *,
@@ -441,7 +441,7 @@ def _write_static_result(
         run_dir = Path(output_dir).expanduser().resolve()
     else:
         run_dir = Path(
-            tempfile.mkdtemp(prefix="flowguard-skill-suite-static-")
+            tempfile.mkdtemp(prefix="flowguard-skill-suite-light-")
         ).resolve()
     ensure_new_run_directory(run_dir)
     result_path = run_dir / "result.json"
@@ -451,7 +451,7 @@ def _write_static_result(
     )
     publish_run(
         run_dir,
-        kind="skill-suite-static",
+        kind="skill-suite-light",
         status=str(payload.get("status", "blocked")),
         result_path=result_path,
         authority_kind=authority_kind,
@@ -461,7 +461,7 @@ def _write_static_result(
     return run_dir.name, str(result_path), result_sha256
 
 
-def _print_static(
+def _print_light(
     payload: Mapping[str, Any],
     *,
     as_json: bool,
@@ -475,7 +475,7 @@ def _print_static(
                 {
                     "schema_version": "flowguard.validation_terminal.v1",
                     "command": "check-flowguard-skill-suite",
-                    "scope": "static",
+                    "scope": str(payload.get("scope") or "light"),
                     "status": payload.get("status", "blocked"),
                     "ok": bool(payload.get("ok")),
                     "counts": {
@@ -509,7 +509,8 @@ def _print_static(
     for row in payload.get("members", ()):
         if not row.get("ok"):
             print(
-                f"finding: {row.get('skill_id')}: static={row.get('static_ok')} "
+                f"finding: {row.get('skill_id')}: profile={payload.get('scope', 'light')} "
+                f"light={row.get('light_ok')} "
                 f"contract={row.get('contract_ok')} depth={row.get('depth_classification')}"
             )
 
@@ -528,17 +529,17 @@ def _full_child_specs(args: argparse.Namespace, root: Path) -> tuple[ChildSpec, 
     distribution_script = root / "scripts" / "install_flowguard_skills.py"
     native_receipt_root = evidence_storage_root(root)
 
-    static_command = [
+    light_command = [
         sys.executable,
         str(Path(__file__).resolve()),
         "--scope",
-        "static",
+        "light",
         "--root",
         str(root),
         "--skillguard",
         args.skillguard,
         "--output-dir",
-        str(Path(args.output_dir).expanduser().resolve() / "static-suite"),
+        str(Path(args.output_dir).expanduser().resolve() / "light-suite"),
         "--authority-kind",
         "child",
         "--parent-scope",
@@ -592,8 +593,8 @@ def _full_child_specs(args: argparse.Namespace, root: Path) -> tuple[ChildSpec, 
             ("validation:project_audit",),
         ),
         ChildSpec(
-            "skill_suite_static",
-            tuple(static_command),
+            "skill_suite_light",
+            tuple(light_command),
             (
                 ".agents/skills/**/*",
                 ".skillguard/**/*",
@@ -602,7 +603,7 @@ def _full_child_specs(args: argparse.Namespace, root: Path) -> tuple[ChildSpec, 
                 "flowguard/self_maintenance.py",
                 "scripts/check_flowguard_skill_suite.py",
             ),
-            ("validation:skill_suite_static",),
+            ("validation:skill_suite_light",),
         ),
         ChildSpec(
             "skill_native_checks",
@@ -686,10 +687,10 @@ def _full_child_specs(args: argparse.Namespace, root: Path) -> tuple[ChildSpec, 
                 "README.md",
                 "ROADMAP.md",
                 ".agents/**/*",
-                ".flowguard/*/model.py",
-                ".flowguard/*/run_checks.py",
-                ".flowguard/authoritative_model_system/**/*",
-                ".flowguard/model-regression-manifest.json",
+                ".flowguard/models/owners/**/*.py",
+                ".flowguard/verification/owners/**/*.py",
+                ".flowguard/models/owners/authoritative_model_system/**/*",
+                ".flowguard/models/regression-manifest.json",
                 ".flowguard/project.toml",
                 ".github/**/*",
                 ".skillguard/**/*",
@@ -728,7 +729,7 @@ def _full_child_specs(args: argparse.Namespace, root: Path) -> tuple[ChildSpec, 
                 "flowguard/**/*.py",
                 "scripts/**/*.py",
                 "tests/**/*.py",
-                ".flowguard/model-regression-manifest.json",
+                ".flowguard/models/regression-manifest.json",
                 "pyproject.toml",
             ),
             ("validation:pytest",),
@@ -1035,6 +1036,105 @@ def _run_full_child(
     )
 
 
+def _finalize_full_child(
+    *,
+    spec: ChildSpec,
+    child: ValidationChildResult,
+    supervised: SupervisedCommandResult | None,
+    locked_current: Any,
+    root: Path,
+    receipt_root: Path,
+    all_contracts: Sequence[Any],
+    started_at: str,
+    lease_payload: dict[str, Any] | None = None,
+) -> tuple[ValidationChildResult, Any | None]:
+    """Publish exactly one owner result after its producer has finished.
+
+    The project-admission child is deliberately allowed to run before the
+    full validation lease set is acquired.  Keeping the publication logic in
+    one helper ensures that this read-only admission still gets the same
+    supervised owner receipt and fail-closed non-pass handling as every other
+    child.
+    """
+
+    if child.payload.get("launch_error") == "cleanup_unconfirmed":
+        if lease_payload is not None:
+            lease_payload["_preserve_residual"] = True
+            terminal_path = Path(child.artifact_paths[2]).parent / "supervisor-terminal.json"
+            if terminal_path.is_file():
+                terminal = json.loads(terminal_path.read_text(encoding="utf-8"))
+                lease_payload["incident_episode_token"] = str(
+                    terminal.get("episode_token", lease_payload["lease_token"])
+                )
+        return child, None
+
+    if child.status == VALIDATION_STATUS_PASS:
+        if supervised is None:
+            raise ValueError(
+                f"passing validation child lacks supervised producer: {spec.child_id}"
+            )
+        publication = publish_supervised_validation_owner_result(
+            locked_current,
+            supervised,
+            root,
+            receipt_root,
+            all_contracts=all_contracts,
+            child_id=child.child_id,
+            evidence_context={"validation_child": child.to_dict()},
+            summary=child.summary,
+            claim_boundary=child.claim_boundary,
+            result_identity_requirement=spec.result_identity_requirement,
+        )
+        if not publication.ok or publication.receipt is None:
+            raise ValueError(
+                "supervised validation child publication blocked: "
+                + publication.blocker
+            )
+        receipt = publication.receipt
+        return (
+            ValidationChildResult(
+                child_id=child.child_id,
+                status=child.status,
+                summary=child.summary,
+                receipt_id=receipt.receipt_id,
+                artifact_paths=child.artifact_paths,
+                claim_boundary=child.claim_boundary,
+                payload={
+                    **dict(child.payload),
+                    "execution_disposition": OWNER_EXECUTE,
+                    "owner_receipt_fingerprint": receipt.fingerprint,
+                },
+            ),
+            receipt,
+        )
+
+    receipt = record_validation_owner_nonpass(
+        locked_current,
+        child,
+        root,
+        receipt_root,
+        all_contracts=all_contracts,
+        started_at=started_at,
+        finished_at=datetime.now(timezone.utc).isoformat(),
+    )
+    return (
+        ValidationChildResult(
+            child_id=child.child_id,
+            status=child.status,
+            summary=child.summary,
+            receipt_id=receipt.receipt_id,
+            artifact_paths=child.artifact_paths,
+            claim_boundary=child.claim_boundary,
+            payload={
+                **dict(child.payload),
+                "execution_disposition": OWNER_EXECUTE,
+                "owner_receipt_fingerprint": receipt.fingerprint,
+            },
+        ),
+        receipt,
+    )
+
+
 def _output_directory(value: str | None) -> Path:
     if value:
         return Path(value).expanduser().resolve()
@@ -1057,6 +1157,124 @@ def _execute_full_owner_plan(
     owner_receipts: dict[str, Any] = {}
     plan_by_owner = {item.owner_id: item for item in owner_plan.rows}
     lease_payloads: dict[str, dict[str, Any]] = {}
+
+    # Project admission is a read-only current-layout gate.  It must run
+    # before this parent creates its own validation leases: leases are
+    # intentionally visible under the current evidence tree and therefore
+    # would make an otherwise current layout look stale to the admission
+    # audit.  No other child starts until this gate has produced its normal
+    # owner result (or an explicit blocked/non-pass result).
+    project_spec = next(
+        (spec for spec in specs if spec.child_id == "project_audit"),
+        None,
+    )
+    if project_spec is not None:
+        project_index = next(
+            index
+            for index, spec in enumerate(specs, start=1)
+            if spec.child_id == project_spec.child_id
+        )
+        project_row = plan_by_owner[project_spec.child_id]
+        print(
+            f"START {project_spec.child_id} disposition={project_row.disposition} "
+            f"({project_index}/{len(specs)})",
+            file=sys.stderr,
+            flush=True,
+        )
+        project_child: ValidationChildResult
+        project_receipt: Any | None = None
+        try:
+            project_current = owner_plan.owner_currents.get(project_spec.child_id)
+            if project_row.disposition == OWNER_BLOCKED:
+                project_child = _blocked_child(
+                    project_spec,
+                    project_row.reason,
+                    output_dir / f"{project_index:02d}-{project_spec.child_id}",
+                )
+            elif project_row.disposition == OWNER_REUSE_CURRENT:
+                project_receipt = owner_plan.reusable_receipts[project_spec.child_id]
+                project_child = child_from_owner_receipt(project_receipt, receipt_root)
+            elif project_current is None:
+                project_child = _blocked_child(
+                    project_spec,
+                    "project admission owner current is missing from the frozen plan",
+                    output_dir / f"{project_index:02d}-{project_spec.child_id}",
+                )
+            else:
+                locked_current = build_owner_current(
+                    root,
+                    project_current.contract,
+                    all_contracts=owner_plan.contracts,
+                )
+                if locked_current.owner_identity != project_current.owner_identity:
+                    project_child = _blocked_child(
+                        project_spec,
+                        "owner inputs changed after the frozen plan; re-plan explicitly",
+                        output_dir / f"{project_index:02d}-{project_spec.child_id}",
+                    )
+                else:
+                    project_receipt, _verification = find_reusable_owner_receipt(
+                        locked_current,
+                        root,
+                        receipt_root,
+                    )
+                    if project_receipt is not None:
+                        project_child = child_from_owner_receipt(
+                            project_receipt,
+                            receipt_root,
+                        )
+                    else:
+                        project_started = datetime.now(timezone.utc).isoformat()
+                        project_child, supervised = _run_full_child(
+                            project_spec,
+                            root,
+                            output_dir,
+                            project_index,
+                        )
+                        project_child, project_receipt = _finalize_full_child(
+                            spec=project_spec,
+                            child=project_child,
+                            supervised=supervised,
+                            locked_current=locked_current,
+                            root=root,
+                            receipt_root=receipt_root,
+                            all_contracts=owner_plan.contracts,
+                            started_at=project_started,
+                        )
+            children.append(project_child)
+            if project_receipt is not None:
+                owner_receipts[project_spec.child_id] = project_receipt
+        except Exception as exc:
+            child_dir = output_dir / f"{project_index:02d}-{project_spec.child_id}"
+            outcome = CommandOutcome(
+                project_spec.command,
+                70,
+                stderr=f"{type(exc).__name__}: {exc}",
+                launch_error=f"{type(exc).__name__}: {exc}",
+            )
+            paths = _write_child_artifacts(
+                child_dir,
+                child_id=project_spec.child_id,
+                status=VALIDATION_STATUS_INTERNAL_ERROR,
+                outcome=outcome,
+            )
+            children.append(
+                ValidationChildResult(
+                    project_spec.child_id,
+                    VALIDATION_STATUS_INTERNAL_ERROR,
+                    outcome.launch_error,
+                    artifact_paths=paths,
+                    claim_boundary="Child crashed; no closure claim is available.",
+                    payload={"exception": outcome.launch_error},
+                )
+            )
+        print(
+            f"DONE {project_spec.child_id} status={children[-1].status} "
+            f"({project_index}/{len(specs)})",
+            file=sys.stderr,
+            flush=True,
+        )
+
     with ExitStack() as leases:
         leases.enter_context(
             evidence_execution_lease(
@@ -1087,12 +1305,19 @@ def _execute_full_owner_plan(
             )
 
         if (
-            build_validation_parent_current(root, owner_plan).parent_identity
+            build_validation_parent_current(
+                root,
+                owner_plan,
+                frozen_validation_manifest=owner_plan.validation_input_manifest,
+                frozen_release_tree_manifest=owner_plan.release_tree_manifest,
+            ).parent_identity
             != parent_current.parent_identity
         ):
             raise ValueError("full validation identity changed after lease preflight")
 
         for index, spec in enumerate(specs, start=1):
+            if spec.child_id == "project_audit":
+                continue
             plan_row = plan_by_owner[spec.child_id]
             print(
                 f"START {spec.child_id} disposition={plan_row.disposition} ({index}/{len(specs)})",
@@ -1178,89 +1403,19 @@ def _execute_full_owner_plan(
                                 output_dir,
                                 index,
                             )
-                            if child.payload.get("launch_error") == "cleanup_unconfirmed":
-                                lease = lease_payloads[spec.child_id]
-                                lease["_preserve_residual"] = True
-                                terminal_path = (
-                                    output_dir
-                                    / f"{index:02d}-{spec.child_id}"
-                                    / "supervisor-terminal.json"
-                                )
-                                if terminal_path.is_file():
-                                    terminal = json.loads(
-                                        terminal_path.read_text(encoding="utf-8")
-                                    )
-                                    lease["incident_episode_token"] = str(
-                                        terminal.get(
-                                            "episode_token",
-                                            lease["lease_token"],
-                                        )
-                                    )
-                            elif child.status == VALIDATION_STATUS_PASS:
-                                if supervised is None:
-                                    raise ValueError(
-                                        f"passing validation child lacks supervised producer: {spec.child_id}"
-                                    )
-                                publication = publish_supervised_validation_owner_result(
-                                    locked_current,
-                                    supervised,
-                                    root,
-                                    receipt_root,
-                                    all_contracts=owner_plan.contracts,
-                                    child_id=child.child_id,
-                                    evidence_context={
-                                        "validation_child": child.to_dict(),
-                                    },
-                                    summary=child.summary,
-                                    claim_boundary=child.claim_boundary,
-                                    result_identity_requirement=(
-                                        spec.result_identity_requirement
-                                    ),
-                                )
-                                if not publication.ok or publication.receipt is None:
-                                    raise ValueError(
-                                        "supervised validation child publication blocked: "
-                                        + publication.blocker
-                                    )
-                                receipt = publication.receipt
+                            child, receipt = _finalize_full_child(
+                                spec=spec,
+                                child=child,
+                                supervised=supervised,
+                                locked_current=locked_current,
+                                root=root,
+                                receipt_root=receipt_root,
+                                all_contracts=owner_plan.contracts,
+                                started_at=child_started,
+                                lease_payload=lease_payloads.get(spec.child_id),
+                            )
+                            if receipt is not None:
                                 owner_receipts[spec.child_id] = receipt
-                                child = ValidationChildResult(
-                                    child_id=child.child_id,
-                                    status=child.status,
-                                    summary=child.summary,
-                                    receipt_id=receipt.receipt_id,
-                                    artifact_paths=child.artifact_paths,
-                                    claim_boundary=child.claim_boundary,
-                                    payload={
-                                        **dict(child.payload),
-                                        "execution_disposition": OWNER_EXECUTE,
-                                        "owner_receipt_fingerprint": receipt.fingerprint,
-                                    },
-                                )
-                            else:
-                                receipt = record_validation_owner_nonpass(
-                                    locked_current,
-                                    child,
-                                    root,
-                                    receipt_root,
-                                    all_contracts=owner_plan.contracts,
-                                    started_at=child_started,
-                                    finished_at=datetime.now(timezone.utc).isoformat(),
-                                )
-                                owner_receipts[spec.child_id] = receipt
-                                child = ValidationChildResult(
-                                    child_id=child.child_id,
-                                    status=child.status,
-                                    summary=child.summary,
-                                    receipt_id=receipt.receipt_id,
-                                    artifact_paths=child.artifact_paths,
-                                    claim_boundary=child.claim_boundary,
-                                    payload={
-                                        **dict(child.payload),
-                                        "execution_disposition": OWNER_EXECUTE,
-                                        "owner_receipt_fingerprint": receipt.fingerprint,
-                                    },
-                                )
             except Exception as exc:
                 child_dir = output_dir / f"{index:02d}-{spec.child_id}"
                 outcome = CommandOutcome(
@@ -1291,7 +1446,12 @@ def _execute_full_owner_plan(
             )
 
         if (
-            build_validation_parent_current(root, owner_plan).parent_identity
+            build_validation_parent_current(
+                root,
+                owner_plan,
+                frozen_validation_manifest=owner_plan.validation_input_manifest,
+                frozen_release_tree_manifest=owner_plan.release_tree_manifest,
+            ).parent_identity
             != parent_current.parent_identity
         ):
             raise ValueError("full validation inputs drifted before parent composition")
@@ -1358,7 +1518,12 @@ def run_full_validation(args: argparse.Namespace) -> ValidationResult:
     parent_current = (
         None
         if owner_plan.blocked
-        else build_validation_parent_current(root, owner_plan)
+        else build_validation_parent_current(
+            root,
+            owner_plan,
+            frozen_validation_manifest=owner_plan.validation_input_manifest,
+            frozen_release_tree_manifest=owner_plan.release_tree_manifest,
+        )
     )
     plan_rows = owner_plan.rows
     plan_payload = {
@@ -1598,7 +1763,7 @@ def run_full_validation(args: argparse.Namespace) -> ValidationResult:
             "Remote publication and post-publication verification remain separate release gates.",
         ),
         claim_boundary=(
-            "Full pass requires exact pass from project adoption, all 15 static/deep skill contracts, "
+            "Full pass requires exact pass from project adoption, all 15 light/deep skill contracts, "
             "receipt-bound self-governance, manifest full models, pytest, strict OpenSpec, and complete "
             "formal/shadow/installed distribution checks for one frozen owner plan; exact-current prior receipts may be reused."
         ),
@@ -1646,25 +1811,33 @@ def run_full_validation(args: argparse.Namespace) -> ValidationResult:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--scope", choices=("static", "full"), default="static")
+    parser.add_argument(
+        "--scope",
+        choices=("light", "affected", "full"),
+        default="light",
+        help=(
+            "Execution depth: light=currentness/layout, affected=exact changed members, "
+            "full=all declared owners; affected never falls back."
+        ),
+    )
     parser.add_argument("--root", default=".", help="FlowGuard repository root")
     parser.add_argument(
         "--skillguard",
         default="all",
         help="'all' for installed SkillGuard or an explicit skillguard.py path",
     )
-    parser.add_argument("--member", action="append", default=[], help="Static scope only; repeat to select members")
+    parser.add_argument("--member", action="append", default=[], help="Affected profile member selection; repeat to select members")
     parser.add_argument("--output-dir", help="Full-scope parent and child artifact directory")
     parser.add_argument(
         "--authority-kind",
         choices=("standalone", "child"),
         default="standalone",
-        help="Static-scope evidence authority; full validation supplies child explicitly.",
+        help="Light/affected evidence authority; full validation supplies child explicitly.",
     )
     parser.add_argument(
         "--parent-scope",
         default="",
-        help="Required parent scope identity when static evidence is a full-validation child.",
+        help="Required parent scope identity when light/affected evidence is a full-validation child.",
     )
     parser.add_argument(
         "--receipt-dir",
@@ -1728,19 +1901,32 @@ def _command_error(status: str, message: str, *, scope: str) -> ValidationResult
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    if args.scope == "static":
-        payload = run_static_suite(
+    if args.scope in {"light", "affected"}:
+        if args.scope == "affected" and not args.member:
+            result = _command_error(
+                VALIDATION_STATUS_INVALID_INPUT,
+                "--scope affected requires one or more exact --member values; it never falls back to light or full",
+                scope="affected",
+            )
+            print(result.terminal_json_text() if args.json else result.format_text(full=args.full))
+            return result.exit_code
+        payload = run_light_suite(
             Path(args.root).resolve(),
             skillguard=args.skillguard,
             members=args.member,
         )
-        run_id, result_path, result_sha256 = _write_static_result(
+        payload["scope"] = args.scope
+        payload["claim_boundary"] = (
+            "Light/affected contract checks never claim full model, receipt, installation, or release currentness; "
+            "affected selection is exact and has no run-all fallback."
+        )
+        run_id, result_path, result_sha256 = _write_light_result(
             payload,
             args.output_dir,
             authority_kind=args.authority_kind,
             parent_scope=args.parent_scope,
         )
-        _print_static(
+        _print_light(
             payload,
             as_json=args.json,
             run_id=run_id,
@@ -1754,9 +1940,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     elif args.model_timeout is not None and args.model_timeout <= 0:
         invalid_reason = "--model-timeout must be positive"
     elif args.member:
-        invalid_reason = "--member is static-only; full scope always requires all 15 members"
+        invalid_reason = "--member is light/affected-only; full scope always requires all declared members"
     elif args.authority_kind != "standalone" or args.parent_scope:
-        invalid_reason = "--authority-kind and --parent-scope are static-only"
+        invalid_reason = "--authority-kind and --parent-scope are light/affected-only"
     if invalid_reason:
         result = _command_error(VALIDATION_STATUS_INVALID_INPUT, invalid_reason, scope="full")
         print(

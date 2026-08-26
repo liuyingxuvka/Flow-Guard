@@ -375,7 +375,7 @@ Use the template with:
 
 ```powershell
 python -m flowguard topology-hazard-template --output .
-python .flowguard/model_topology_hazard_review/run_checks.py
+python .flowguard/verification/owners/model_topology_hazard_review/run_checks.py
 ```
 
 ## Unified Summary Report
@@ -527,8 +527,8 @@ python -m flowguard maintenance-template --output .
 
 The scaffold writes:
 
-- `.flowguard/maintenance_workflow/model.py`
-- `.flowguard/maintenance_workflow/run_checks.py`
+- `.flowguard/models/owners/maintenance_workflow/model.py`
+- `.flowguard/verification/owners/maintenance_workflow/run_checks.py`
 - `docs/flowguard_maintenance_workflow.md`
 
 The template models common maintenance failure modes:

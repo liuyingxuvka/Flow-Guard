@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import inspect
 import os
 import subprocess
@@ -13,6 +14,7 @@ from pathlib import Path
 from flowguard.distribution_sync import (
     AUTHOR_OWNERSHIP_ARTIFACT,
     AUTHOR_PROJECTION_ID,
+    CONSUMER_RELEASE_MANIFEST,
     DEFAULT_EXCLUSION_RULES,
     OWNERSHIP_MANIFEST_NAME,
     PARITY_ROLE_AUTHOR_SOURCE,
@@ -147,6 +149,49 @@ class TreeInventoryTests(DistributionFixture):
         self.assertTrue(exclusion.reason)
         self.assertIn(exclusion.pattern, {rule.pattern for rule in DEFAULT_EXCLUSION_RULES})
 
+
+class ConsumerReleaseWireTests(DistributionFixture):
+    def test_consumer_release_wire_identity_is_prefixed_lowercase_and_replayable(self) -> None:
+        inventory = inventory_skill_tree(self.source, member_ids=self.members)
+        raw = _consumer_release_bytes(self.members[0], inventory.files)
+        self.assertTrue(raw.endswith(b"\n"))
+        self.assertFalse(raw[:-1].endswith(b"\n"))
+        payload = json.loads(raw.decode("utf-8"))
+        self.assertRegex(payload["release_id"], r"^sha256:[0-9a-f]{64}$")
+        self.assertRegex(payload["manifest_hash"], r"^sha256:[0-9a-f]{64}$")
+        unsigned = {
+            key: payload[key]
+            for key in (
+                "schema_version",
+                "skill_id",
+                "projection_id",
+                "files",
+                "author_control_excluded",
+            )
+        }
+        canonical = json.dumps(
+            unsigned,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+        self.assertEqual(
+            payload["release_id"],
+            "sha256:" + hashlib.sha256(canonical).hexdigest(),
+        )
+        unsigned_manifest = dict(payload)
+        stored_manifest_hash = unsigned_manifest.pop("manifest_hash")
+        manifest_canonical = json.dumps(
+            unsigned_manifest,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+        self.assertEqual(
+            stored_manifest_hash,
+            "sha256:" + hashlib.sha256(manifest_canonical).hexdigest(),
+        )
+
     def test_configured_parity_rejects_partial_file_copy_and_reports_exclusions(self) -> None:
         install_skill_suite(self.source, self.target, member_ids=self.members)
         (self.target / self.members[0] / "SKILL.md").unlink()
@@ -162,6 +207,33 @@ class TreeInventoryTests(DistributionFixture):
         self.assertFalse(report.ok)
         self.assertTrue(report.comparisons["formal"].ok)
         self.assertIn(f"{self.members[0]}/SKILL.md", report.comparisons["installed"].missing_files)
+
+    def test_configured_parity_reuses_one_observation_for_resolved_same_root_and_policy(self) -> None:
+        formal_repository_root = self.source.parent.parent
+        missing_target = self.root / "missing" / "skills"
+        with patch(
+            "flowguard.distribution_sync.inventory_skill_tree",
+            wraps=inventory_skill_tree,
+        ) as inventory:
+            report = compare_configured_skill_trees(
+                {
+                    "source": self.source,
+                    "formal": formal_repository_root,
+                    "installed": missing_target,
+                },
+                member_ids=self.members,
+                root_roles={
+                    "source": PARITY_ROLE_AUTHOR_SOURCE,
+                    "formal": PARITY_ROLE_AUTHOR_SOURCE,
+                    "installed": PARITY_ROLE_CONSUMER_DISTRIBUTION,
+                },
+            )
+
+        self.assertTrue(report.comparisons["formal"].ok, report.to_dict())
+        self.assertFalse(report.comparisons["installed"].ok)
+        # One author observation for both source spellings, one consumer-policy
+        # observation for the generated projection, and one missing target.
+        self.assertEqual(3, inventory.call_count)
 
     @unittest.skipUnless(hasattr(os, "symlink"), "symlink support is unavailable")
     def test_symlink_is_never_treated_as_an_owned_regular_file(self) -> None:
@@ -649,6 +721,25 @@ class ConsumerSuiteAuthorityTests(unittest.TestCase):
             self.assertIn("installed_raw_hash_mismatch", codes)
             self.assertIn("reserved_flowguard_member_extra", codes)
             self.assertIn("consumer_author_control_residual", codes)
+
+    def test_package_authority_blocks_semantically_same_noncanonical_consumer_release(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "skills"
+            installed = install_canonical_skill_suite(ROOT, target)
+            self.assertTrue(installed.ok, installed.to_dict())
+            manifest_path = target / "flowguard" / CONSUMER_RELEASE_MANIFEST
+            payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest_path.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
+                + "\n",
+                encoding="utf-8",
+            )
+
+            report = validate_installed_consumer_suite(target)
+
+            self.assertFalse(report.ok)
+            codes = {finding.code for finding in report.findings}
+            self.assertIn("consumer_release_noncanonical", codes)
 
     def test_public_authority_interfaces_have_no_alternate_reader_or_policy(self) -> None:
         self.assertEqual((), tuple(inspect.signature(load_consumer_suite_authority).parameters))

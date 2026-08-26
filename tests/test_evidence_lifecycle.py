@@ -6,6 +6,7 @@ import os
 import shutil
 import tempfile
 import unittest
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
@@ -416,6 +417,50 @@ class EvidenceLifecycleTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(EvidenceLifecycleError, "authority-kind mismatch"):
                 read_current_head(run.parent, expected_authority_kind="parent")
+
+    def test_publish_hashes_the_serialized_manifest_without_rereading_it(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            run = root / "scope" / "run"
+            write_json_atomic(run / "result.json", {"status": "pass"})
+
+            import flowguard.evidence_lifecycle as lifecycle
+
+            with patch(
+                "flowguard.evidence_lifecycle._sha256_file",
+                wraps=lifecycle._sha256_file,
+            ) as hash_file:
+                published = publish_run(
+                    run,
+                    kind="fixture",
+                    status="pass",
+                    result_path=run / "result.json",
+                )
+
+            self.assertEqual(1, hash_file.call_count)
+            self.assertEqual(
+                published["manifest_sha256"],
+                lifecycle._sha256_bytes((run / "evidence-run.json").read_bytes()),
+            )
+
+    def test_audit_catalog_reads_each_evidence_file_once(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._publish(root, "first", finished=1)
+            self._publish(root, "second", finished=2)
+            observed: list[str] = []
+            original_read_bytes = Path.read_bytes
+
+            def record_read(path: Path) -> bytes:
+                observed.append(str(path.resolve()).lower())
+                return original_read_bytes(path)
+
+            with patch.object(Path, "read_bytes", new=record_read):
+                audit_evidence(root)
+
+            counts = Counter(observed)
+            self.assertTrue(counts)
+            self.assertTrue(all(count == 1 for count in counts.values()), counts)
 
     def test_legacy_parent_is_visible_but_not_inferred_current(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

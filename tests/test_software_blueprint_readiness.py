@@ -788,8 +788,38 @@ def test_real_test_edge_and_not_run_execution_close_static_design() -> None:
     assert result.complete
     assert result.pre_code_status == "ready"
     assert result.executed_evidence_status == "not_run"
+    assert not result.execution_complete
+    assert result.execution_evidence_fingerprint
     assert result.coverage_edges[0].oracle_member_id.startswith("checker-design:")
     assert result.coverage_execution_evidence[0].disposition == "not_run"
+
+
+def test_execution_evidence_fingerprint_changes_with_terminal_receipt() -> None:
+    block = contract()
+    _cases, edges, _planned = exact_design((block,))
+    owner_contract, receipt, verification = execution_bundle(edges)
+    result = review(
+        (block,),
+        edges=edges,
+        executions=tuple(
+            CoverageExecutionEvidence(
+                edge.coverage_id,
+                owner_contract.owner_id,
+                "pass",
+                receipt.receipt_id,
+                receipt.fingerprint,
+            )
+            for edge in edges
+        ),
+        evidence_receipts=(receipt,),
+        receipt_verification_results=(verification,),
+        validation_owner_contracts=(owner_contract,),
+    )
+
+    assert result.execution_complete
+    assert result.executed_evidence_status == "passed"
+    assert result.execution_evidence_fingerprint
+    assert result.execution_evidence_fingerprint != review().execution_evidence_fingerprint
 
 
 def test_path_quality_is_exact_current_and_observed_before_readiness() -> None:

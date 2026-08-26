@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import os
 from dataclasses import dataclass
 from itertools import product
 from typing import Any, Callable, Iterable, Sequence
@@ -125,12 +126,28 @@ class Explorer:
         object.__setattr__(self, "progress_steps", int(progress_steps))
 
     def explore(self) -> CheckReport:
-        sequences = enumerate_input_sequences(self.external_inputs, self.max_sequence_length)
+        compact_trace_storage = os.environ.get("FLOWGUARD_COMPACT_TRACE_STORAGE") == "1"
+        if compact_trace_storage:
+            # Keep exhaustive sequence generation lazy.  The normal explorer
+            # retains every sequence/path for interactive inspection; a
+            # terminal regression runner only needs exact counts, violations,
+            # and a bounded witness sample for reachability.
+            input_count = len(self.external_inputs)
+            sequence_count = sum(input_count**length for length in range(1, self.max_sequence_length + 1))
+            sequences = (
+                sequence
+                for length in range(1, self.max_sequence_length + 1)
+                for sequence in product(self.external_inputs, repeat=length)
+            )
+        else:
+            sequences = enumerate_input_sequences(self.external_inputs, self.max_sequence_length)
+            sequence_count = len(sequences)
         violations: list[InvariantViolation] = []
         dead_branches: list[DeadBranch] = []
         exception_branches: list[ExceptionBranch] = []
         observed_paths: list[WorkflowPath] = []
-        total_work = len(self.initial_states) * len(sequences)
+        observed_trace_count = 0
+        total_work = len(self.initial_states) * sequence_count
         progress_enabled = self.progress_steps > 0 and not _progress_disabled_by_environment()
         progress_thresholds = _progress_thresholds(total_work, self.progress_steps)
         next_threshold_index = 0
@@ -166,7 +183,14 @@ class Explorer:
                         dead_branches.extend(run.dead_branches)
                         exception_branches.extend(run.exception_branches)
                         for completed_path in run.completed_paths:
-                            observed_paths.append(completed_path)
+                            observed_trace_count += 1
+                            if not compact_trace_storage or len(observed_paths) < 256:
+                                observed_paths.append(completed_path)
+                            elif self.required_labels:
+                                labels = {step.label for step in completed_path.trace.steps}
+                                seen = {step.label for path in observed_paths for step in path.trace.steps}
+                                if any(label in labels and label not in seen for label in self.required_labels):
+                                    observed_paths.append(completed_path)
                             violations.extend(self._check_path_invariants(completed_path))
                         next_active.extend(run.completed_paths)
                     active = tuple(next_active)
@@ -181,7 +205,7 @@ class Explorer:
                         _, percent = progress_thresholds[next_threshold_index]
                         print(
                             f"[flowguard] progress {percent}% work={completed_work}/{total_work} "
-                            f"traces={len(observed_paths)} violations={len(violations)}",
+                            f"traces={observed_trace_count} violations={len(violations)}",
                             file=sys.stderr,
                             flush=True,
                         )
@@ -191,8 +215,8 @@ class Explorer:
         reachability_failures = self._check_reachability(observed_paths)
         ok = not violations and not dead_branches and not exception_branches and not reachability_failures
         summary = (
-            f"sequences={len(sequences)} initial_states={len(self.initial_states)} "
-            f"traces={len(traces)}"
+            f"sequences={sequence_count} initial_states={len(self.initial_states)} "
+            f"traces={observed_trace_count}"
         )
         return CheckReport(
             ok=ok,
@@ -202,7 +226,7 @@ class Explorer:
             dead_branches=tuple(dead_branches),
             exception_branches=tuple(exception_branches),
             reachability_failures=tuple(reachability_failures),
-            explored_sequences=sequences,
+            explored_sequences=() if compact_trace_storage else sequences,
             assumption_card=self.assumption_card,
         )
 

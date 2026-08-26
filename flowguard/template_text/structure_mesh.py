@@ -8,7 +8,7 @@ Created with FlowGuard: https://github.com/liuyingxuvka/FlowGuard
 Purpose: Review whether a large script or module can be split into owned child modules while preserving public behavior.
 Guards against: missing child ownership, removed public entrypoints, missing facades, duplicate state or side-effect owners, unsafe dependency cycles, config drift, and overclaimed parity evidence.
 Use before editing: Update this StructureMesh before splitting large scripts, moving module boundaries, extracting services, or changing public imports and CLI/API surfaces.
-Run: python .flowguard/structure_mesh/run_checks.py
+Run: python .flowguard/verification/owners/structure_mesh/run_checks.py
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ def target_structure_recommendation() -> CodeStructureRecommendation:
     return CodeStructureRecommendation(
         "legacy-reporter-target-structure",
         source_model_id="legacy-reporter-functional-model",
-        source_model_path=".flowguard/legacy_reporter/model.py",
+        source_model_path=".flowguard/models/owners/legacy_reporter/model.py",
         parent_module_id="legacy_reporter",
         target_modules=(
             TargetModuleRecommendation(

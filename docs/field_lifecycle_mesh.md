@@ -48,9 +48,11 @@ feature model
 ## Default Replacement Policy
 
 Replacing a feature, field, alias, wrapper, or fallback does not mean keeping
-the old path. Unless compatibility is explicitly required, the old surface must
-be deleted, blocked, migrated, delegated, same-contract repaired, or scoped out
-with a reason and evidence.
+the old path. Unless compatibility is explicitly required (and separately
+modeled as a current contract), the old surface must be deleted, blocked, or
+directly re-authored into the current contract with a reason and evidence.
+FlowGuard does not provide an automatic migration, compatibility reader, or
+alternate-success path for the old surface.
 
 ## Minimal Field Route Refs
 

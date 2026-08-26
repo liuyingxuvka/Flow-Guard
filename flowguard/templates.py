@@ -111,6 +111,21 @@ from .template_text.test_mesh import (
     TEST_MESH_RUN_CHECKS_TEMPLATE,
     TEST_MESH_NOTES_TEMPLATE,
 )
+from .template_text.model_mesh import (
+    MODEL_MESH_MODEL_TEMPLATE,
+    MODEL_MESH_RUN_CHECKS_TEMPLATE,
+    MODEL_MESH_NOTES_TEMPLATE,
+)
+from .template_text.contract_exhaustion import (
+    CONTRACT_EXHAUSTION_MODEL_TEMPLATE,
+    CONTRACT_EXHAUSTION_RUN_CHECKS_TEMPLATE,
+    CONTRACT_EXHAUSTION_NOTES_TEMPLATE,
+)
+from .template_text.reverse_surface_closure import (
+    REVERSE_SURFACE_CLOSURE_MODEL_TEMPLATE,
+    REVERSE_SURFACE_CLOSURE_RUN_CHECKS_TEMPLATE,
+    REVERSE_SURFACE_CLOSURE_NOTES_TEMPLATE,
+)
 from .template_text.topology_hazard import (
     TOPOLOGY_HAZARD_MODEL_TEMPLATE,
     TOPOLOGY_HAZARD_RUN_CHECKS_TEMPLATE,
@@ -167,105 +182,105 @@ def project_adoption_template_files() -> tuple[TemplateFile, ...]:
 
 def risk_intent_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/risk_intent_check_plan/model.py", RISK_INTENT_CHECK_PLAN_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/risk_intent_check_plan/run_checks.py", RISK_INTENT_CHECK_PLAN_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/risk_intent_check_plan/model.py", RISK_INTENT_CHECK_PLAN_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/risk_intent_check_plan/run_checks.py", RISK_INTENT_CHECK_PLAN_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_risk_intent_check_plan.md", RISK_INTENT_CHECK_PLAN_NOTES_TEMPLATE),
     )
 
 
 def work_context_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/work_context/model.py", WORK_CONTEXT_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/work_context/run_checks.py", WORK_CONTEXT_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/work_context/model.py", WORK_CONTEXT_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/work_context/run_checks.py", WORK_CONTEXT_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_work_context.md", WORK_CONTEXT_NOTES_TEMPLATE),
     )
 
 
 def risk_template_library_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/risk_template_library/model.py", RISK_TEMPLATE_LIBRARY_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/risk_template_library/run_checks.py", RISK_TEMPLATE_LIBRARY_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/risk_template_library/model.py", RISK_TEMPLATE_LIBRARY_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/risk_template_library/run_checks.py", RISK_TEMPLATE_LIBRARY_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_risk_template_library.md", RISK_TEMPLATE_LIBRARY_NOTES_TEMPLATE),
     )
 
 
 def plan_detailing_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/plan_detailing/model.py", PLAN_DETAILING_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/plan_detailing/run_checks.py", PLAN_DETAILING_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/plan_detailing/model.py", PLAN_DETAILING_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/plan_detailing/run_checks.py", PLAN_DETAILING_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_plan_detailing.md", PLAN_DETAILING_NOTES_TEMPLATE),
     )
 
 
 def behavior_commitment_ledger_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/behavior_commitment_ledger/ledger.json", BEHAVIOR_COMMITMENT_LEDGER_LEDGER_TEMPLATE),
-        TemplateFile(".flowguard/behavior_commitment_ledger/model.py", BEHAVIOR_COMMITMENT_LEDGER_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/behavior_commitment_ledger/run_checks.py", BEHAVIOR_COMMITMENT_LEDGER_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/behavior/inventory/ledger.json", BEHAVIOR_COMMITMENT_LEDGER_LEDGER_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/behavior_commitment_ledger/model.py", BEHAVIOR_COMMITMENT_LEDGER_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/behavior_commitment_ledger/run_checks.py", BEHAVIOR_COMMITMENT_LEDGER_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_behavior_commitment_ledger.md", BEHAVIOR_COMMITMENT_LEDGER_NOTES_TEMPLATE),
     )
 
 
 def primary_path_authority_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/primary_path_authority/model.py", PRIMARY_PATH_AUTHORITY_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/primary_path_authority/run_checks.py", PRIMARY_PATH_AUTHORITY_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/primary_path_authority/model.py", PRIMARY_PATH_AUTHORITY_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/primary_path_authority/run_checks.py", PRIMARY_PATH_AUTHORITY_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_primary_path_authority.md", PRIMARY_PATH_AUTHORITY_NOTES_TEMPLATE),
     )
 
 
 def model_miss_review_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/model_miss_review/model.py", MODEL_MISS_REVIEW_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/model_miss_review/run_checks.py", MODEL_MISS_REVIEW_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/model_miss_review/model.py", MODEL_MISS_REVIEW_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/model_miss_review/run_checks.py", MODEL_MISS_REVIEW_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_model_miss_review.md", MODEL_MISS_REVIEW_NOTES_TEMPLATE),
     )
 
 
 def model_miss_review_full_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/model_miss_review/model.py", MODEL_MISS_REVIEW_FULL_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/model_miss_review/run_checks.py", MODEL_MISS_REVIEW_FULL_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/model_miss_review/model.py", MODEL_MISS_REVIEW_FULL_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/model_miss_review/run_checks.py", MODEL_MISS_REVIEW_FULL_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_model_miss_review.md", MODEL_MISS_REVIEW_FULL_NOTES_TEMPLATE),
     )
 
 
 def maintenance_workflow_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/maintenance_workflow/model.py", MAINTENANCE_WORKFLOW_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/maintenance_workflow/run_checks.py", MAINTENANCE_WORKFLOW_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/maintenance_workflow/model.py", MAINTENANCE_WORKFLOW_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/maintenance_workflow/run_checks.py", MAINTENANCE_WORKFLOW_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_maintenance_workflow.md", MAINTENANCE_WORKFLOW_NOTES_TEMPLATE),
     )
 
 
 def runtime_path_evidence_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/runtime_path_evidence/model.py", RUNTIME_PATH_EVIDENCE_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/runtime_path_evidence/run_checks.py", RUNTIME_PATH_EVIDENCE_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/runtime_path_evidence/model.py", RUNTIME_PATH_EVIDENCE_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/runtime_path_evidence/run_checks.py", RUNTIME_PATH_EVIDENCE_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/runtime_path_evidence.md", RUNTIME_PATH_EVIDENCE_NOTES_TEMPLATE),
     )
 
 
 def model_test_alignment_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/model_test_alignment/model.py", MODEL_TEST_ALIGNMENT_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/model_test_alignment/run_checks.py", MODEL_TEST_ALIGNMENT_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/model_test_alignment/model.py", MODEL_TEST_ALIGNMENT_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/model_test_alignment/run_checks.py", MODEL_TEST_ALIGNMENT_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/model_test_alignment.md", MODEL_TEST_ALIGNMENT_NOTES_TEMPLATE),
     )
 
 
 def model_test_alignment_full_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/model_test_alignment/model.py", MODEL_TEST_ALIGNMENT_FULL_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/model_test_alignment/run_checks.py", MODEL_TEST_ALIGNMENT_FULL_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/model_test_alignment/model.py", MODEL_TEST_ALIGNMENT_FULL_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/model_test_alignment/run_checks.py", MODEL_TEST_ALIGNMENT_FULL_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/model_test_alignment.md", MODEL_TEST_ALIGNMENT_FULL_NOTES_TEMPLATE),
     )
 
 
 def development_process_flow_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/development_process_flow/model.py", DEVELOPMENT_PROCESS_FLOW_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/development_process_flow/run_checks.py", DEVELOPMENT_PROCESS_FLOW_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/development_process_flow/model.py", DEVELOPMENT_PROCESS_FLOW_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/development_process_flow/run_checks.py", DEVELOPMENT_PROCESS_FLOW_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_development_process_flow.md", DEVELOPMENT_PROCESS_FLOW_NOTES_TEMPLATE),
         TemplateFile(
             "docs/flowguard_development_process_strategy_selection.md",
@@ -276,9 +291,9 @@ def development_process_flow_template_files() -> tuple[TemplateFile, ...]:
 
 def workflow_step_contracts_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/workflow_step_contracts/model.py", WORKFLOW_STEP_CONTRACTS_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/workflow_step_contracts/model.py", WORKFLOW_STEP_CONTRACTS_MODEL_TEMPLATE),
         TemplateFile(
-            ".flowguard/workflow_step_contracts/run_checks.py",
+            ".flowguard/verification/owners/workflow_step_contracts/run_checks.py",
             WORKFLOW_STEP_CONTRACTS_RUN_CHECKS_TEMPLATE,
         ),
         TemplateFile("docs/flowguard_workflow_step_contracts.md", WORKFLOW_STEP_CONTRACTS_NOTES_TEMPLATE),
@@ -288,11 +303,11 @@ def workflow_step_contracts_template_files() -> tuple[TemplateFile, ...]:
 def code_structure_recommendation_template_files() -> tuple[TemplateFile, ...]:
     return (
         TemplateFile(
-            ".flowguard/code_structure_recommendation/model.py",
+            ".flowguard/models/owners/code_structure_recommendation/model.py",
             CODE_STRUCTURE_RECOMMENDATION_MODEL_TEMPLATE,
         ),
         TemplateFile(
-            ".flowguard/code_structure_recommendation/run_checks.py",
+            ".flowguard/verification/owners/code_structure_recommendation/run_checks.py",
             CODE_STRUCTURE_RECOMMENDATION_RUN_CHECKS_TEMPLATE,
         ),
         TemplateFile(
@@ -304,81 +319,123 @@ def code_structure_recommendation_template_files() -> tuple[TemplateFile, ...]:
 
 def existing_model_preflight_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/existing_model_preflight/model.py", EXISTING_MODEL_PREFLIGHT_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/existing_model_preflight/run_checks.py", EXISTING_MODEL_PREFLIGHT_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/existing_model_preflight/model.py", EXISTING_MODEL_PREFLIGHT_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/existing_model_preflight/run_checks.py", EXISTING_MODEL_PREFLIGHT_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_existing_model_preflight.md", EXISTING_MODEL_PREFLIGHT_NOTES_TEMPLATE),
     )
 
 
 def field_lifecycle_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/field_lifecycle/model.py", FIELD_LIFECYCLE_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/field_lifecycle/run_checks.py", FIELD_LIFECYCLE_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/field_lifecycle/model.py", FIELD_LIFECYCLE_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/field_lifecycle/run_checks.py", FIELD_LIFECYCLE_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_field_lifecycle_mesh.md", FIELD_LIFECYCLE_NOTES_TEMPLATE),
     )
 
 
 def risk_evidence_ledger_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/risk_evidence_ledger/model.py", RISK_EVIDENCE_LEDGER_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/risk_evidence_ledger/run_checks.py", RISK_EVIDENCE_LEDGER_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/risk_evidence_ledger/model.py", RISK_EVIDENCE_LEDGER_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/risk_evidence_ledger/run_checks.py", RISK_EVIDENCE_LEDGER_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_risk_evidence_ledger.md", RISK_EVIDENCE_LEDGER_NOTES_TEMPLATE),
     )
 
 
 def layered_boundary_proof_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/layered_boundary_proof/model.py", LAYERED_BOUNDARY_PROOF_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/layered_boundary_proof/run_checks.py", LAYERED_BOUNDARY_PROOF_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/layered_boundary_proof/model.py", LAYERED_BOUNDARY_PROOF_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/layered_boundary_proof/run_checks.py", LAYERED_BOUNDARY_PROOF_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_layered_boundary_proof.md", LAYERED_BOUNDARY_PROOF_NOTES_TEMPLATE),
     )
 
 
 def closure_contract_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/closure_contract/model.py", FLOWGUARD_CLOSURE_CONTRACT_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/closure_contract/run_checks.py", FLOWGUARD_CLOSURE_CONTRACT_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/closure_contract/model.py", FLOWGUARD_CLOSURE_CONTRACT_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/closure_contract/run_checks.py", FLOWGUARD_CLOSURE_CONTRACT_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_closure_contract_review.md", FLOWGUARD_CLOSURE_CONTRACT_NOTES_TEMPLATE),
     )
 
 
 def ui_flow_structure_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/ui_flow_structure/model.py", UI_FLOW_STRUCTURE_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/ui_flow_structure/run_checks.py", UI_FLOW_STRUCTURE_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/ui_flow_structure/model.py", UI_FLOW_STRUCTURE_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/ui_flow_structure/run_checks.py", UI_FLOW_STRUCTURE_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_ui_flow_structure.md", UI_FLOW_STRUCTURE_NOTES_TEMPLATE),
     )
 
 
 def ui_flow_structure_full_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/ui_flow_structure/model.py", UI_FLOW_STRUCTURE_FULL_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/ui_flow_structure/run_checks.py", UI_FLOW_STRUCTURE_FULL_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/ui_flow_structure/model.py", UI_FLOW_STRUCTURE_FULL_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/ui_flow_structure/run_checks.py", UI_FLOW_STRUCTURE_FULL_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_ui_flow_structure.md", UI_FLOW_STRUCTURE_FULL_NOTES_TEMPLATE),
     )
 
 
 def test_mesh_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/test_mesh/model.py", TEST_MESH_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/test_mesh/run_checks.py", TEST_MESH_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/test_mesh/model.py", TEST_MESH_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/test_mesh/run_checks.py", TEST_MESH_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_test_mesh.md", TEST_MESH_NOTES_TEMPLATE),
     )
 
 
 def structure_mesh_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/structure_mesh/model.py", STRUCTURE_MESH_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/structure_mesh/run_checks.py", STRUCTURE_MESH_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/structure_mesh/model.py", STRUCTURE_MESH_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/structure_mesh/run_checks.py", STRUCTURE_MESH_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_structure_mesh.md", STRUCTURE_MESH_NOTES_TEMPLATE),
     )
 
 
 def topology_hazard_template_files() -> tuple[TemplateFile, ...]:
     return (
-        TemplateFile(".flowguard/model_topology_hazard_review/model.py", TOPOLOGY_HAZARD_MODEL_TEMPLATE),
-        TemplateFile(".flowguard/model_topology_hazard_review/run_checks.py", TOPOLOGY_HAZARD_RUN_CHECKS_TEMPLATE),
+        TemplateFile(".flowguard/models/owners/model_topology_hazard_review/model.py", TOPOLOGY_HAZARD_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/model_topology_hazard_review/run_checks.py", TOPOLOGY_HAZARD_RUN_CHECKS_TEMPLATE),
         TemplateFile("docs/flowguard_model_topology_hazard_review.md", TOPOLOGY_HAZARD_NOTES_TEMPLATE),
+    )
+
+
+def model_mesh_template_files() -> tuple[TemplateFile, ...]:
+    return (
+        TemplateFile(".flowguard/models/owners/model_mesh/model.py", MODEL_MESH_MODEL_TEMPLATE),
+        TemplateFile(".flowguard/verification/owners/model_mesh/run_checks.py", MODEL_MESH_RUN_CHECKS_TEMPLATE),
+        TemplateFile("docs/flowguard_model_mesh.md", MODEL_MESH_NOTES_TEMPLATE),
+    )
+
+
+def contract_exhaustion_template_files() -> tuple[TemplateFile, ...]:
+    return (
+        TemplateFile(
+            ".flowguard/models/owners/contract_exhaustion/model.py",
+            CONTRACT_EXHAUSTION_MODEL_TEMPLATE,
+        ),
+        TemplateFile(
+            ".flowguard/verification/owners/contract_exhaustion/run_checks.py",
+            CONTRACT_EXHAUSTION_RUN_CHECKS_TEMPLATE,
+        ),
+        TemplateFile(
+            "docs/flowguard_contract_exhaustion.md",
+            CONTRACT_EXHAUSTION_NOTES_TEMPLATE,
+        ),
+    )
+
+
+def reverse_surface_closure_template_files() -> tuple[TemplateFile, ...]:
+    return (
+        TemplateFile(
+            ".flowguard/models/owners/reverse_surface_closure/model.py",
+            REVERSE_SURFACE_CLOSURE_MODEL_TEMPLATE,
+        ),
+        TemplateFile(
+            ".flowguard/verification/owners/reverse_surface_closure/run_checks.py",
+            REVERSE_SURFACE_CLOSURE_RUN_CHECKS_TEMPLATE,
+        ),
+        TemplateFile(
+            "docs/flowguard_reverse_surface_closure.md",
+            REVERSE_SURFACE_CLOSURE_NOTES_TEMPLATE,
+        ),
     )
 
 
@@ -388,6 +445,43 @@ def write_template_files(
     *,
     overwrite: bool = False,
 ) -> tuple[Path, ...]:
+    def prepare_current_runner(file: TemplateFile) -> str:
+        """Make a v2 verification runner import its paired current model.
+
+        v2 deliberately keeps model authority and executable verification in
+        separate role roots.  Public templates are still authored as compact
+        ``from model import ...`` or ``import model`` snippets, so the writer
+        adds one explicit current model root to ``sys.path`` at materialization
+        time.  It never searches legacy locations or accepts an alternate copy.
+        """
+
+        parts = Path(file.path).parts
+        import_marker = (
+            "from model import"
+            if "from model import" in file.content
+            else "import model"
+            if "import model" in file.content
+            else None
+        )
+        if (
+            len(parts) == 5
+            and parts[:3] == (".flowguard", "verification", "owners")
+            and parts[-1] == "run_checks.py"
+            and import_marker is not None
+            and "_FLOWGUARD_MODEL_ROOT" not in file.content
+            and "_MODEL_DIR" not in file.content
+        ):
+            owner = parts[3]
+            preamble = (
+                "from pathlib import Path\n"
+                "import sys\n\n"
+                f"_MODEL_DIR = Path(__file__).resolve().parents[4] / \".flowguard\" / \"models\" / \"owners\" / \"{owner}\"\n"
+                "if str(_MODEL_DIR) not in sys.path:\n"
+                "    sys.path.insert(0, str(_MODEL_DIR))\n\n"
+            )
+            return file.content.replace(import_marker, preamble + import_marker, 1)
+        return file.content
+
     target_root = Path(root)
     written: list[Path] = []
     for file in files:
@@ -395,7 +489,7 @@ def write_template_files(
         if target.exists() and not overwrite:
             raise FileExistsError(f"template target already exists: {target}")
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(file.content, encoding="utf-8")
+        target.write_text(prepare_current_runner(file), encoding="utf-8")
         written.append(target)
     return tuple(written)
 
@@ -478,11 +572,13 @@ __all__ = [
     "behavior_commitment_ledger_template_files",
     "closure_contract_template_files",
     "code_structure_recommendation_template_files",
+    "contract_exhaustion_template_files",
     "development_process_flow_template_files",
     "existing_model_preflight_template_files",
     "field_lifecycle_template_files",
     "layered_boundary_proof_template_files",
     "maintenance_workflow_template_files",
+    "model_mesh_template_files",
     "model_miss_review_full_template_files",
     "model_miss_review_template_files",
     "model_test_alignment_full_template_files",
@@ -496,6 +592,7 @@ __all__ = [
     "risk_template_library_template_files",
     "work_context_template_files",
     "runtime_path_evidence_template_files",
+    "reverse_surface_closure_template_files",
     "structure_mesh_template_files",
     "test_mesh_template_files",
     "topology_hazard_template_files",

@@ -8,7 +8,7 @@ Created with FlowGuard: https://github.com/liuyingxuvka/FlowGuard
 Purpose: Review field lifecycle coverage, behavior-bearing field projections, and old-field disposition before model-code-test or closure claims.
 Guards against: behavior-changing fields omitted from models, display fields mistaken for behavior proof, old fields surviving replacement work by accident, and field rows that do not project into owner model/code/test routes.
 Use before editing: Run this when a change adds, removes, renames, migrates, externalizes, or replaces fields, schema keys, config flags, prompts, or public payload columns.
-Run: python .flowguard/field_lifecycle/run_checks.py
+Run: python .flowguard/verification/owners/field_lifecycle/run_checks.py
 """
 
 from __future__ import annotations

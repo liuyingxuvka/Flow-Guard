@@ -1091,7 +1091,8 @@ def write_content_addressed_snapshot(
     target = (
         root_path
         / ".flowguard"
-        / "model-mesh"
+        / "models"
+        / "authority"
         / "snapshots"
         / f"{digest}.json"
     )

@@ -210,6 +210,26 @@ class EvidenceReceiptSchemaTests(unittest.TestCase):
             self.assertEqual(first_bytes, second_path.read_bytes())
             self.assertEqual(value, load_evidence_receipt(second_path))
 
+    def test_current_head_pointer_is_not_treated_as_an_evidence_receipt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            save_evidence_receipt(receipt(), root)
+            (root / "CURRENT.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": "flowguard.evidence_current_head.v1",
+                        "scope": "skill-native-receipts",
+                        "status": "pass",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            inventory = list_evidence_receipts(root)
+
+            self.assertEqual(1, len(inventory))
+            self.assertEqual("receipt:skillguard:1", inventory[0].receipt_id)
+
     def test_same_receipt_id_with_different_content_cannot_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

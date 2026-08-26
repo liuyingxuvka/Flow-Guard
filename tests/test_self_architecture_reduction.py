@@ -1961,9 +1961,7 @@ def test_proof_execution_rejects_caller_supplied_facade_authority_fields():
 
 
 def _facade_authority_fixture(tmp_path, *, code_contract_id="contract:facade-owner"):
-    ledger_path = (
-        tmp_path / ".flowguard" / "behavior_commitment_ledger" / "ledger.json"
-    )
+    ledger_path = tmp_path / ".flowguard" / "behavior" / "inventory" / "ledger.json"
     ledger_path.parent.mkdir(parents=True)
     ledger_path.write_text("{}\n", encoding="utf-8")
     public = SimpleNamespace(
@@ -2098,12 +2096,10 @@ def _external_commitment_fixture(
     commitment_test_evidence_ids=("test:current-owner",),
     binding_test_evidence_ids=("test:current-owner",),
 ):
-    ledger_path = (
-        tmp_path / ".flowguard" / "behavior_commitment_ledger" / "ledger.json"
-    )
+    ledger_path = tmp_path / ".flowguard" / "behavior" / "inventory" / "ledger.json"
     ledger_path.parent.mkdir(parents=True)
     ledger_path.write_text("{}\n", encoding="utf-8")
-    model_path = ".flowguard/current_owner/model.py"
+    model_path = ".flowguard/models/owners/current_owner/model.py"
     model_element_id = f"model-obligation:{model_path}"
     owner_contract_id = f"owner-contract:{model_path}"
     implementation_surface_id = "surface:flowguard.current_owner.handle"
@@ -2237,10 +2233,12 @@ def test_external_commitment_without_exact_surface_contract_grants_no_binding(
         tmp_path,
         code_contract_ids=(
             "contract:product-promise",
-            "owner-contract:.flowguard/current_owner/model.py",
+            "owner-contract:.flowguard/models/owners/current_owner/model.py",
         ),
     )
-    assert owner_contract_id == "owner-contract:.flowguard/current_owner/model.py"
+    assert owner_contract_id == (
+        "owner-contract:.flowguard/models/owners/current_owner/model.py"
+    )
     with (
         mock.patch(
             "flowguard.self_architecture_reduction.load_behavior_commitment_ledger",

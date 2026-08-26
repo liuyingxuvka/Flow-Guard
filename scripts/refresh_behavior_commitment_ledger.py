@@ -21,7 +21,7 @@ def main() -> int:
     parser.add_argument("--root", default=".", help="FlowGuard repository root")
     parser.add_argument(
         "--ledger",
-        default=".flowguard/behavior_commitment_ledger/ledger.json",
+        default=".flowguard/behavior/inventory/ledger.json",
         help="ledger path relative to --root",
     )
     parser.add_argument("--write", action="store_true", help="write the refreshed ledger")

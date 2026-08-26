@@ -21,20 +21,6 @@ ADOPTION_STATUSES = (
     "failed",
 )
 
-_STATUS_ALIASES = {
-    "": "auto",
-    "auto": "auto",
-    "complete": "completed",
-    "ok": "completed",
-    "pass": "completed",
-    "passed": "completed",
-    "partial": "blocked",
-    "blocked_or_partial": "blocked",
-    "skip": "skipped_with_reason",
-    "skipped": "skipped_with_reason",
-}
-
-
 def utc_now_text() -> str:
     """Return a stable UTC timestamp for adoption logs."""
 
@@ -49,7 +35,6 @@ def _as_tuple(values: Iterable[Any] | None) -> tuple[Any, ...]:
 
 def _normalize_status(status: str | None) -> str:
     value = str(status or "auto").strip().lower()
-    value = _STATUS_ALIASES.get(value, value)
     if value == "auto":
         return value
     if value not in ADOPTION_STATUSES:

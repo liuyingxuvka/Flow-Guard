@@ -24,7 +24,7 @@ boundary matrices, parent/child reattachment, runtime gateway bindings, or
 closure evidence.
 
 Run:
-python .flowguard/runtime_path_evidence/run_checks.py
+python .flowguard/verification/owners/runtime_path_evidence/run_checks.py
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ from flowguard import (
 
 
 MODEL_ID = "checkout.leaf"
-MODEL_PATH = ".flowguard/checkout_leaf/model.py"
+MODEL_PATH = ".flowguard/models/owners/checkout_leaf/model.py"
 OBLIGATION_ID = "accept_valid_order"
 CODE_CONTRACT_ID = "checkout.submit"
 BUSINESS_INTENT_ID = "intent:submit-order"

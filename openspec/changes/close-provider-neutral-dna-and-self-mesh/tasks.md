@@ -45,3 +45,20 @@
 - [x] 5.2 Update the FlowGuard adoption log with model files, commands, evidence identities, and skipped work.
 - [ ] 5.3 Install the source projection only after author-side SkillGuard checks are current and passing.
 - [ ] 5.4 Hand the provider-neutral contract to ResearchGuard, PhysicsGuard, and WorldGuard without embedding their domain logic in FlowGuard.
+
+### External-owner evidence contract
+
+Tasks 5.3 and 5.4 remain open because their terminal owners are outside this
+repository and cannot be honestly closed by local focused tests. They must not
+be marked complete from a local import, a copied projection, or a caller
+boolean.
+
+- Task 5.3 requires a current author-side SkillGuard receipt for the exact
+  source/projection identity, with the owning check, terminal status, and
+  receipt fingerprint. Missing or stale author evidence remains `blocked`.
+- Task 5.4 requires one handoff receipt per downstream owner (ResearchGuard,
+  PhysicsGuard, and WorldGuard) that names the provider-neutral contract
+  identity and preserves domain semantics in the downstream owner. A missing
+  downstream owner remains `not_run` or `blocked`; `not_applicable` is valid
+  only when that owner records a target-scoped reason and it still does not
+  satisfy a required broad DNA layer.

@@ -116,11 +116,20 @@ class AdoptionLoggingTests(unittest.TestCase):
             project="demo",
             task_summary="Toolchain blocked",
             trigger_reason="flowguard import failed",
-            status="blocked_or_partial",
+            status="blocked",
             skipped_steps=("formal flowguard package unavailable",),
         )
         self.assertEqual("blocked", blocked.status)
         self.assertFalse(blocked.complete)
+
+        with self.assertRaises(ValueError):
+            make_adoption_log_entry(
+                task_id="task-5-legacy",
+                project="demo",
+                task_summary="Legacy status must be rewritten",
+                trigger_reason="current-only status schema",
+                status="blocked_or_partial",
+            )
 
         failed = make_adoption_log_entry(
             task_id="task-6",

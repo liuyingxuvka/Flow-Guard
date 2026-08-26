@@ -8,7 +8,7 @@ Created with FlowGuard: https://github.com/liuyingxuvka/FlowGuard
 Purpose: Model UI-level interaction behavior first, derive parent/child UI structure and text hierarchy from that model, then project transitions into coverage cells when test coverage is claimed.
 Guards against: layout-only UI plans, unmodeled controls, missing recovery actions, internal or unclassified content on ordinary UI, on-demand details visible before reveal, drifting menu levels, duplicate information, ad hoc headings, untested transition cells, and hierarchy recommendations that are not tied to UI state.
 Use before editing: Ask for this route before visual design or frontend implementation when UI controls, states, navigation, panels, menus, overlays, or parent/child UI topology matter.
-Run: python .flowguard/ui_flow_structure/run_checks.py
+Run: python .flowguard/verification/owners/ui_flow_structure/run_checks.py
 """
 
 from __future__ import annotations
@@ -2076,7 +2076,7 @@ functional chains, journey evidence, content admission, default-hidden optional
 details, visible surface, or text hierarchy.
 Use before editing: frontend work where controls, state, navigation,
 validation, source interactions, or visible text affect behavior.
-Run: python .flowguard/ui_flow_structure/run_checks.py
+Run: python .flowguard/verification/owners/ui_flow_structure/run_checks.py
 Modeled block shape: Input x State -> Set(Output x State).
 """
 

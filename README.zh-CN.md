@@ -21,7 +21,7 @@
 
 | 公开版本 | Schema | Runtime | License |
 | --- | --- | --- | --- |
-| `v0.68.15` | `1.0` | 仅使用 Python 标准库 | MIT |
+| `v0.68.16` | `1.0` | 仅使用 Python 标准库 | MIT |
 
 [English](./README.md) · [快速开始](#快速开始) · [概念介绍](./docs/concept.md) · [文档地图](#文档地图)
 
@@ -655,6 +655,12 @@ FlowGuard 会刻意分开三种不同的 green 结果：
 
 只有 Current、已到达终态的 full-tier pass 才能参与 release claim。
 
+日常 FlowGuard 的执行档位与上述模型回归 tier 分开：`light` 只做便宜的
+当前性和布局检查，`affected` 按明确的变更成员闭包执行，`full` 才执行声明的
+全体 owner 闭包。专业 route 不会因为被触发就偷偷升级成全量扫描。详细的
+档位、轻量存储审计、紧凑布局和可复用分支模板见
+[FlowGuard 执行档位与分支种子](./docs/flowguard_execution_profiles.md)。
+
 普通使用时，simulator 会审计 manifest，并把每个选中的模型交给它自己的 native runner：
 
 ```powershell
@@ -738,15 +744,15 @@ python -m flowguard risk-template-search "completion evidence"
 
 运行 `python -m flowguard --help` 查看完整的当前命令列表。
 
-FlowGuard v0.68.15 只发布源码：不可变 Git tag 才是 release authority；release 不应包含 wheel、source distribution
+FlowGuard v0.68.16 只发布源码：不可变 Git tag 才是 release authority；release 不应包含 wheel、source distribution
 或 GitHub Release asset。
 
 验证冻结的 source candidate、不可变 tag 和已发布 release 这三个独立身份：
 
 ```powershell
 python scripts/verify_flowguard_release.py --root . --phase local-candidate --parent-receipt <parent-receipt-id> --receipt-root .flowguard/evidence/validation-owners --json
-python scripts/verify_flowguard_release.py --root . --phase tag --tag v0.68.15 --parent-receipt <parent-receipt-id> --receipt-root .flowguard/evidence/validation-owners --json
-python scripts/verify_flowguard_release.py --root . --phase published --tag v0.68.15 --parent-receipt <parent-receipt-id> --receipt-root .flowguard/evidence/validation-owners --repository liuyingxuvka/FlowGuard --json
+python scripts/verify_flowguard_release.py --root . --phase tag --tag v0.68.16 --parent-receipt <parent-receipt-id> --receipt-root .flowguard/evidence/validation-owners --json
+python scripts/verify_flowguard_release.py --root . --phase published --tag v0.68.16 --parent-receipt <parent-receipt-id> --receipt-root .flowguard/evidence/validation-owners --repository liuyingxuvka/FlowGuard --json
 ```
 
 ## 与 Guard Family 的关系
@@ -806,6 +812,7 @@ python scripts/verify_flowguard_release.py --root . --phase published --tag v0.6
 | [`docs/risk_evidence_ledger.md`](./docs/risk_evidence_ledger.md) | risk-to-model-to-code-to-evidence confidence boundary |
 | [`docs/flowguard_closure_contract.md`](./docs/flowguard_closure_contract.md) | 完整使用 FlowGuard 的 closure contract |
 | [`docs/validation_and_distribution.md`](./docs/validation_and_distribution.md) | validation tier、evidence layer、monitoring、skill distribution 与 release lifecycle |
+| [`docs/flowguard_execution_profiles.md`](./docs/flowguard_execution_profiles.md) | light/affected/full 档位、紧凑布局、存储审计与分支种子 |
 | [`docs/github_release_checklist.md`](./docs/github_release_checklist.md) | 仅发布源码的 GitHub release checklist |
 
 ## 仓库结构

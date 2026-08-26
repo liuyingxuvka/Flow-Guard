@@ -11,13 +11,13 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_PATH = (
-    ROOT / ".flowguard/authoritative_model_system/semantic_self_model.py"
+    ROOT / ".flowguard/models/owners/authoritative_model_system/semantic_self_model.py"
 )
-MESH_PATH = ROOT / ".flowguard/authoritative_model_system/semantic_model_mesh.json"
-MANIFEST_PATH = ROOT / ".flowguard/model-regression-manifest.json"
+MESH_PATH = ROOT / ".flowguard/models/owners/authoritative_model_system/semantic_model_mesh.json"
+MANIFEST_PATH = ROOT / ".flowguard/models/regression-manifest.json"
 BLUEPRINT_DEFINITION_PATH = (
     ROOT
-    / ".flowguard/authoritative_model_system/software_blueprint_definition.json"
+    / ".flowguard/models/owners/authoritative_model_system/software_blueprint_definition.json"
 )
 
 SPEC = importlib.util.spec_from_file_location(
